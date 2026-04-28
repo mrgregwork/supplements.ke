@@ -39,7 +39,7 @@ export default defineConfig({
       }
     },
     server: {
-      allowedHosts: ['.replit.app', '.replit.dev', '.kirk.replit.dev', '.spock.replit.dev', 'localhost', '127.0.0.1']
+      allowedHosts: ['.replit.app', '.replit.dev', '.kirk.replit.dev', '.spock.replit.dev', 'localhost', '127.0.0.1', 'supplements.co.ke', 'www.supplements.co.ke', '.railway.app']
     }
   }
 });
