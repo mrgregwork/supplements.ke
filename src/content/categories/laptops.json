@@ -1,0 +1,11 @@
+{
+  "name": "Laptops",
+  "slug": "laptops",
+  "description": "Discover our wide range of laptops for every need - from gaming to business to everyday use.",
+  "seoTitle": "Laptops - Best Deals on Premium Laptops",
+  "seoDescription": "Shop the best laptops at unbeatable prices. Find gaming laptops, business laptops, and student laptops with fast shipping.",
+  "heroImage": "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=1200&h=600&fit=crop",
+  "seoContent": "Looking for the perfect laptop? Our curated selection includes top brands like HP, Dell, Lenovo, and Apple. Whether you need a powerful gaming laptop, a reliable business machine, or an affordable student laptop, we have options to fit every budget and requirement. All laptops come with manufacturer warranty and our satisfaction guarantee.",
+  "featured": true,
+  "order": 1
+}

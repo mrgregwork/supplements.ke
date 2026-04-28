@@ -1,0 +1,390 @@
+---
+import BaseLayout from "@layouts/BaseLayout.astro";
+import AdminSidebar from "@components/AdminSidebar.astro";
+import { getAdminSessionToken, verifyAdminSession } from "@lib/admin";
+import { storage } from "@lib/storage";
+
+const sessionToken = getAdminSessionToken(Astro.request);
+const sessionData = await verifyAdminSession(sessionToken);
+
+const isDev = import.meta.env.DEV;
+if (!isDev && !sessionData) {
+  return Astro.redirect("/admin/login");
+}
+
+const adminEmail = sessionData?.admin?.email || "Dev Mode";
+
+const allSettings = await storage.getSiteSettings();
+const settingsMap: Record<string, string> = {};
+for (const s of allSettings) {
+  settingsMap[s.key] = s.value || '';
+}
+
+const licenseKey = settingsMap.licenseKey || '';
+const licenseStatus = settingsMap.licenseStatus || 'inactive';
+const hasValidLicense = licenseStatus === 'active' && licenseKey.length > 0;
+
+const categories = await storage.getAllCategories();
+^
+const subcategories = await storage.getAllSubcategories();
+---
+
+<BaseLayout 
+  title="Import Products - Admin" 
+  description="Import products from external sources"
+>
+  <div class="min-h-screen flex">
+    <AdminSidebar adminEmail={adminEmail} currentPage="import" />
+    
+    <main class="flex-1 p-8">
+      <h2 class="text-2xl font-bold mb-6">Import Products</h2>
+      
+      {!hasValidLicense ? (
+        <div class="bg-card border rounded-lg p-8 text-center max-w-2xl">
+          <svg class="w-16 h-16 mx-auto text-muted-foreground mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+          <h3 class="text-xl font-semibold mb-2">License Required</h3>
+          <p class="text-muted-foreground mb-4">
+            You need an active license to use the product import feature. 
+            Please enter and verify your license key in Settings.
+          </p>
+          <a 
+            href="/admin/settings" 
+            class="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:opacity-90 transition"
+            data-testid="link-go-to-settings"
+          >
+            Go to Settings
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
+          </a>
+        </div>
+      ) : (
+        <div class="space-y-6">
+          <div class="bg-card border rounded-lg p-6">
+            <h3 class="text-lg font-semibold mb-4">Search Products</h3>
+            <p class="text-sm text-muted-foreground mb-4">
+              Search for products to import. Enter a product name, ASIN, or keyword.
+            </p>
+            
+            <div class="flex gap-4 mb-6">
+              <div class="flex-1">
+                <input 
+                  type="text" 
+                  id="search-query"
+                  placeholder="Enter product name or keyword..."
+                  class="w-full px-4 py-2 border rounded-md bg-background"
+                  data-testid="input-search-query"
+                />
+              </div>
+              <button 
+                type="button"
+                id="search-btn"
+                class="px-6 py-2 bg-primary text-primary-foreground rounded-md hover:opacity-90 transition flex items-center gap-2"
+                data-testid="button-search"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                Search
+              </button>
+            </div>
+            
+            <div id="search-status" class="text-sm text-muted-foreground mb-4 hidden"></div>
+            
+            <div id="search-results" class="space-y-4">
+              <p class="text-muted-foreground text-center py-8">
+                Enter a search term above to find products to import.
+              </p>
+            </div>
+          </div>
+          
+          <div id="import-panel" class="bg-card border rounded-lg p-6 hidden">
+            <h3 class="text-lg font-semibold mb-4">Import Selected Product</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <div id="selected-product-preview" class="mb-4">
+                </div>
+              </div>
+              
+              <div class="space-y-4">
+                <div>
+                  <label for="import-category" class="block text-sm font-medium mb-1">Category</label>
+                  <select 
+                    id="import-category" 
+                    class="w-full px-3 py-2 border rounded-md bg-background"
+                    data-testid="select-import-category"
+                  >
+                    <option value="">Select a category</option>
+                    {categories.map(cat => (
+                      <option value={cat.id}>{cat.name}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div>
+                  <label for="import-subcategory" class="block text-sm font-medium mb-1">Subcategory</label>
+                  <select 
+                    id="import-subcategory" 
+                    class="w-full px-3 py-2 border rounded-md bg-background"
+                    data-testid="select-import-subcategory"
+                  >
+                    <option value="">Select a subcategory</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label for="import-price" class="block text-sm font-medium mb-1">Price Override (optional)</label>
+                  <input 
+                    type="number" 
+                    id="import-price" 
+                    step="0.01"
+                    placeholder="Leave empty to use source price"
+                    class="w-full px-3 py-2 border rounded-md bg-background"
+                    data-testid="input-import-price"
+                  />
+                </div>
+                
+                <div>
+                  <label for="import-description" class="block text-sm font-medium mb-1">Description Override (optional)</label>
+                  <textarea 
+                    id="import-description"
+                    rows="4"
+                    placeholder="Leave empty to use source description, or write your own..."
+                    class="w-full px-3 py-2 border rounded-md bg-background resize-none"
+                    data-testid="input-import-description"
+                  ></textarea>
+                </div>
+                
+                <div class="flex gap-3">
+                  <button 
+                    type="button"
+                    id="import-btn"
+                    class="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:opacity-90 transition"
+                    data-testid="button-import"
+                  >
+                    Import Product
+                  </button>
+                  <button 
+                    type="button"
+                    id="cancel-import-btn"
+                    class="px-4 py-2 border rounded-md hover:bg-muted transition"
+                    data-testid="button-cancel-import"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </main>
+  </div>
+</BaseLayout>
+
+<script define:vars={{ subcategories: JSON.stringify(subcategories) }}>
+  const parsedSubcategories = JSON.parse(subcategories);
+  
+  const searchInput = document.getElementById('search-query') as HTMLInputElement;
+  const searchBtn = document.getElementById('search-btn');
+  const searchStatus = document.getElementById('search-status');
+  const searchResults = document.getElementById('search-results');
+  const importPanel = document.getElementById('import-panel');
+  const categorySelect = document.getElementById('import-category') as HTMLSelectElement;
+  const subcategorySelect = document.getElementById('import-subcategory') as HTMLSelectElement;
+  const importBtn = document.getElementById('import-btn');
+  const cancelImportBtn = document.getElementById('cancel-import-btn');
+  const selectedProductPreview = document.getElementById('selected-product-preview');
+  const importPriceInput = document.getElementById('import-price') as HTMLInputElement;
+  const importDescInput = document.getElementById('import-description') as HTMLTextAreaElement;
+  
+  let selectedProduct: any = null;
+  
+  categorySelect?.addEventListener('change', () => {
+    const categoryId = categorySelect.value;
+    const filtered = parsedSubcategories.filter((s: any) => s.categoryId === categoryId);
+    
+    subcategorySelect.innerHTML = '<option value="">Select a subcategory</option>';
+    filtered.forEach((sub: any) => {
+      const option = document.createElement('option');
+      option.value = String(sub.id);
+      option.textContent = sub.name;
+      subcategorySelect.appendChild(option);
+    });
+  });
+  
+  searchBtn?.addEventListener('click', async () => {
+    const query = searchInput?.value?.trim();
+    if (!query) {
+      alert('Please enter a search term');
+      return;
+    }
+    
+    if (searchStatus) {
+      searchStatus.textContent = 'Searching...';
+      searchStatus.classList.remove('hidden');
+    }
+    
+    try {
+      const response = await fetch('/api/admin/import/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.message || 'Search failed');
+      }
+      
+      if (searchStatus) searchStatus.classList.add('hidden');
+      
+      if (result.products && result.products.length > 0) {
+        renderSearchResults(result.products);
+      } else {
+        if (searchResults) {
+          searchResults.innerHTML = `
+            <p class="text-muted-foreground text-center py-8">
+              No products found for "${query}". Try a different search term.
+            </p>
+          `;
+        }
+      }
+    } catch (error: any) {
+      if (searchStatus) {
+        searchStatus.textContent = error.message || 'Search failed. Please try again.';
+        searchStatus.classList.remove('hidden');
+      }
+    }
+  });
+  
+  searchInput?.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      searchBtn?.click();
+    }
+  });
+  
+  function renderSearchResults(products: any[]) {
+    if (!searchResults) return;
+    
+    searchResults.innerHTML = products.map((product, index) => `
+      <div class="border rounded-lg p-4 hover:bg-muted/50 transition cursor-pointer" data-product-index="${index}" data-testid="product-result-${index}">
+        <div class="flex gap-4">
+          <div class="w-20 h-20 bg-muted rounded-md flex-shrink-0 overflow-hidden">
+            ${product.image ? `<img src="${product.image}" alt="${product.title}" class="w-full h-full object-cover" />` : ''}
+          </div>
+          <div class="flex-1 min-w-0">
+            <h4 class="font-medium truncate">${product.title}</h4>
+            <p class="text-sm text-muted-foreground line-clamp-2">${product.description || ''}</p>
+            <div class="flex items-center gap-4 mt-2">
+              <span class="font-semibold">${product.currency || '$'}${product.price || 'N/A'}</span>
+              ${product.rating ? `<span class="text-sm text-muted-foreground">${product.rating} stars</span>` : ''}
+            </div>
+          </div>
+          <button 
+            class="select-product-btn px-4 py-2 bg-primary text-primary-foreground rounded-md hover:opacity-90 transition self-center"
+            data-product='${JSON.stringify(product)}'
+            data-testid="button-select-product-${index}"
+          >
+            Select
+          </button>
+        </div>
+      </div>
+    `).join('');
+    
+    document.querySelectorAll('.select-product-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const productData = (btn as HTMLElement).dataset.product;
+        if (productData) {
+          selectProduct(JSON.parse(productData));
+        }
+      });
+    });
+  }
+  
+  function selectProduct(product: any) {
+    selectedProduct = product;
+    
+    if (selectedProductPreview) {
+      selectedProductPreview.innerHTML = `
+        <div class="border rounded-lg p-4">
+          <div class="w-full h-48 bg-muted rounded-md mb-4 overflow-hidden">
+            ${product.image ? `<img src="${product.image}" alt="${product.title}" class="w-full h-full object-cover" />` : ''}
+          </div>
+          <h4 class="font-semibold">${product.title}</h4>
+          <p class="text-lg font-bold mt-2">${product.currency || '$'}${product.price || 'N/A'}</p>
+          ${product.rating ? `<p class="text-sm text-muted-foreground">${product.rating} stars</p>` : ''}
+        </div>
+      `;
+    }
+    
+    if (importPriceInput) importPriceInput.value = product.price || '';
+    if (importDescInput) importDescInput.value = product.description || '';
+    
+    importPanel?.classList.remove('hidden');
+    importPanel?.scrollIntoView({ behavior: 'smooth' });
+  }
+  
+  cancelImportBtn?.addEventListener('click', () => {
+    selectedProduct = null;
+    importPanel?.classList.add('hidden');
+  });
+  
+  importBtn?.addEventListener('click', async () => {
+    if (!selectedProduct) return;
+    
+    const categoryId = categorySelect?.value;
+    const subcategoryId = subcategorySelect?.value;
+    
+    if (!categoryId || !subcategoryId) {
+      alert('Please select a category and subcategory');
+      return;
+    }
+    
+    const importData = {
+      title: selectedProduct.title,
+      description: importDescInput?.value || selectedProduct.description || '',
+      price: parseFloat(importPriceInput?.value) || selectedProduct.price || 0,
+      image: selectedProduct.image || '',
+      categoryId: categoryId,
+      subcategoryId: subcategoryId,
+      attributes: selectedProduct.attributes || {},
+      sourceData: selectedProduct,
+    };
+    
+    importBtn.textContent = 'Importing...';
+    (importBtn as HTMLButtonElement).disabled = true;
+    
+    try {
+      const response = await fetch('/api/admin/import/product', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(importData),
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.message || 'Import failed');
+      }
+      
+      alert('Product imported successfully!');
+      selectedProduct = null;
+      importPanel?.classList.add('hidden');
+      
+      if (result.productId) {
+        window.location.href = `/admin/products?highlight=${result.productId}`;
+      }
+    } catch (error: any) {
+      alert(error.message || 'Failed to import product');
+    } finally {
+      importBtn.textContent = 'Import Product';
+      (importBtn as HTMLButtonElement).disabled = false;
+    }
+  });
+</script>

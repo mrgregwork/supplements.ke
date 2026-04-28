@@ -1,0 +1,15 @@
+{
+  "name": "Student Laptops",
+  "slug": "student-laptops",
+  "categorySlug": "laptops",
+  "description": "Affordable and reliable laptops perfect for students and everyday use.",
+  "seoTitle": "Student Laptops - Affordable Laptops for Education",
+  "seoDescription": "Find budget-friendly student laptops ideal for schoolwork, research, and entertainment. Great value with essential features.",
+  "heroImage": "/images/subcategories/student-laptops-hero.jpg",
+  "seoContent": "Get the perfect laptop for your academic journey. Our student laptops offer great value with features that matter: long battery life for all-day classes, lightweight designs for easy portability, and enough power for research, writing, and collaboration.",
+  "siblingLinks": [
+    { "name": "Gaming Laptops", "slug": "gaming-laptops" },
+    { "name": "Business Laptops", "slug": "business-laptops" }
+  ],
+  "order": 3
+}

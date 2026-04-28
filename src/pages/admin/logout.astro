@@ -1,0 +1,10 @@
+---
+import { getAdminSessionToken, deleteAdminSession } from "@lib/admin";
+
+const sessionToken = getAdminSessionToken(Astro.request);
+if (sessionToken) {
+  await deleteAdminSession(sessionToken);
+}
+Astro.cookies.delete("adminSession", { path: "/" });
+return Astro.redirect("/admin/login");
+---

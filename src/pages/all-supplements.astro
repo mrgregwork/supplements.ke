@@ -1,0 +1,144 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import { storage } from '@lib/storage';
+import { getSiteSettings } from '@lib/settings';
+
+const siteSettings = await getSiteSettings();
+
+const allCategories = await storage.getCategories();
+const activeCategories = allCategories.filter(c => c.isActive);
+
+const categoryData = await Promise.all(
+  activeCategories.map(async (cat) => {
+    const subs = await storage.getSubcategoriesByCategoryId(cat.id);
+    const productCount = await storage.getProductsByCategory(cat.id).then(p => p.length).catch(() => 0);
+    return { ...cat, subcategories: subs.filter(s => s.isActive), productCount };
+  })
+);
+
+const NOINDEX_SLUGS = ['supplement-forms', 'lifestyle-supplements'];
+const displayCategories = categoryData.filter(c => !NOINDEX_SLUGS.includes(c.slug));
+
+const SECTIONS = [
+  { label: 'Vitamins & Minerals',   slugs: ['vitamins', 'minerals'],                        tint: 'from-amber-50 to-yellow-50 dark:from-amber-950/30 dark:to-yellow-950/20',         accent: 'border-amber-200 dark:border-amber-900/40' },
+  { label: 'Herbal & Natural',      slugs: ['herbal-supplements'],                          tint: 'from-emerald-50 to-green-50 dark:from-emerald-950/30 dark:to-green-950/20',     accent: 'border-emerald-200 dark:border-emerald-900/40' },
+  { label: 'Protein & Fitness',     slugs: ['protein', 'weight-management'],                tint: 'from-rose-50 to-orange-50 dark:from-rose-950/30 dark:to-orange-950/20',         accent: 'border-rose-200 dark:border-rose-900/40' },
+  { label: 'Health Goals',          slugs: ['health-goals', 'specialty-supplements'],       tint: 'from-blue-50 to-sky-50 dark:from-blue-950/30 dark:to-sky-950/20',               accent: 'border-blue-200 dark:border-blue-900/40' },
+  { label: 'Beauty & Collagen',     slugs: ['beauty-supplements', 'collagen'],              tint: 'from-pink-50 to-fuchsia-50 dark:from-pink-950/30 dark:to-fuchsia-950/20',       accent: 'border-pink-200 dark:border-pink-900/40' },
+  { label: 'Omega & Fatty Acids',   slugs: ['omega-fatty-acids'],                           tint: 'from-cyan-50 to-teal-50 dark:from-cyan-950/30 dark:to-teal-950/20',             accent: 'border-cyan-200 dark:border-cyan-900/40' },
+  { label: 'Gut & Digestive',       slugs: ['probiotics-gut-health'],                       tint: 'from-lime-50 to-emerald-50 dark:from-lime-950/30 dark:to-emerald-950/20',       accent: 'border-lime-200 dark:border-lime-900/40' },
+  { label: 'Kids & Family',         slugs: ['kids-family'],                                 tint: 'from-yellow-50 to-amber-50 dark:from-yellow-950/30 dark:to-amber-950/20',     accent: 'border-yellow-200 dark:border-yellow-900/40' },
+  { label: "Women's Health",        slugs: ['womens-health'],                               tint: 'from-pink-50 to-rose-50 dark:from-pink-950/30 dark:to-rose-950/20',             accent: 'border-pink-200 dark:border-pink-900/40' },
+  { label: "Men's Health",          slugs: ['mens-health'],                                 tint: 'from-slate-50 to-zinc-50 dark:from-slate-900/40 dark:to-zinc-900/30',         accent: 'border-slate-200 dark:border-slate-800' },
+];
+
+const catBySlug = Object.fromEntries(displayCategories.map(c => [c.slug, c]));
+const totalCategories = displayCategories.length;
+const totalSubcats = displayCategories.reduce((n, c) => n + c.subcategories.length, 0);
+---
+
+<BaseLayout
+  title="All Supplements Kenya - Shop by Category"
+  description="Browse all supplement categories in Kenya. Vitamins, minerals, protein, herbal supplements, beauty, omega-3, collagen and more. Best prices."
+>
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <!-- Hero -->
+    <section class="relative pt-10 pb-8 sm:pt-14 sm:pb-12 text-center">
+      <div class="absolute inset-0 -z-10 bg-gradient-to-br from-emerald-50 via-white to-teal-50 dark:from-emerald-950/30 dark:via-transparent dark:to-teal-950/30 rounded-3xl"></div>
+      <p class="text-xs sm:text-sm font-semibold tracking-wider uppercase text-primary mb-3">Shop the full catalog</p>
+      <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight max-w-3xl mx-auto">
+        All Supplements in Kenya
+      </h1>
+      <p class="mt-3 text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto">
+        Browse our full range of vitamins, minerals, protein, herbal remedies, beauty supplements and more, all sourced and priced for the Kenyan market.
+      </p>
+      <div class="mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs sm:text-sm text-muted-foreground">
+        <span class="inline-flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-primary"></span>{totalCategories} categories</span>
+        <span class="inline-flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-primary"></span>{totalSubcats}+ subcategories</span>
+        <span class="inline-flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-primary"></span>Curated for Kenya</span>
+      </div>
+
+      <!-- Browse by chips -->
+      <div class="mt-6 flex flex-wrap items-center justify-center gap-2">
+        <span class="text-xs sm:text-sm font-medium text-muted-foreground mr-1">Quick filters:</span>
+        <a href="/supplement-forms/" class="inline-flex items-center px-3 py-1.5 text-xs sm:text-sm bg-card hover:bg-accent border rounded-full transition-colors">By Form</a>
+        <a href="/lifestyle-supplements/" class="inline-flex items-center px-3 py-1.5 text-xs sm:text-sm bg-card hover:bg-accent border rounded-full transition-colors">By Lifestyle</a>
+      </div>
+    </section>
+
+    <!-- Section grid -->
+    <div class="py-6 sm:py-8 space-y-10">
+      {SECTIONS.map(section => {
+        const cats = section.slugs.map(s => catBySlug[s]).filter(Boolean);
+        if (!cats.length) return null;
+        return (
+          <section>
+            <div class="flex items-baseline gap-3 mb-4">
+              <span class="w-1 h-6 rounded-full bg-primary" aria-hidden="true"></span>
+              <h2 class="text-xl sm:text-2xl font-bold tracking-tight">{section.label}</h2>
+              <div class="flex-1 h-px bg-border"></div>
+            </div>
+            <div class={`grid grid-cols-1 sm:grid-cols-2 ${cats.length >= 2 ? 'lg:grid-cols-2' : 'lg:grid-cols-1 max-w-2xl'} gap-5 auto-rows-fr`}>
+              {cats.map(cat => (
+                <div class={`group relative rounded-2xl border ${section.accent} bg-gradient-to-br ${section.tint} p-5 sm:p-6 hover:shadow-lg hover:-translate-y-0.5 transition-all flex flex-col`}>
+                  <div class="flex items-start justify-between gap-4 mb-3">
+                    <div>
+                      <a href={`/${cat.slug}/`} class="block">
+                        <h3 class="text-lg sm:text-xl font-bold group-hover:text-primary transition-colors">{cat.name}</h3>
+                      </a>
+                      {cat.productCount > 0 && (
+                        <p class="text-xs text-muted-foreground mt-1">{cat.productCount} {cat.productCount === 1 ? 'product' : 'products'} available</p>
+                      )}
+                    </div>
+                    <a href={`/${cat.slug}/`} class="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-full bg-white/70 dark:bg-black/30 border border-current/10 text-primary hover:bg-primary hover:text-primary-foreground transition-colors" aria-label={`Browse ${cat.name}`}>
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
+                      </svg>
+                    </a>
+                  </div>
+
+                  {cat.description && (
+                    <p class="text-xs sm:text-sm text-muted-foreground mb-4 line-clamp-2">{cat.description}</p>
+                  )}
+
+                  {cat.subcategories.length > 0 && (
+                    <div class="mt-auto">
+                      <p class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Popular in this category</p>
+                      <div class="flex flex-wrap gap-1.5">
+                        {cat.subcategories.slice(0, 6).map(sub => (
+                          <a
+                            href={`/${cat.slug}/${sub.slug}/`}
+                            class="inline-flex items-center px-2.5 py-1 text-xs bg-white/80 dark:bg-black/30 hover:bg-primary hover:text-primary-foreground border border-current/10 rounded-full transition-colors"
+                          >
+                            {sub.name}
+                          </a>
+                        ))}
+                        {cat.subcategories.length > 6 && (
+                          <a href={`/${cat.slug}/`} class="inline-flex items-center px-2.5 py-1 text-xs font-medium text-primary hover:underline">
+                            +{cat.subcategories.length - 6} more
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        );
+      })}
+    </div>
+
+    <!-- Bottom CTA -->
+    <section class="my-12 rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 p-8 sm:p-10 text-center">
+      <h2 class="text-xl sm:text-2xl font-bold mb-2">Can't find what you're looking for?</h2>
+      <p class="text-sm sm:text-base text-muted-foreground mb-5 max-w-xl mx-auto">
+        Use the search above or contact our team and we'll help you find the right supplement for your goals.
+      </p>
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+        <a href="/" class="inline-flex items-center justify-center px-5 py-2.5 min-h-[44px] bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors">Back to homepage</a>
+        <a href="/supplement-forms/" class="inline-flex items-center justify-center px-5 py-2.5 min-h-[44px] border rounded-md text-sm font-medium hover:bg-accent transition-colors">Browse by form</a>
+      </div>
+    </section>
+  </div>
+</BaseLayout>

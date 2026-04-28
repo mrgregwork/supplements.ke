@@ -1,0 +1,15 @@
+{
+  "name": "Business Laptops",
+  "slug": "business-laptops",
+  "categorySlug": "laptops",
+  "description": "Professional laptops built for productivity, security, and reliability.",
+  "seoTitle": "Business Laptops - Professional & Enterprise Notebooks",
+  "seoDescription": "Discover business laptops designed for professionals. Features include enhanced security, long battery life, and enterprise management.",
+  "heroImage": "/images/subcategories/business-laptops-hero.jpg",
+  "seoContent": "Empower your business with laptops designed for the modern professional. Our business laptops feature enterprise-grade security, TPM chips, fingerprint readers, and IT management capabilities. Long battery life and durable construction keep you productive anywhere.",
+  "siblingLinks": [
+    { "name": "Gaming Laptops", "slug": "gaming-laptops" },
+    { "name": "Student Laptops", "slug": "student-laptops" }
+  ],
+  "order": 2
+}

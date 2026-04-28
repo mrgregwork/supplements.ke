@@ -1,0 +1,261 @@
+---
+import BaseLayout from "@layouts/BaseLayout.astro";
+import AdminSidebar from "@components/AdminSidebar.astro";
+import { getAdminSessionToken, verifyAdminSession, getAllProducts } from "@lib/admin";
+
+const sessionToken = getAdminSessionToken(Astro.request);
+const sessionData = await verifyAdminSession(sessionToken);
+
+const isDev = import.meta.env.DEV;
+if (!isDev && !sessionData) {
+  return Astro.redirect("/admin/login");
+}
+
+const adminEmail = sessionData?.admin?.email || "Dev Mode";
+const products = await getAllProducts();
+---
+
+<BaseLayout 
+  title="Products - Admin" 
+  description="Manage products"
+>
+  <div class="min-h-screen flex flex-col md:flex-row">
+    <AdminSidebar adminEmail={adminEmail} currentPage="products" />
+    
+    <main class="flex-1 p-4 md:p-6 lg:p-8">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h2 class="text-2xl font-bold">Products</h2>
+          <p class="text-sm text-muted-foreground mt-1" id="product-count">{products.length} product{products.length !== 1 ? 's' : ''}</p>
+        </div>
+        <div class="flex gap-2">
+          <a 
+            href="/admin/products/import"
+            class="px-4 py-3 min-h-[48px] border rounded-lg font-medium hover:bg-muted transition flex items-center justify-center gap-2"
+            data-testid="link-import-products"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            <span class="hidden sm:inline">Import CSV</span>
+          </a>
+          <a 
+            href="/admin/products/new"
+            class="px-4 py-3 min-h-[48px] bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition flex items-center justify-center gap-2"
+            data-testid="link-add-product"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            <span class="hidden sm:inline">Add Product</span>
+          </a>
+        </div>
+      </div>
+      
+      <div class="flex flex-col sm:flex-row gap-3 mb-4">
+        <div class="relative flex-1">
+          <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input 
+            type="text" 
+            id="search-input"
+            placeholder="Search products..."
+            class="w-full pl-10 pr-4 py-3 min-h-[48px] text-base border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+            data-testid="input-search"
+          />
+        </div>
+        <select 
+          id="filter-status"
+          class="px-4 py-3 min-h-[48px] text-base border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+          data-testid="select-filter-status"
+        >
+          <option value="all">All statuses</option>
+          <option value="active">Active</option>
+          <option value="draft">Draft</option>
+        </select>
+        <select 
+          id="filter-stock"
+          class="px-4 py-3 min-h-[48px] text-base border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+          data-testid="select-filter-stock"
+        >
+          <option value="all">All stock</option>
+          <option value="in-stock">In Stock</option>
+          <option value="out-of-stock">Out of Stock</option>
+        </select>
+      </div>
+      
+      <div class="bg-card border rounded-lg overflow-hidden">
+        {products.length === 0 ? (
+          <div class="p-8 text-center text-muted-foreground">
+            No products yet. Add your first product to get started.
+          </div>
+        ) : (
+          <>
+            <div id="no-results" class="hidden p-8 text-center text-muted-foreground">
+              No products match your search criteria.
+            </div>
+            <div class="md:hidden divide-y" id="mobile-list">
+              {products.map((product) => (
+                <a 
+                  href={`/admin/products/${product.id}`} 
+                  class="flex items-center gap-3 p-4 hover:bg-muted/30 transition product-row"
+                  data-name={product.name.toLowerCase()}
+                  data-status={(product as any).status || 'active'}
+                  data-stock={product.inStock ? 'in-stock' : 'out-of-stock'}
+                >
+                  <img 
+                    src={product.images[0] || "/placeholder.png"} 
+                    alt={product.name}
+                    class="w-14 h-14 object-cover rounded border flex-shrink-0"
+                  />
+                  <div class="flex-1 min-w-0">
+                    <p class="font-medium truncate">{product.name}</p>
+                    <p class="text-sm text-muted-foreground">${product.price.toFixed(2)}</p>
+                    <div class="flex gap-1.5 mt-1">
+                      <span class={`inline-block px-2 py-0.5 text-xs rounded-full ${
+                        (product as any).status === 'draft' 
+                          ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                          : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                      }`}>
+                        {(product as any).status === 'draft' ? 'Draft' : 'Active'}
+                      </span>
+                      <span class={`inline-block px-2 py-0.5 text-xs rounded-full ${
+                        product.inStock 
+                          ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                          : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                      }`}>
+                        {product.inStock ? "In Stock" : "Out of Stock"}
+                      </span>
+                    </div>
+                  </div>
+                  <svg class="w-5 h-5 text-muted-foreground flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </a>
+              ))}
+            </div>
+            <div class="hidden md:block overflow-x-auto" id="desktop-table">
+              <table class="w-full min-w-[700px]">
+                <thead>
+                  <tr class="border-b bg-muted/50">
+                    <th class="text-left py-4 px-4 lg:px-6 font-medium">Product</th>
+                    <th class="text-left py-4 px-4 lg:px-6 font-medium">Status</th>
+                    <th class="text-left py-4 px-4 lg:px-6 font-medium hidden lg:table-cell">Category</th>
+                    <th class="text-left py-4 px-4 lg:px-6 font-medium">Price</th>
+                    <th class="text-left py-4 px-4 lg:px-6 font-medium">Inventory</th>
+                    <th class="text-right py-4 px-4 lg:px-6 font-medium w-32">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y">
+                  {products.map((product) => (
+                    <tr 
+                      class="hover:bg-muted/30 transition product-row"
+                      data-name={product.name.toLowerCase()}
+                      data-status={(product as any).status || 'active'}
+                      data-stock={product.inStock ? 'in-stock' : 'out-of-stock'}
+                    >
+                      <td class="py-4 px-4 lg:px-6">
+                        <div class="flex items-center gap-3">
+                          <img 
+                            src={product.images[0] || "/placeholder.png"} 
+                            alt={product.name}
+                            class="w-12 h-12 object-cover rounded border flex-shrink-0"
+                          />
+                          <div class="min-w-0">
+                            <p class="font-medium truncate max-w-xs">{product.name}</p>
+                            <p class="text-xs text-muted-foreground lg:hidden">{product.categorySlug}/{product.subcategorySlug}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="py-4 px-4 lg:px-6">
+                        <span class={`inline-block px-2 py-1 text-xs rounded-full ${
+                          (product as any).status === 'draft'
+                            ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                            : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                        }`}>
+                          {(product as any).status === 'draft' ? 'Draft' : 'Active'}
+                        </span>
+                      </td>
+                      <td class="py-4 px-4 lg:px-6 text-sm hidden lg:table-cell">
+                        <span class="text-muted-foreground">{product.categorySlug}</span> / {product.subcategorySlug}
+                      </td>
+                      <td class="py-4 px-4 lg:px-6">
+                        <span class="font-medium">${product.price.toFixed(2)}</span>
+                        {product.originalPrice && (
+                          <span class="text-xs text-muted-foreground line-through ml-2">
+                            ${product.originalPrice.toFixed(2)}
+                          </span>
+                        )}
+                      </td>
+                      <td class="py-4 px-4 lg:px-6">
+                        <span class={`inline-block px-2 py-1 text-xs rounded-full ${
+                          product.inStock 
+                            ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                            : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                        }`}>
+                          {product.inStock ? "In Stock" : "Out of Stock"}
+                        </span>
+                      </td>
+                      <td class="py-4 px-4 lg:px-6 text-right">
+                        <a 
+                          href={`/admin/products/${product.id}`}
+                          class="px-3 py-2 min-h-[40px] text-sm text-primary hover:bg-primary/10 rounded-md transition inline-flex items-center"
+                        >
+                          Edit
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </div>
+    </main>
+  </div>
+</BaseLayout>
+
+<script>
+  const searchInput = document.getElementById('search-input');
+  const filterStatus = document.getElementById('filter-status');
+  const filterStock = document.getElementById('filter-stock');
+  const productCount = document.getElementById('product-count');
+  const noResults = document.getElementById('no-results');
+  const rows = document.querySelectorAll('.product-row');
+  
+  function filterProducts() {
+    const search = searchInput?.value?.toLowerCase() || '';
+    const status = filterStatus?.value || 'all';
+    const stock = filterStock?.value || 'all';
+    let visible = 0;
+    
+    rows.forEach(row => {
+      const name = row.dataset.name || '';
+      const rowStatus = row.dataset.status || 'active';
+      const rowStock = row.dataset.stock || 'in-stock';
+      
+      const matchSearch = !search || name.includes(search);
+      const matchStatus = status === 'all' || rowStatus === status;
+      const matchStock = stock === 'all' || rowStock === stock;
+      
+      const show = matchSearch && matchStatus && matchStock;
+      row.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+    
+    const total = rows.length / 2;
+    if (productCount) {
+      productCount.textContent = `${visible / 2} of ${total} product${total !== 1 ? 's' : ''}`;
+    }
+    if (noResults) {
+      noResults.style.display = visible === 0 ? '' : 'none';
+      noResults.classList.toggle('hidden', visible > 0);
+    }
+  }
+  
+  searchInput?.addEventListener('input', filterProducts);
+  filterStatus?.addEventListener('change', filterProducts);
+  filterStock?.addEventListener('change', filterProducts);
+</script>

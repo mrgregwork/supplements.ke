@@ -1,0 +1,75 @@
+---
+import siteSettings from '@config/siteSettings.json';
+import { getRegionalAnchorText, generateCategoryUrl } from '@lib/seo';
+import { getCategoryImageAlt } from '@lib/schema';
+
+interface Props {
+  category: {
+    name: string;
+    slug: string;
+    description: string;
+    heroImage?: string;
+  };
+  variant?: 'default' | 'circular';
+}
+
+const { category, variant = 'default' } = Astro.props;
+const categoryUrl = generateCategoryUrl(category.slug);
+const categoryAltText = getCategoryImageAlt(category.name);
+---
+
+{variant === 'circular' ? (
+  <!-- Circular Category Style (like Kentex) -->
+  <a 
+    href={categoryUrl} 
+    class="group flex flex-col items-center gap-3 min-w-[100px]"
+    title={siteSettings.enableRegionalSeo 
+      ? `${category.name} Price In ${siteSettings.targetRegion}`
+      : category.name}
+    data-testid={`card-category-${category.slug}`}
+  >
+    <div class="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden bg-muted/30 border-2 border-transparent group-hover:border-primary transition-all duration-300 shadow-md group-hover:shadow-lg">
+      <img
+        src={category.heroImage || '/images/placeholder-category.jpg'}
+        alt={categoryAltText}
+        class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
+        loading="lazy"
+      />
+    </div>
+    <span class="text-sm font-medium text-center group-hover:text-primary transition-colors" data-testid={`text-category-name-${category.slug}`}>
+      {category.name}
+    </span>
+  </a>
+) : (
+  <!-- Default Card Style -->
+  <a 
+    href={categoryUrl} 
+    class="group relative block overflow-hidden rounded-lg bg-card border border-card-border hover:shadow-lg hover:border-primary/30 transition-all duration-300"
+    title={siteSettings.enableRegionalSeo 
+      ? `${category.name} Price In ${siteSettings.targetRegion}`
+      : category.name}
+    data-testid={`card-category-${category.slug}`}
+  >
+    <div class="aspect-[4/3] overflow-hidden bg-muted/30">
+      <img
+        src={category.heroImage || '/images/placeholder-category.jpg'}
+        alt={categoryAltText}
+        class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+        loading="lazy"
+      />
+      <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+    </div>
+    <div class="absolute bottom-0 left-0 right-0 p-5 text-white">
+      <h3 class="text-xl font-bold mb-1 group-hover:text-primary-foreground transition-colors" data-testid={`text-category-name-${category.slug}`}>
+        {category.name}
+      </h3>
+      <p class="text-sm text-white/80 line-clamp-2">{category.description}</p>
+      <span class="inline-flex items-center gap-1 mt-3 text-sm font-medium text-white group-hover:text-primary-foreground">
+        Shop Now
+        <svg class="w-4 h-4 transition-transform group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M5 12h14M12 5l7 7-7 7" />
+        </svg>
+      </span>
+    </div>
+  </a>
+)}

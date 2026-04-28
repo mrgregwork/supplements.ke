@@ -1,0 +1,429 @@
+---
+import BaseLayout from "@layouts/BaseLayout.astro";
+import AdminSidebar from "@components/AdminSidebar.astro";
+import { getAdminSessionToken, verifyAdminSession } from "@lib/admin";
+
+const sessionToken = getAdminSessionToken(Astro.request);
+const sessionData = await verifyAdminSession(sessionToken);
+
+const isDev = import.meta.env.DEV;
+if (!isDev && !sessionData) {
+  return Astro.redirect("/admin/login");
+}
+
+const adminEmail = sessionData?.admin?.email || "Dev Mode";
+---
+
+<BaseLayout 
+  title="Import Products (CSV) - Admin" 
+  description="Bulk import products from CSV"
+>
+  <div class="min-h-screen flex flex-col md:flex-row">
+    <AdminSidebar adminEmail={adminEmail} currentPage="products" />
+    
+    <main class="flex-1 p-4 md:p-6 lg:p-8">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h2 class="text-2xl font-bold">Import Products (CSV)</h2>
+          <p class="text-sm text-muted-foreground mt-1">Bulk import products from a CSV file</p>
+        </div>
+        <a 
+          href="/admin/products"
+          class="px-4 py-3 min-h-[48px] border rounded-lg font-medium hover:bg-muted transition flex items-center gap-2"
+          data-testid="link-back"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+          <span class="hidden sm:inline">Back</span>
+        </a>
+      </div>
+      
+      <div class="space-y-6 max-w-4xl">
+        <div class="bg-card border rounded-lg p-4 md:p-6 space-y-4">
+          <h3 class="font-semibold">CSV Format</h3>
+          <p class="text-sm text-muted-foreground">
+            Upload a CSV with your products. Category and Subcategory must match existing names exactly. 
+            Separate multiple image URLs with a pipe character (|).
+          </p>
+          <div class="bg-muted/30 rounded-lg p-4 overflow-x-auto">
+            <pre class="text-xs"><code>Name,Description,Price,Original Price,Category,Subcategory,Brand,SKU,Images,Status
+MacBook Pro 16,Powerful laptop for pros,2499.99,2799.99,Laptops,Business Laptops,Apple,MBP16-2024,https://img.com/1.jpg|https://img.com/2.jpg,active
+Galaxy S24 Ultra,Premium Android phone,1199.99,,Phones,Android Phones,Samsung,GS24U,,active</code></pre>
+          </div>
+          <button 
+            type="button"
+            id="download-template"
+            class="px-4 py-2 min-h-[48px] text-sm border rounded-lg hover:bg-muted transition flex items-center gap-2"
+            data-testid="button-download-template"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Download CSV Template
+          </button>
+        </div>
+
+        <div class="bg-card border rounded-lg p-4 md:p-6 space-y-4">
+          <h3 class="font-semibold">Upload CSV File</h3>
+          <div class="border-2 border-dashed rounded-lg p-8 text-center" id="drop-zone">
+            <input type="file" id="csv-file" accept=".csv,.txt" class="hidden" />
+            <label for="csv-file" class="cursor-pointer">
+              <svg class="w-12 h-12 mx-auto text-muted-foreground mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              <p class="text-sm font-medium mb-1">Click to upload or drag and drop</p>
+              <p class="text-xs text-muted-foreground">CSV file with your product data</p>
+            </label>
+          </div>
+          
+          <div class="relative">
+            <div class="absolute inset-0 flex items-center"><div class="w-full border-t"></div></div>
+            <div class="relative flex justify-center text-xs"><span class="bg-card px-2 text-muted-foreground">or paste CSV data</span></div>
+          </div>
+          
+          <textarea 
+            id="csv-paste"
+            class="w-full px-4 py-3 min-h-[120px] text-sm font-mono border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+            placeholder="Name,Description,Price,Original Price,Category,Subcategory,Brand,SKU,Images,Status&#10;Product Name,Short description,99.99,,Category Name,Subcategory Name,Brand,SKU123,https://img.com/1.jpg,active"
+            data-testid="textarea-csv"
+          ></textarea>
+          
+          <button 
+            type="button"
+            id="parse-btn"
+            class="px-4 py-3 min-h-[48px] bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition flex items-center gap-2"
+            data-testid="button-parse"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+            Preview Import
+          </button>
+        </div>
+
+        <div id="preview-section" class="hidden bg-card border rounded-lg p-4 md:p-6 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="font-semibold">Preview</h3>
+            <p class="text-sm text-muted-foreground"><span id="preview-count">0</span> products to import</p>
+          </div>
+          
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[600px] text-sm">
+              <thead>
+                <tr class="border-b bg-muted/50">
+                  <th class="text-left py-2 px-3 font-medium">Name</th>
+                  <th class="text-left py-2 px-3 font-medium">Price</th>
+                  <th class="text-left py-2 px-3 font-medium">Category</th>
+                  <th class="text-left py-2 px-3 font-medium hidden md:table-cell">Brand</th>
+                  <th class="text-left py-2 px-3 font-medium hidden lg:table-cell">Status</th>
+                </tr>
+              </thead>
+              <tbody id="preview-body" class="divide-y"></tbody>
+            </table>
+          </div>
+          
+          <button 
+            type="button"
+            id="import-btn"
+            class="px-6 py-3 min-h-[48px] bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition flex items-center gap-2"
+            data-testid="button-import"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            Import All Products
+          </button>
+        </div>
+
+        <div id="progress-section" class="hidden bg-card border rounded-lg p-4 md:p-6 space-y-4">
+          <h3 class="font-semibold">Importing...</h3>
+          <div class="w-full bg-muted rounded-full h-3">
+            <div id="progress-bar" class="bg-primary h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+          <p id="progress-text" class="text-sm text-muted-foreground">Starting import...</p>
+        </div>
+
+        <div id="results-section" class="hidden bg-card border rounded-lg p-4 md:p-6 space-y-4">
+          <h3 class="font-semibold">Import Complete</h3>
+          <div id="results-summary" class="grid grid-cols-3 gap-4"></div>
+          <div id="results-errors" class="hidden">
+            <h4 class="font-medium text-sm text-red-600 mb-2">Issues:</h4>
+            <ul id="errors-list" class="text-sm text-red-500 space-y-1 list-disc list-inside max-h-60 overflow-y-auto"></ul>
+          </div>
+          <div class="flex gap-3">
+            <a 
+              href="/admin/products"
+              class="px-4 py-3 min-h-[48px] bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition"
+              data-testid="link-view-products"
+            >
+              View Products
+            </a>
+            <button 
+              type="button"
+              id="import-more-btn"
+              class="px-4 py-3 min-h-[48px] border rounded-lg font-medium hover:bg-muted transition"
+              data-testid="button-import-more"
+            >
+              Import More
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</BaseLayout>
+
+<script>
+  const csvFile = document.getElementById('csv-file');
+  const csvPaste = document.getElementById('csv-paste');
+  const parseBtn = document.getElementById('parse-btn');
+  const importBtn = document.getElementById('import-btn');
+  const importMoreBtn = document.getElementById('import-more-btn');
+  const downloadTemplate = document.getElementById('download-template');
+  const previewSection = document.getElementById('preview-section');
+  const progressSection = document.getElementById('progress-section');
+  const resultsSection = document.getElementById('results-section');
+  const previewBody = document.getElementById('preview-body');
+  const previewCount = document.getElementById('preview-count');
+  const progressBar = document.getElementById('progress-bar');
+  const progressText = document.getElementById('progress-text');
+  const resultsSummary = document.getElementById('results-summary');
+  const resultsErrors = document.getElementById('results-errors');
+  const errorsList = document.getElementById('errors-list');
+  const dropZone = document.getElementById('drop-zone');
+
+  let parsedRows = [];
+
+  function parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          current += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        result.push(current);
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    result.push(current);
+    return result;
+  }
+
+  function parseCSV(text) {
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    console.log('[CSV] Total lines after split:', lines.length);
+    if (lines.length < 2) { console.log('[CSV] Too few lines'); return []; }
+
+    const startIdx = 1;
+    const rows = [];
+
+    for (let i = startIdx; i < lines.length; i++) {
+      const parts = parseCSVLine(lines[i]);
+      if (parts.length < 3 || !parts[0]?.trim()) continue;
+
+      const priceStr = (parts[2] || '').trim();
+      const price = parseFloat(priceStr);
+      if (i === 1) console.log('[CSV] Row 1 parts count:', parts.length, '| name:', parts[0]?.slice(0,30), '| price raw:', JSON.stringify(priceStr), '| parsed:', price);
+      if (isNaN(price) || price <= 0) continue;
+
+      const originalPriceStr = (parts[3] || '').trim();
+      const originalPrice = originalPriceStr ? parseFloat(originalPriceStr) : undefined;
+
+      rows.push({
+        name: (parts[0] || '').trim(),
+        description: (parts[1] || '').trim(),
+        price,
+        originalPrice: (originalPrice && !isNaN(originalPrice)) ? originalPrice : undefined,
+        category: (parts[4] || '').trim(),
+        subcategory: (parts[5] || '').trim(),
+        brand: (parts[6] || '').trim(),
+        sku: (parts[7] || '').trim(),
+        images: (parts[8] || '').trim(),
+        status: (parts[9] || 'active').trim().toLowerCase() === 'draft' ? 'draft' : 'active',
+      });
+    }
+    console.log('[CSV] Valid rows parsed:', rows.length);
+    return rows;
+  }
+
+  function escapeHtml(s) {
+    const div = document.createElement('div');
+    div.textContent = s;
+    return div.innerHTML;
+  }
+
+  function renderPreview(rows) {
+    parsedRows = rows;
+    previewBody.innerHTML = '';
+    previewCount.textContent = rows.length.toString();
+
+    rows.forEach(row => {
+      const tr = document.createElement('tr');
+      const statusClass = row.status === 'draft' 
+        ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+        : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
+      tr.innerHTML = `
+        <td class="py-2 px-3 font-medium max-w-xs truncate">${escapeHtml(row.name)}</td>
+        <td class="py-2 px-3">$${row.price.toFixed(2)}</td>
+        <td class="py-2 px-3 text-muted-foreground">${escapeHtml(row.category)}${row.subcategory ? ' / ' + escapeHtml(row.subcategory) : ''}</td>
+        <td class="py-2 px-3 text-muted-foreground hidden md:table-cell">${escapeHtml(row.brand || '—')}</td>
+        <td class="py-2 px-3 hidden lg:table-cell"><span class="px-2 py-0.5 text-xs rounded-full ${statusClass}">${row.status}</span></td>
+      `;
+      previewBody.appendChild(tr);
+    });
+
+    previewSection.classList.remove('hidden');
+    progressSection.classList.add('hidden');
+    resultsSection.classList.add('hidden');
+  }
+
+  csvFile?.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      let text = ev.target.result;
+      // Strip UTF-8 BOM if present
+      if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+      // Normalize line endings
+      text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      csvPaste.value = text;
+      const rows = parseCSV(text);
+      if (rows.length > 0) renderPreview(rows);
+      else alert('No valid product rows found.\n\nMake sure the CSV has columns: Name, Description, Price, Original Price, Category, Subcategory, Brand, SKU, Images, Status\n\nOpen browser DevTools console for details.');
+    };
+    reader.readAsText(file, 'UTF-8');
+  });
+
+  ['dragover', 'dragenter'].forEach(evt => {
+    dropZone?.addEventListener(evt, (e) => {
+      e.preventDefault();
+      dropZone.classList.add('border-primary', 'bg-primary/5');
+    });
+  });
+  ['dragleave', 'drop'].forEach(evt => {
+    dropZone?.addEventListener(evt, () => {
+      dropZone.classList.remove('border-primary', 'bg-primary/5');
+    });
+  });
+  dropZone?.addEventListener('drop', (e) => {
+    e.preventDefault();
+    const file = e.dataTransfer?.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        csvPaste.value = ev.target.result;
+        const rows = parseCSV(ev.target.result);
+        if (rows.length > 0) renderPreview(rows);
+      };
+      reader.readAsText(file);
+    }
+  });
+
+  parseBtn?.addEventListener('click', () => {
+    const text = csvPaste?.value || '';
+    if (!text.trim()) {
+      alert('Please upload a file or paste CSV data first.');
+      return;
+    }
+    const rows = parseCSV(text);
+    if (rows.length === 0) {
+      alert('No valid product rows found. Check the CSV format.');
+      return;
+    }
+    renderPreview(rows);
+  });
+
+  importBtn?.addEventListener('click', async () => {
+    if (parsedRows.length === 0) return;
+
+    importBtn.disabled = true;
+    previewSection.classList.add('hidden');
+    progressSection.classList.remove('hidden');
+
+    progressBar.style.width = '10%';
+    progressText.textContent = `Importing ${parsedRows.length} products...`;
+
+    try {
+      const res = await fetch('/api/admin/products/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rows: parsedRows }),
+      });
+
+      progressBar.style.width = '90%';
+      progressText.textContent = 'Processing...';
+
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error || 'Import failed');
+
+      progressBar.style.width = '100%';
+
+      setTimeout(() => {
+        progressSection.classList.add('hidden');
+        resultsSection.classList.remove('hidden');
+
+        resultsSummary.innerHTML = `
+          <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 text-center">
+            <p class="text-2xl font-bold text-green-700 dark:text-green-400">${data.created}</p>
+            <p class="text-xs text-green-600 dark:text-green-500">Products Created</p>
+          </div>
+          <div class="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4 text-center">
+            <p class="text-2xl font-bold text-yellow-700 dark:text-yellow-400">${data.skipped}</p>
+            <p class="text-xs text-yellow-600 dark:text-yellow-500">Skipped</p>
+          </div>
+          <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 text-center">
+            <p class="text-2xl font-bold">${data.created + data.skipped}</p>
+            <p class="text-xs text-muted-foreground">Total Rows</p>
+          </div>
+        `;
+
+        if (data.errors && data.errors.length > 0) {
+          resultsErrors.classList.remove('hidden');
+          errorsList.innerHTML = data.errors.map(e => `<li>${escapeHtml(e)}</li>`).join('');
+        } else {
+          resultsErrors.classList.add('hidden');
+        }
+      }, 500);
+    } catch (err) {
+      progressSection.classList.add('hidden');
+      previewSection.classList.remove('hidden');
+      alert('Import failed: ' + err.message);
+    } finally {
+      importBtn.disabled = false;
+    }
+  });
+
+  importMoreBtn?.addEventListener('click', () => {
+    resultsSection.classList.add('hidden');
+    csvPaste.value = '';
+    csvFile.value = '';
+    parsedRows = [];
+  });
+
+  downloadTemplate?.addEventListener('click', () => {
+    const template = `Name,Description,Price,Original Price,Category,Subcategory,Brand,SKU,Images,Status
+MacBook Pro 16,Powerful laptop for professionals,2499.99,2799.99,Laptops,Business Laptops,Apple,MBP16-2024,https://example.com/mbp.jpg,active
+Galaxy S24 Ultra,Premium Android smartphone,1199.99,,Phones,Android Phones,Samsung,GS24U-256,,active
+iPad Air M2,Lightweight powerful tablet,599.99,649.99,Tablets,iPad,Apple,IPAD-AIR-M2,https://example.com/ipad1.jpg|https://example.com/ipad2.jpg,active
+Pixel 9 Pro,Google flagship phone,999.99,,Phones,Android Phones,Google,PX9PRO,,draft`;
+    const blob = new Blob([template], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'products-template.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+</script>

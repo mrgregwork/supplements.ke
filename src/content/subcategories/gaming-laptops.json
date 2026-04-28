@@ -1,0 +1,15 @@
+{
+  "name": "Gaming Laptops",
+  "slug": "gaming-laptops",
+  "categorySlug": "laptops",
+  "description": "High-performance gaming laptops with powerful graphics and fast processors.",
+  "seoTitle": "Gaming Laptops - Powerful Gaming Notebooks",
+  "seoDescription": "Shop gaming laptops with RTX graphics, high refresh rate displays, and powerful processors. Perfect for AAA games and esports.",
+  "heroImage": "/images/subcategories/gaming-laptops-hero.jpg",
+  "seoContent": "Level up your gaming with our selection of high-performance gaming laptops. Featuring the latest NVIDIA RTX and AMD graphics cards, fast refresh rate displays up to 360Hz, and powerful Intel and AMD processors. Built for serious gamers who demand the best.",
+  "siblingLinks": [
+    { "name": "Business Laptops", "slug": "business-laptops" },
+    { "name": "Student Laptops", "slug": "student-laptops" }
+  ],
+  "order": 1
+}

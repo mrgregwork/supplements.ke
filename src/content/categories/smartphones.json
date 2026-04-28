@@ -1,0 +1,11 @@
+{
+  "name": "Smartphones",
+  "slug": "smartphones",
+  "description": "Find the latest smartphones from top brands with cutting-edge features and great prices.",
+  "seoTitle": "Smartphones - Latest Mobile Phones & Best Deals",
+  "seoDescription": "Discover the newest smartphones from Apple, Samsung, Google, and more. Shop flagship phones and budget-friendly options.",
+  "heroImage": "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=1200&h=600&fit=crop",
+  "seoContent": "Stay connected with the latest smartphones featuring advanced cameras, powerful processors, and all-day battery life. From flagship devices to budget-friendly options, find the perfect phone for your lifestyle. We offer unlocked phones compatible with all major carriers.",
+  "featured": true,
+  "order": 2
+}

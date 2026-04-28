@@ -1,0 +1,52 @@
+---
+import siteSettings from '@config/siteSettings.json';
+import { formatPrice } from '@lib/currency';
+
+interface Props {
+  priceUSD: number;        // name kept for backward compat; value is actually in defaultCurrency (KES)
+  originalPriceUSD?: number;
+  showOriginal?: boolean;
+  size?: 'sm' | 'md' | 'lg';
+  testId?: string;
+}
+
+const {
+  priceUSD: price,
+  originalPriceUSD: originalPrice,
+  showOriginal = true,
+  size = 'md',
+  testId,
+} = Astro.props;
+
+const currency = siteSettings.defaultCurrency || 'KES';
+const displayPrice    = formatPrice(price, currency);
+const displayOriginal = (originalPrice && showOriginal) ? formatPrice(originalPrice, currency) : null;
+const discount        = (originalPrice && originalPrice > price)
+  ? Math.round((1 - price / originalPrice) * 100)
+  : null;
+
+const sizeClasses = {
+  sm: { price: 'text-base', original: 'text-xs' },
+  md: { price: 'text-lg',   original: 'text-sm' },
+  lg: { price: 'text-2xl',  original: 'text-base' },
+};
+const classes = sizeClasses[size];
+---
+
+<div class="flex flex-col" data-testid={testId}>
+  <div class="flex items-center gap-2 flex-wrap">
+    {displayOriginal && (
+      <span class={`${classes.original} text-muted-foreground line-through`}>
+        {displayOriginal}
+      </span>
+    )}
+    <span class={`${classes.price} font-bold text-foreground`}>
+      {displayPrice}
+    </span>
+    {discount && discount > 0 && (
+      <span class="text-xs bg-destructive text-destructive-foreground px-1.5 py-0.5 rounded font-medium">
+        -{discount}%
+      </span>
+    )}
+  </div>
+</div>

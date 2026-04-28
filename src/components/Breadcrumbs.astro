@@ -1,0 +1,63 @@
+---
+import siteSettings from '@config/siteSettings.json';
+
+interface BreadcrumbItem {
+  name: string;
+  href: string;
+}
+
+interface Props {
+  items: BreadcrumbItem[];
+}
+
+const { items } = Astro.props;
+
+const allItems = [{ name: 'Home', href: '/' }, ...items];
+
+const getLinkTitle = (name: string) => {
+  if (name === 'Home') return siteSettings.organization.name;
+  return siteSettings.enableRegionalSeo 
+    ? `${name} Price In ${siteSettings.targetRegion}`
+    : name;
+};
+
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": allItems.map((item, index) => ({
+    "@type": "ListItem",
+    "position": index + 1,
+    "name": item.name,
+    "item": new URL(item.href, Astro.site || 'https://ecommerce-seo.replit.app').href
+  }))
+};
+---
+
+<nav aria-label="Breadcrumb" class="mb-6">
+  <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
+  <ol class="flex items-center flex-wrap gap-1.5 text-sm text-muted-foreground">
+    {allItems.map((item, index) => (
+      <li class="flex items-center gap-1.5">
+        {index > 0 && (
+          <svg class="h-4 w-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="m9 18 6-6-6-6" />
+          </svg>
+        )}
+        {index === allItems.length - 1 ? (
+          <span class="font-medium text-foreground" data-testid={`breadcrumb-current-${item.name.toLowerCase().replace(/\s+/g, '-')}`}>
+            {item.name}
+          </span>
+        ) : (
+          <a 
+            href={item.href} 
+            title={getLinkTitle(item.name)}
+            class="hover:text-foreground transition-colors"
+            data-testid={`breadcrumb-link-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
+          >
+            {item.name}
+          </a>
+        )}
+      </li>
+    ))}
+  </ol>
+</nav>

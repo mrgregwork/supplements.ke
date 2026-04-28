@@ -1,0 +1,105 @@
+---
+import BaseLayout from "@layouts/BaseLayout.astro";
+import AdminSidebar from "@components/AdminSidebar.astro";
+import { getAdminSessionToken, verifyAdminSession, getAllOrders } from "@lib/admin";
+
+const sessionToken = getAdminSessionToken(Astro.request);
+const sessionData = await verifyAdminSession(sessionToken);
+
+const isDev = import.meta.env.DEV;
+if (!isDev && !sessionData) {
+  return Astro.redirect("/admin/login");
+}
+
+const adminEmail = sessionData?.admin?.email || "Dev Mode";
+const orders = await getAllOrders();
+
+const statusColors: Record<string, string> = {
+  pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+  confirmed: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+  processing: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+  shipped: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
+  delivered: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+  cancelled: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+};
+---
+
+<BaseLayout 
+  title="Orders - Admin" 
+  description="Manage orders"
+>
+  <div class="min-h-screen flex flex-col md:flex-row">
+    <AdminSidebar adminEmail={adminEmail} currentPage="orders" />
+    
+    <main class="flex-1 p-4 md:p-8">
+      <h2 class="text-2xl font-bold mb-6">Orders</h2>
+      
+      <div class="bg-card border rounded-lg overflow-hidden">
+        {orders.length === 0 ? (
+          <div class="p-8 text-center text-muted-foreground">
+            No orders yet
+          </div>
+        ) : (
+          <>
+            <!-- Mobile view - card layout -->
+            <div class="md:hidden divide-y">
+              {orders.map((order) => (
+                <a href={`/admin/orders/${order.id}`} class="flex items-center justify-between gap-3 p-4 hover:bg-muted/30 transition">
+                  <div class="min-w-0">
+                    <p class="font-medium text-primary">{order.orderNumber}</p>
+                    <p class="text-sm text-muted-foreground truncate">{order.email}</p>
+                    <span class={`inline-block px-2 py-0.5 text-xs font-medium rounded-full mt-1 ${statusColors[order.status] || statusColors.pending}`}>
+                      {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                    </span>
+                  </div>
+                  <div class="text-right flex-shrink-0">
+                    <p class="font-bold">${order.total.toFixed(2)}</p>
+                    <p class="text-xs text-muted-foreground">{new Date(order.createdAt).toLocaleDateString()}</p>
+                  </div>
+                </a>
+              ))}
+            </div>
+            <!-- Desktop view - table layout -->
+            <table class="w-full hidden md:table">
+              <thead>
+                <tr class="border-b bg-muted/50">
+                  <th class="text-left py-3 px-4 font-medium">Order</th>
+                  <th class="text-left py-3 px-4 font-medium">Customer</th>
+                  <th class="text-left py-3 px-4 font-medium">Date</th>
+                  <th class="text-left py-3 px-4 font-medium">Status</th>
+                  <th class="text-right py-3 px-4 font-medium">Total</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y">
+                {orders.map((order) => (
+                  <tr class="hover:bg-muted/30 transition">
+                    <td class="py-3 px-4">
+                      <a href={`/admin/orders/${order.id}`} class="text-primary hover:underline font-medium">
+                        {order.orderNumber}
+                      </a>
+                    </td>
+                    <td class="py-3 px-4">
+                      <p class="text-sm">{order.email}</p>
+                      {order.phone && <p class="text-xs text-muted-foreground">{order.phone}</p>}
+                    </td>
+                    <td class="py-3 px-4 text-sm text-muted-foreground">
+                      {new Date(order.createdAt).toLocaleDateString()}
+                    </td>
+                    <td class="py-3 px-4">
+                      <span class={`inline-block px-2 py-1 text-xs font-medium rounded-full ${statusColors[order.status] || statusColors.pending}`}>
+                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                      </span>
+                    </td>
+                    <td class="py-3 px-4 text-right font-medium">
+                      ${order.total.toFixed(2)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        )}
+      </div>
+    </main>
+  </div>
+</BaseLayout>

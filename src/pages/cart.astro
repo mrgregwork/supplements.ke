@@ -1,0 +1,50 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import CartView from '@components/CartView';
+import { getCartItems, getCartSessionId } from '@lib/cart';
+import siteSettings from '@config/siteSettings.json';
+import { generateBreadcrumbSchema } from '@lib/schema';
+
+const sessionId = Astro.cookies.get('cartSession')?.value;
+let initialItems: any[] = [];
+let initialSubtotal = 0;
+
+if (sessionId) {
+  initialItems = await getCartItems(sessionId);
+  initialSubtotal = initialItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+}
+
+const baseUrl = siteSettings.siteUrl || 'https://example.com';
+const breadcrumbItems = [{ name: 'Cart', href: '/cart' }];
+
+const structuredData = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      "@id": `${baseUrl}/cart#webpage`,
+      "name": "Shopping Cart",
+      "description": "View and manage your shopping cart",
+      "url": `${baseUrl}/cart`,
+      "isPartOf": { "@id": `${baseUrl}#website` }
+    },
+    generateBreadcrumbSchema(breadcrumbItems, baseUrl)
+  ]
+};
+---
+
+<BaseLayout 
+  title="Shopping Cart - E-Commerce SEO"
+  description="View and manage your shopping cart"
+  structuredData={structuredData}
+>
+  <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-12">
+    <h1 class="text-2xl font-bold mb-8" data-testid="text-cart-title">Shopping Cart</h1>
+    
+    <CartView 
+      client:load 
+      initialItems={initialItems} 
+      initialSubtotal={initialSubtotal}
+    />
+  </div>
+</BaseLayout>

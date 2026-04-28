@@ -1,0 +1,405 @@
+---
+import BaseLayout from "@layouts/BaseLayout.astro";
+import AdminSidebar from "@components/AdminSidebar.astro";
+import { getAdminSessionToken, verifyAdminSession } from "@lib/admin";
+import { storage } from "@lib/storage";
+
+const sessionToken = getAdminSessionToken(Astro.request);
+const sessionData = await verifyAdminSession(sessionToken);
+
+const isDev = import.meta.env.DEV;
+if (!isDev && !sessionData) {
+  return Astro.redirect("/admin/login");
+}
+
+const adminEmail = sessionData?.admin?.email || "Dev Mode";
+
+const allSettings = await storage.getSiteSettings();
+const settingsMap: Record<string, string> = {};
+for (const s of allSettings) {
+  settingsMap[s.key] = s.value || '';
+}
+
+const enableRegionalSeo = settingsMap.enableRegionalSeo === 'true';
+const targetRegion = settingsMap.targetRegion || '';
+const siteName = settingsMap.siteName || '';
+const siteDescription = settingsMap.siteDescription || '';
+const defaultCurrency = settingsMap.defaultCurrency || 'USD';
+const licenseKey = settingsMap.licenseKey || '';
+const licenseStatus = settingsMap.licenseStatus || 'inactive';
+const hasLicenseKey = licenseKey.length > 0;
+
+const exchangeRate = settingsMap.exchangeRate || '';
+const exchangeRateMarkup = settingsMap.exchangeRateMarkup || '1.05';
+const shippingCostUSD = settingsMap.shippingCostUSD || '25';
+const commissionPercent = settingsMap.commissionPercent || '10';
+---
+
+<BaseLayout 
+  title="Settings - Admin" 
+  description="Site settings and configuration"
+>
+  <div class="min-h-screen flex flex-col md:flex-row">
+    <AdminSidebar adminEmail={adminEmail} currentPage="settings" />
+    
+    <main class="flex-1 p-4 md:p-8">
+      <h2 class="text-2xl font-bold mb-6">Settings</h2>
+      
+      <form id="settings-form" class="space-y-8 max-w-2xl">
+        <div class="bg-card border rounded-lg p-6">
+          <h3 class="text-lg font-semibold mb-4">Product Import License</h3>
+          <p class="text-sm text-muted-foreground mb-4">Enter your license key to enable the product import feature.</p>
+          
+          <div class="space-y-4">
+            <div>
+              <label for="licenseKey" class="block text-sm font-medium mb-1">
+                License Key
+              </label>
+              <div class="flex gap-2">
+                <input 
+                  type="password" 
+                  id="licenseKey" 
+                  name="licenseKey"
+                  placeholder={hasLicenseKey ? "License key saved (enter new to replace)" : "Enter your license key"}
+                  class="flex-1 px-3 py-3 min-h-[48px] text-base border rounded-md bg-background font-mono"
+                  data-testid="input-license-key"
+                />
+                <button 
+                  type="button"
+                  id="toggle-key-visibility"
+                  class="px-4 py-3 min-h-[48px] border rounded-md bg-muted hover:bg-muted/80 transition"
+                  data-testid="button-toggle-key"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                </button>
+              </div>
+              <p class="text-xs text-muted-foreground mt-1">
+                Contact your provider to obtain a license key for product imports.
+              </p>
+            </div>
+            
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-sm font-medium">Status:</span>
+              <span id="license-status-badge" class={`px-2 py-0.5 text-xs rounded-full ${licenseStatus === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>
+                {licenseStatus === 'active' ? 'Active' : 'Inactive'}
+              </span>
+              <button 
+                type="button"
+                id="verify-license"
+                class="ml-auto sm:ml-2 px-4 py-3 min-h-[48px] text-sm border rounded-md hover:bg-muted transition"
+                data-testid="button-verify-license"
+              >
+                Verify License
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-card border rounded-lg p-6">
+          <h3 class="text-lg font-semibold mb-4">Location SEO</h3>
+          <p class="text-sm text-muted-foreground mb-4">Target a specific location for SEO. Leave empty to disable location-based SEO optimization.</p>
+          
+          <div class="space-y-4">
+            <div>
+              <label for="targetRegion" class="block text-sm font-medium mb-1">
+                Target Location
+              </label>
+              <input 
+                type="text" 
+                id="targetRegion" 
+                name="targetRegion"
+                value={targetRegion}
+                placeholder="e.g., Kenya, New York, United States"
+                class="w-full px-3 py-3 min-h-[48px] text-base border rounded-md bg-background"
+                data-testid="input-target-region"
+              />
+              <p class="text-xs text-muted-foreground mt-1">
+                Enter a country, state, or city name. This will appear in page titles and link attributes for local SEO. Leave blank to disable location targeting.
+              </p>
+            </div>
+            
+            <input type="hidden" id="enableRegionalSeo" name="enableRegionalSeo" value="on" />
+          </div>
+        </div>
+
+        <div class="bg-card border rounded-lg p-6">
+          <h3 class="text-lg font-semibold mb-4">Site Information</h3>
+          
+          <div class="space-y-4">
+            <div>
+              <label for="siteName" class="block text-sm font-medium mb-1">
+                Site Name
+              </label>
+              <input 
+                type="text" 
+                id="siteName" 
+                name="siteName"
+                value={siteName}
+                placeholder="My E-Commerce Store"
+                class="w-full px-3 py-3 min-h-[48px] text-base border rounded-md bg-background"
+                data-testid="input-site-name"
+              />
+            </div>
+            
+            <div>
+              <label for="siteDescription" class="block text-sm font-medium mb-1">
+                Site Description
+              </label>
+              <textarea 
+                id="siteDescription" 
+                name="siteDescription"
+                rows="3"
+                placeholder="Your store description for SEO..."
+                class="w-full px-3 py-2 border rounded-md bg-background resize-none"
+                data-testid="input-site-description"
+              >{siteDescription}</textarea>
+            </div>
+            
+            <div>
+              <label for="defaultCurrency" class="block text-sm font-medium mb-1">
+                Default Currency
+              </label>
+              <select 
+                id="defaultCurrency" 
+                name="defaultCurrency"
+                class="w-full px-3 py-3 min-h-[48px] text-base border rounded-md bg-background"
+                data-testid="select-default-currency"
+              >
+                <option value="USD" selected={defaultCurrency === 'USD'}>USD - US Dollar</option>
+                <option value="EUR" selected={defaultCurrency === 'EUR'}>EUR - Euro</option>
+                <option value="GBP" selected={defaultCurrency === 'GBP'}>GBP - British Pound</option>
+                <option value="KES" selected={defaultCurrency === 'KES'}>KES - Kenyan Shilling</option>
+                <option value="NGN" selected={defaultCurrency === 'NGN'}>NGN - Nigerian Naira</option>
+                <option value="ZAR" selected={defaultCurrency === 'ZAR'}>ZAR - South African Rand</option>
+                <option value="INR" selected={defaultCurrency === 'INR'}>INR - Indian Rupee</option>
+                <option value="AUD" selected={defaultCurrency === 'AUD'}>AUD - Australian Dollar</option>
+                <option value="CAD" selected={defaultCurrency === 'CAD'}>CAD - Canadian Dollar</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-card border rounded-lg p-6">
+          <h3 class="text-lg font-semibold mb-4">Pricing & Landed Cost</h3>
+          <p class="text-sm text-muted-foreground mb-4">
+            Configure how product prices are calculated. The landed cost includes Amazon price, shipping, commission, and currency conversion with markup.
+          </p>
+          
+          <div class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label for="exchangeRate" class="block text-sm font-medium mb-1">
+                  Exchange Rate (1 USD = ?)
+                </label>
+                <input 
+                  type="number" 
+                  id="exchangeRate" 
+                  name="exchangeRate"
+                  step="0.01"
+                  min="0"
+                  value={exchangeRate}
+                  placeholder="Leave empty to use live rate"
+                  class="w-full px-3 py-3 min-h-[48px] text-base border rounded-md bg-background"
+                  data-testid="input-exchange-rate"
+                />
+                <p class="text-xs text-muted-foreground mt-1">
+                  Manual exchange rate. Leave empty to use live API rate.
+                </p>
+              </div>
+              
+              <div>
+                <label for="exchangeRateMarkup" class="block text-sm font-medium mb-1">
+                  Exchange Rate Markup
+                </label>
+                <input 
+                  type="number" 
+                  id="exchangeRateMarkup" 
+                  name="exchangeRateMarkup"
+                  step="0.01"
+                  min="1"
+                  max="2"
+                  value={exchangeRateMarkup}
+                  placeholder="1.05"
+                  class="w-full px-3 py-3 min-h-[48px] text-base border rounded-md bg-background"
+                  data-testid="input-exchange-markup"
+                />
+                <p class="text-xs text-muted-foreground mt-1">
+                  Multiplier for exchange rate (e.g., 1.05 = 5% markup)
+                </p>
+              </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label for="shippingCostUSD" class="block text-sm font-medium mb-1">
+                  Shipping Cost (USD)
+                </label>
+                <input 
+                  type="number" 
+                  id="shippingCostUSD" 
+                  name="shippingCostUSD"
+                  step="0.01"
+                  min="0"
+                  value={shippingCostUSD}
+                  placeholder="25"
+                  class="w-full px-3 py-3 min-h-[48px] text-base border rounded-md bg-background"
+                  data-testid="input-shipping-usd"
+                />
+                <p class="text-xs text-muted-foreground mt-1">
+                  Fixed shipping cost in USD added to product price.
+                </p>
+              </div>
+              
+              <div>
+                <label for="commissionPercent" class="block text-sm font-medium mb-1">
+                  Commission (%)
+                </label>
+                <input 
+                  type="number" 
+                  id="commissionPercent" 
+                  name="commissionPercent"
+                  step="0.1"
+                  min="0"
+                  max="100"
+                  value={commissionPercent}
+                  placeholder="10"
+                  class="w-full px-3 py-3 min-h-[48px] text-base border rounded-md bg-background"
+                  data-testid="input-commission-percent"
+                />
+                <p class="text-xs text-muted-foreground mt-1">
+                  Your commission/profit margin as % of base cost.
+                </p>
+              </div>
+            </div>
+            
+            <div class="bg-muted/50 rounded-md p-4 text-sm">
+              <p class="font-medium mb-2">Landed Cost Formula:</p>
+              <p class="text-muted-foreground font-mono text-xs">
+                Landed Cost = (Amazon Price + Shipping%) × (1 + Commission%) × Exchange Rate × (1 + Markup%)
+              </p>
+              <p class="text-muted-foreground mt-2 text-xs">
+                Example: $100 item with 15% shipping, 10% commission, 129 KES rate, 5% markup = <br/>
+                ($100 + $15) × 1.10 × 129 × 1.05 = <strong>KES 17,128</strong>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+          <button 
+            type="submit"
+            class="px-6 py-2 bg-primary text-primary-foreground rounded-md hover:opacity-90 transition"
+            data-testid="button-save-settings"
+          >
+            Save Settings
+          </button>
+          <span id="save-status" class="text-sm text-muted-foreground"></span>
+        </div>
+      </form>
+    </main>
+  </div>
+</BaseLayout>
+
+<script>
+  const form = document.getElementById('settings-form') as HTMLFormElement;
+  const saveStatus = document.getElementById('save-status');
+  const licenseKeyInput = document.getElementById('licenseKey') as HTMLInputElement;
+  const toggleKeyBtn = document.getElementById('toggle-key-visibility');
+  const verifyLicenseBtn = document.getElementById('verify-license');
+  const licenseStatusBadge = document.getElementById('license-status-badge');
+  
+  toggleKeyBtn?.addEventListener('click', () => {
+    if (licenseKeyInput) {
+      licenseKeyInput.type = licenseKeyInput.type === 'password' ? 'text' : 'password';
+    }
+  });
+  
+  verifyLicenseBtn?.addEventListener('click', async () => {
+    const licenseKey = licenseKeyInput?.value?.trim();
+    if (!licenseKey) {
+      alert('Please enter a license key first');
+      return;
+    }
+    
+    verifyLicenseBtn.textContent = 'Verifying...';
+    
+    try {
+      const response = await fetch('/api/admin/verify-license', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ licenseKey }),
+      });
+      
+      const result = await response.json();
+      
+      if (result.valid) {
+        if (licenseStatusBadge) {
+          licenseStatusBadge.textContent = 'Active';
+          licenseStatusBadge.className = 'px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+        }
+        alert('License verified successfully!');
+      } else {
+        if (licenseStatusBadge) {
+          licenseStatusBadge.textContent = 'Inactive';
+          licenseStatusBadge.className = 'px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400';
+        }
+        alert(result.message || 'License verification failed. Please check your license key.');
+      }
+    } catch (error) {
+      alert('Could not verify license. Please try again later.');
+    } finally {
+      verifyLicenseBtn.textContent = 'Verify License';
+    }
+  });
+  
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(form);
+    const data = {
+      enableRegionalSeo: formData.get('enableRegionalSeo') === 'on',
+      targetRegion: formData.get('targetRegion') as string,
+      siteName: formData.get('siteName') as string,
+      siteDescription: formData.get('siteDescription') as string,
+      defaultCurrency: formData.get('defaultCurrency') as string,
+      licenseKey: formData.get('licenseKey') as string,
+      exchangeRate: formData.get('exchangeRate') as string,
+      exchangeRateMarkup: formData.get('exchangeRateMarkup') as string,
+      shippingCostUSD: formData.get('shippingCostUSD') as string,
+      commissionPercent: formData.get('commissionPercent') as string,
+    };
+    
+    try {
+      if (saveStatus) saveStatus.textContent = 'Saving...';
+      
+      const response = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      
+      if (response.ok) {
+        if (saveStatus) {
+          saveStatus.textContent = 'Settings saved!';
+          saveStatus.className = 'text-sm text-green-600';
+        }
+        setTimeout(() => {
+          if (saveStatus) {
+            saveStatus.textContent = '';
+            saveStatus.className = 'text-sm text-muted-foreground';
+          }
+        }, 3000);
+      } else {
+        throw new Error('Failed to save');
+      }
+    } catch (error) {
+      if (saveStatus) {
+        saveStatus.textContent = 'Error saving settings';
+        saveStatus.className = 'text-sm text-red-600';
+      }
+    }
+  });
+</script>

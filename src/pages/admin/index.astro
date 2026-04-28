@@ -1,0 +1,87 @@
+---
+import BaseLayout from "@layouts/BaseLayout.astro";
+import AdminSidebar from "@components/AdminSidebar.astro";
+import { getAdminSessionToken, verifyAdminSession, getDashboardStats } from "@lib/admin";
+
+const sessionToken = getAdminSessionToken(Astro.request);
+const sessionData = await verifyAdminSession(sessionToken);
+
+const isDev = import.meta.env.DEV;
+if (!isDev && !sessionData) {
+  return Astro.redirect("/admin/login");
+}
+
+const adminEmail = sessionData?.admin?.email || "Dev Mode";
+const stats = await getDashboardStats();
+---
+
+<BaseLayout 
+  title="Admin Dashboard" 
+  description="Admin panel overview"
+>
+  <div class="min-h-screen flex flex-col md:flex-row">
+    <AdminSidebar adminEmail={adminEmail} currentPage="dashboard" />
+    
+    <main class="flex-1 p-4 md:p-8">
+      <h2 class="text-2xl font-bold mb-6">Dashboard</h2>
+      
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-8">
+        <div class="bg-card border rounded-lg p-6">
+          <p class="text-sm text-muted-foreground mb-1">Total Orders</p>
+          <p class="text-3xl font-bold" data-testid="stat-total-orders">{stats.totalOrders}</p>
+        </div>
+        <div class="bg-card border rounded-lg p-6">
+          <p class="text-sm text-muted-foreground mb-1">Total Revenue</p>
+          <p class="text-3xl font-bold" data-testid="stat-total-revenue">${stats.totalRevenue.toFixed(2)}</p>
+        </div>
+        <div class="bg-card border rounded-lg p-6">
+          <p class="text-sm text-muted-foreground mb-1">Products</p>
+          <p class="text-3xl font-bold" data-testid="stat-products">{stats.totalProducts}</p>
+        </div>
+        <div class="bg-card border rounded-lg p-6">
+          <p class="text-sm text-muted-foreground mb-1">Customers</p>
+          <p class="text-3xl font-bold" data-testid="stat-customers">{stats.totalCustomers}</p>
+        </div>
+      </div>
+      
+      <div class="bg-card border rounded-lg">
+        <div class="p-6 border-b flex items-center justify-between">
+          <h3 class="font-semibold">Recent Orders</h3>
+          <a href="/admin/orders" class="text-sm text-primary hover:underline">View all</a>
+        </div>
+        
+        {stats.recentOrders.length === 0 ? (
+          <div class="p-8 text-center text-muted-foreground">
+            No orders yet
+          </div>
+        ) : (
+          <div class="divide-y">
+            {stats.recentOrders.map((order) => (
+              <a 
+                href={`/admin/orders/${order.id}`}
+                class="flex items-center justify-between p-4 hover:bg-muted/30 transition"
+              >
+                <div>
+                  <p class="font-medium">{order.orderNumber}</p>
+                  <p class="text-sm text-muted-foreground">{order.email}</p>
+                </div>
+                <div class="text-right">
+                  <p class="font-medium">${order.total.toFixed(2)}</p>
+                  <span class={`inline-block px-2 py-1 text-xs rounded-full ${
+                    order.status === "confirmed" || order.status === "delivered" 
+                      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                      : order.status === "cancelled"
+                      ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                      : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                  }`}>
+                    {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                  </span>
+                </div>
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+    </main>
+  </div>
+</BaseLayout>

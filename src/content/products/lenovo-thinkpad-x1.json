@@ -1,0 +1,29 @@
+{
+  "name": "Lenovo ThinkPad X1 Carbon Gen 11",
+  "slug": "lenovo-thinkpad-x1-carbon-gen-11",
+  "categorySlug": "laptops",
+  "subcategorySlug": "business-laptops",
+  "description": "The ultimate business laptop with Intel vPro, legendary ThinkPad reliability, and ultralight design.",
+  "longDescription": "The ThinkPad X1 Carbon Gen 11 represents the pinnacle of business computing. Weighing just 2.48 lbs, this ultralight powerhouse features Intel vPro platform for enterprise security, a stunning 14-inch 2.8K OLED display, and up to 15 hours of battery life. The legendary ThinkPad keyboard and TrackPoint ensure productive work anywhere.",
+  "price": 1899.99,
+  "originalPrice": 2199.99,
+  "currency": "USD",
+  "images": [
+    "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800&h=800&fit=crop",
+    "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800&h=800&fit=crop"
+  ],
+  "brand": "Lenovo",
+  "sku": "LENOVO-X1-CARBON-11",
+  "inStock": true,
+  "attributes": [
+    { "name": "RAM", "value": "16GB", "slug": "16gb-laptops" },
+    { "name": "Storage", "value": "512GB SSD", "slug": "512gb-ssd-laptops" },
+    { "name": "Processor", "value": "Intel Core i7 vPro", "slug": "intel-vpro-laptops" },
+    { "name": "Display", "value": "14 inch 2.8K OLED", "slug": "oled-laptops" }
+  ],
+  "seoTitle": "Lenovo ThinkPad X1 Carbon Gen 11 - Business Ultrabook",
+  "seoDescription": "Buy the Lenovo ThinkPad X1 Carbon Gen 11 ultrabook with Intel vPro, 2.8K OLED display, and legendary ThinkPad reliability.",
+  "primaryKeyword": "ThinkPad X1 Carbon",
+  "secondaryKeywords": ["Lenovo business laptop", "ThinkPad ultrabook", "Intel vPro laptop"],
+  "featured": true
+}

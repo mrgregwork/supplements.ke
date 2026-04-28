@@ -1,0 +1,63 @@
+---
+import BaseLayout from "@layouts/BaseLayout.astro";
+import AccountSettingsForm from "@components/AccountSettingsForm";
+import { getCustomer, getSessionByToken } from "@lib/auth";
+import siteSettings from '@config/siteSettings.json';
+import { generateBreadcrumbSchema } from '@lib/schema';
+
+const sessionToken = Astro.cookies.get('session')?.value;
+let customer = null;
+
+if (sessionToken) {
+  const session = await getSessionByToken(sessionToken);
+  if (session) {
+    customer = await getCustomer(session.customerId);
+  }
+}
+
+if (!customer) {
+  return Astro.redirect('/login');
+}
+
+const baseUrl = siteSettings.siteUrl || 'https://example.com';
+const breadcrumbItems = [
+  { name: 'My Account', href: '/account' },
+  { name: 'Settings', href: '/account/settings' }
+];
+
+const structuredData = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      "@id": `${baseUrl}/account/settings#webpage`,
+      "name": "Account Settings",
+      "description": "Update your account information",
+      "url": `${baseUrl}/account/settings`,
+      "isPartOf": { "@id": `${baseUrl}#website` }
+    },
+    generateBreadcrumbSchema(breadcrumbItems, baseUrl)
+  ]
+};
+---
+
+<BaseLayout 
+  title="Account Settings"
+  description="Update your account information"
+  structuredData={structuredData}
+>
+  <main class="container mx-auto px-4 py-8 max-w-2xl">
+    <div class="mb-6">
+      <a href="/account" class="text-primary hover:underline text-sm">
+        ← Back to My Account
+      </a>
+    </div>
+    
+    <h1 class="text-2xl font-bold mb-8">Account Settings</h1>
+    
+    <AccountSettingsForm 
+      client:load 
+      customer={customer}
+    />
+  </main>
+</BaseLayout>

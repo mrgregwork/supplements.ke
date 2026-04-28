@@ -1,0 +1,179 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Breadcrumbs from '@components/Breadcrumbs.astro';
+import ProductGrid from '@components/ProductGrid.astro';
+import AdminToolbar from '@components/AdminToolbar.astro';
+import { getRegionalAnchorText, generateCategoryUrl, generateSubcategoryUrl } from '@lib/seo';
+import { generateCategoryPageSchema, generateOfferCatalogSchema } from '@lib/schema';
+import { storage } from '@lib/storage';
+import { getSiteSettings } from '@lib/settings';
+
+const { category: categorySlug, subcategory: subcategorySlug } = Astro.params;
+
+const category = await storage.getCategoryBySlug(categorySlug!);
+
+if (!category || !category.isActive) {
+  return Astro.redirect('/404');
+}
+
+const subcategory = await storage.getSubcategoryBySlug(category.id, subcategorySlug!);
+
+if (!subcategory || !subcategory.isActive) {
+  return Astro.redirect('/404');
+}
+
+const products = await storage.getProductsBySubcategory(subcategory.id);
+const allSubcategories = await storage.getSubcategoriesByCategoryId(category.id);
+const siblingSubcategories = allSubcategories.filter(s => s.id !== subcategory.id && s.isActive).slice(0, 3);
+const siteSettings = await getSiteSettings();
+
+const breadcrumbItems = [
+  { name: category.name, href: generateCategoryUrl(category.slug) },
+  { name: subcategory.name, href: generateSubcategoryUrl(category.slug, subcategory.slug) },
+];
+
+const productData = products.map(p => ({
+  ...p,
+  images: p.images || [],
+  attributes: p.attributes || []
+}));
+
+const subcategoryPageSchema = generateCategoryPageSchema(
+  {
+    name: subcategory.name,
+    slug: subcategory.slug,
+    description: subcategory.description || '',
+    seoTitle: subcategory.seoTitle || subcategory.name,
+    seoDescription: subcategory.seoDescription || subcategory.description || '',
+    image: subcategory.heroImage || undefined
+  },
+  productData,
+  breadcrumbItems,
+  Astro.url.href
+);
+
+const offerCatalogSchema = generateOfferCatalogSchema(
+  `${subcategory.name} Catalog`,
+  productData,
+  Astro.url.href
+);
+
+const structuredData = {
+  "@context": "https://schema.org",
+  "@graph": [
+    ...subcategoryPageSchema["@graph"],
+    offerCatalogSchema
+  ]
+};
+
+const pageTitle = siteSettings.enableRegionalSeo && siteSettings.targetRegion
+  ? `${subcategory.seoTitle || subcategory.name} - Price In ${siteSettings.targetRegion}`
+  : (subcategory.seoTitle || subcategory.name);
+---
+
+<BaseLayout 
+  title={pageTitle}
+  description={subcategory.seoDescription || subcategory.description || ''}
+  structuredData={structuredData}
+>
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+    <Breadcrumbs items={breadcrumbItems} />
+
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold" data-testid="text-subcategory-title">
+        {siteSettings.enableRegionalSeo && siteSettings.targetRegion
+          ? getRegionalAnchorText(subcategory.name)
+          : subcategory.name}
+      </h1>
+    </div>
+
+    {products.length > 0 ? (
+      <ProductGrid products={productData} columns={4} />
+    ) : (
+      <div class="py-12 text-center text-muted-foreground">
+        <p>No products in this subcategory yet.</p>
+      </div>
+    )}
+
+    {subcategory.description && (
+      <div class="mt-12 pt-8 border-t">
+        <p class="text-muted-foreground max-w-3xl leading-relaxed">{subcategory.description}</p>
+      </div>
+    )}
+
+    {subcategory.longDescription && (
+      <div class="mt-8 border-t pt-6">
+        <button
+          id="long-desc-toggle"
+          class="flex items-center gap-2 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+          aria-expanded="false"
+          aria-controls="long-desc-content"
+        >
+          <svg id="long-desc-chevron" class="h-4 w-4 transition-transform duration-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="m9 18 6-6-6-6" />
+          </svg>
+          Read More About {subcategory.name}
+        </button>
+        <div
+          id="long-desc-content"
+          class="overflow-hidden transition-all duration-300 ease-in-out"
+          style="max-height: 0; opacity: 0;"
+        >
+          <div class="prose prose-neutral dark:prose-invert max-w-3xl mt-4 pt-4 border-t" set:html={subcategory.longDescription} />
+        </div>
+      </div>
+    )}
+
+    {siblingSubcategories.length > 0 && (
+      <div class="mt-8 pt-8 border-t">
+        <h2 class="text-lg font-semibold mb-4">Related Categories</h2>
+        <div class="flex flex-wrap gap-3">
+          {siblingSubcategories.map((sub) => (
+            <a 
+              href={generateSubcategoryUrl(categorySlug!, sub.slug)}
+              title={siteSettings.enableRegionalSeo && siteSettings.targetRegion 
+                ? `View ${sub.name} in ${siteSettings.targetRegion}` 
+                : `View ${sub.name}`}
+              class="inline-flex items-center px-4 py-2 min-h-[44px] bg-card border border-card-border rounded-md text-sm font-medium hover:bg-accent transition-colors"
+            >
+              {sub.name}
+            </a>
+          ))}
+        </div>
+        <p class="mt-4 text-sm text-muted-foreground">
+          <a 
+            href={generateCategoryUrl(categorySlug!)} 
+            class="text-primary hover:underline"
+            title={`Back to ${category.name}`}
+          >
+            ← Back to {category.name}
+          </a>
+        </p>
+      </div>
+    )}
+  </div>
+  
+  <AdminToolbar editUrl="/admin/subcategories" pageType="Subcategory" />
+
+<script>
+  const toggle = document.getElementById('long-desc-toggle');
+  const content = document.getElementById('long-desc-content');
+  const chevron = document.getElementById('long-desc-chevron');
+  if (toggle && content && chevron) {
+    toggle.addEventListener('click', () => {
+      const expanded = toggle.getAttribute('aria-expanded') === 'true';
+      if (expanded) {
+        content.style.maxHeight = '0';
+        content.style.opacity = '0';
+        toggle.setAttribute('aria-expanded', 'false');
+        chevron.style.transform = '';
+      } else {
+        content.style.maxHeight = content.scrollHeight + 'px';
+        content.style.opacity = '1';
+        toggle.setAttribute('aria-expanded', 'true');
+        chevron.style.transform = 'rotate(90deg)';
+      }
+    });
+  }
+</script>
+</BaseLayout>

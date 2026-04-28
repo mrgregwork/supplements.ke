@@ -1,0 +1,431 @@
+---
+import siteSettings from '@config/siteSettings.json';
+import { getRegionalAnchorText } from '@lib/seo';
+import { storage } from '@lib/storage';
+
+const dbNavItems = await storage.getNavigationItems();
+const activeItems = dbNavItems.filter(item => item.isActive);
+
+// Build top-level items with their children attached
+const topLevel = activeItems.filter(item => !item.parentId);
+const childrenMap = new Map<string, typeof activeItems>();
+for (const item of activeItems) {
+  if (item.parentId) {
+    if (!childrenMap.has(item.parentId)) childrenMap.set(item.parentId, []);
+    childrenMap.get(item.parentId)!.push(item);
+  }
+}
+
+// Pre-fetch subcategories for mega menu category cells
+const allDbCategories = await storage.getCategories();
+const megaSubsMap = new Map<string, { name: string; href: string }[]>();
+await Promise.all(
+  allDbCategories.filter(c => c.isActive).map(async cat => {
+    const subs = await storage.getSubcategoriesByCategoryId(cat.id);
+    megaSubsMap.set(`/${cat.slug}/`,
+      subs.filter(s => s.isActive).slice(0, 4)
+        .map(s => ({ name: s.name, href: `/${cat.slug}/${s.slug}/` }))
+    );
+  })
+);
+
+type NavChild = { href: string; label: string; description?: string | null; subs: { name: string; href: string }[] };
+type NavItem  = { href: string; label: string; isMegaMenu?: boolean; children?: NavChild[] };
+
+const navItems: NavItem[] = topLevel.length > 0
+  ? topLevel
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+      .map(item => ({
+        href: item.href,
+        label: item.label,
+        isMegaMenu: item.description === 'mega-menu',
+        children: (childrenMap.get(item.id) ?? [])
+          .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+          .map(c => ({ href: c.href, label: c.label, description: c.description, subs: megaSubsMap.get(c.href) ?? [] })),
+      }))
+  : [
+      { href: '/all-supplements/', label: 'All Supplements', isMegaMenu: true },
+      { href: '/vitamins/', label: 'Vitamins' },
+      { href: '/protein/', label: 'Protein' },
+      { href: '/collagen/', label: 'Collagen' },
+      { href: '/weight-management/', label: 'Weight Management' },
+    ];
+
+// Group mega-menu children by their description field (used as section group)
+function groupMegaChildren(children: NavChild[]) {
+  const groups = new Map<string, NavChild[]>();
+  for (const c of children) {
+    const key = c.description || 'Other';
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(c);
+  }
+  return Array.from(groups.entries()).map(([label, items]) => ({ label, items }));
+}
+
+const currentPath = Astro.url.pathname;
+---
+
+<header class="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div class="flex h-16 items-center justify-between gap-4">
+      <!-- Logo -->
+      <div class="flex items-center gap-6">
+        <a href="/" class="flex items-center gap-2" data-testid="link-logo">
+          <svg class="h-7 w-7 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M2 22c1.25-1.25 2.5-2.5 3.5-4 1-1.5 1.5-3 1.5-5 0-3.5-2-6.5-5-8 0 0 2 3.5 2 7 0 2-.5 3.5-1.5 5C1.5 18.5 2 22 2 22z"/>
+            <path d="M16 2c-3 1.5-5 4.5-5 8 0 2 .5 3.5 1.5 5 1 1.5 2.25 2.75 3.5 4 0 0 .5-3.5-1-5-1-1.5-1.5-3-1.5-5 0-3.5 2-6.5 5-8z"/>
+            <path d="M9 10c0 5 3 10 6 12"/>
+          </svg>
+          <span class="text-lg font-semibold tracking-tight">{siteSettings.siteName}</span>
+        </a>
+        
+        <!-- Desktop Navigation -->
+        <nav class="hidden md:flex items-center gap-1">
+          {navItems.map((item) => (
+            item.isMegaMenu ? (
+              /* ── Mega Menu ── */
+              <div class="relative group">
+                <a
+                  href={item.href}
+                  class:list={[
+                    "flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                    currentPath.startsWith(item.href)
+                      ? "bg-secondary text-secondary-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                  ]}
+                  data-testid="link-nav-all-supplements"
+                >
+                  {item.label}
+                  <svg class="w-3.5 h-3.5 transition-transform group-hover:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </a>
+                <div class="absolute left-0 top-full pt-1 hidden group-hover:block z-50 w-[1080px] max-w-[calc(100vw-2rem)]">
+                  <div class="rounded-xl shadow-2xl ring-1 ring-primary/10 bg-gradient-to-br from-emerald-50 via-white to-teal-50 dark:from-emerald-950/40 dark:via-slate-900 dark:to-teal-950/40 p-5 max-h-[calc(100vh-7rem)] overflow-y-auto">
+                    <div class="grid grid-cols-4 gap-x-5 gap-y-2">
+                      {groupMegaChildren(item.children ?? []).map(group => (
+                        <div class="mb-2">
+                          <p class="text-[11px] font-semibold uppercase tracking-wider text-primary/80 mb-2 pb-1 border-b border-primary/20">
+                            {group.label}
+                          </p>
+                          {group.items.map(child => (
+                            <div class="mb-2">
+                              <a
+                                href={child.href}
+                                class="block py-0.5 text-sm font-semibold text-foreground hover:text-primary transition-colors"
+                              >
+                                {child.label}
+                              </a>
+                              {child.subs && child.subs.length > 0 && (
+                                <ul class="ml-1 border-l border-primary/15 pl-2">
+                                  {child.subs.map(s => (
+                                    <li>
+                                      <a
+                                        href={s.href}
+                                        class="block py-[2px] text-[12px] leading-tight text-muted-foreground hover:text-primary transition-colors"
+                                      >
+                                        {s.name}
+                                      </a>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                    <div class="mt-3 pt-3 border-t border-primary/20 flex items-center justify-between">
+                      <span class="text-xs text-muted-foreground">Browse all supplement categories</span>
+                      <a href={item.href} class="text-xs text-primary font-semibold hover:underline">View all →</a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : item.children && item.children.length > 0 ? (
+              /* ── Standard Dropdown ── */
+              <div class="relative group">
+                <a
+                  href={item.href}
+                  class:list={[
+                    "flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                    currentPath.startsWith(item.href)
+                      ? "bg-secondary text-secondary-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                  ]}
+                  data-testid={`link-nav-${item.label.toLowerCase().replace(/\s+/g,'-')}`}
+                >
+                  {item.label}
+                  <svg class="w-3.5 h-3.5 transition-transform group-hover:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </a>
+                <div class="absolute left-0 top-full pt-1 hidden group-hover:block z-50 min-w-[200px]">
+                  <div class="bg-popover border rounded-lg shadow-lg py-1 overflow-hidden">
+                    {item.children.map(child => (
+                      <a
+                        href={child.href}
+                        class="block px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                      >
+                        {child.label}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* ── Plain Link ── */
+              <a
+                href={item.href}
+                class:list={[
+                  "px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                  currentPath === item.href
+                    ? "bg-secondary text-secondary-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                ]}
+                data-testid={`link-nav-${item.label.toLowerCase().replace(/\s+/g,'-')}`}
+              >
+                {item.label}
+              </a>
+            )
+          ))}
+        </nav>
+      </div>
+
+      <!-- Search Bar -->
+      <div class="hidden md:flex flex-1 max-w-md mx-4">
+        <div class="relative w-full">
+          <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+          <input
+            type="search"
+            placeholder={getRegionalAnchorText("Search products")}
+            class="w-full pl-10 pr-4 py-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+            data-testid="input-search"
+          />
+        </div>
+      </div>
+
+      <!-- Right Side Actions -->
+      <div class="flex items-center gap-2">
+        <!-- Theme Toggle -->
+        <button 
+          id="theme-toggle"
+          class="p-2 rounded-md hover:bg-accent transition-colors"
+          data-testid="button-theme-toggle"
+          aria-label="Toggle theme"
+        >
+          <svg class="h-5 w-5 dark:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="4" />
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+          </svg>
+          <svg class="h-5 w-5 hidden dark:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+          </svg>
+        </button>
+
+        <!-- Account - visible on all screen sizes -->
+        <a href="/account" class="p-2 rounded-md hover:bg-accent transition-colors" data-testid="link-account" aria-label="Account">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="8" r="4" />
+            <path d="M20 21a8 8 0 1 0-16 0" />
+          </svg>
+        </a>
+
+        <!-- Cart - visible on all screen sizes -->
+        <a href="/cart" class="p-2 rounded-md hover:bg-accent transition-colors" data-testid="button-cart" aria-label="Cart">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="8" cy="21" r="1" />
+            <circle cx="19" cy="21" r="1" />
+            <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
+          </svg>
+        </a>
+
+        <!-- Mobile Menu Button -->
+        <button 
+          id="mobile-menu-toggle"
+          class="p-2 rounded-md hover:bg-accent transition-colors md:hidden"
+          data-testid="button-mobile-menu"
+          aria-label="Toggle menu"
+        >
+          <svg id="menu-open-icon" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="4" x2="20" y1="12" y2="12" />
+            <line x1="4" x2="20" y1="6" y2="6" />
+            <line x1="4" x2="20" y1="18" y2="18" />
+          </svg>
+          <svg id="menu-close-icon" class="h-5 w-5 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6 6 18M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Menu -->
+    <div id="mobile-menu" class="hidden md:hidden py-4 border-t">
+      <div class="relative mb-4">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8" />
+          <path d="m21 21-4.3-4.3" />
+        </svg>
+        <input
+          type="search"
+          placeholder={getRegionalAnchorText("Search products")}
+          class="w-full pl-10 pr-4 py-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+          data-testid="input-search-mobile"
+        />
+      </div>
+      <nav class="flex flex-col gap-1">
+        {navItems.map((item, idx) => (
+          item.isMegaMenu ? (
+            /* ── Mobile Mega Menu: grouped sections ── */
+            <div class="mobile-nav-group">
+              <div class="flex items-center">
+                <a
+                  href={item.href}
+                  class="flex-1 px-3 py-2 text-sm font-semibold rounded-l-md min-h-[44px] flex items-center text-foreground hover:bg-accent transition-colors"
+                >
+                  {item.label}
+                </a>
+                <button
+                  class="mobile-nav-toggle px-3 py-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-r-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                  aria-expanded="false"
+                  aria-label="Expand All Supplements"
+                  data-target={`mobile-sub-${idx}`}
+                >
+                  <svg class="w-4 h-4 transition-transform duration-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </button>
+              </div>
+              <div id={`mobile-sub-${idx}`} class="hidden border-l ml-3 pl-3 pb-2 mt-0.5">
+                {groupMegaChildren(item.children ?? []).map(group => (
+                  <div class="mb-3">
+                    <p class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-2 py-1">{group.label}</p>
+                    {group.items.map(child => (
+                      <div class="mb-1">
+                        <a
+                          href={child.href}
+                          class="block px-2 py-1.5 text-sm font-medium text-foreground hover:bg-accent rounded-md transition-colors min-h-[36px] flex items-center"
+                        >
+                          {child.label}
+                        </a>
+                        {child.subs && child.subs.length > 0 && (
+                          <ul class="ml-3 pl-2 border-l border-border/40">
+                            {child.subs.map(s => (
+                              <li>
+                                <a
+                                  href={s.href}
+                                  class="block px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-accent rounded transition-colors min-h-[32px] flex items-center"
+                                >
+                                  {s.name}
+                                </a>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : item.children && item.children.length > 0 ? (
+            /* ── Standard mobile dropdown ── */
+            <div class="mobile-nav-group">
+              <div class="flex items-center">
+                <a
+                  href={item.href}
+                  class:list={[
+                    "flex-1 px-3 py-2 text-sm font-medium rounded-l-md transition-colors min-h-[44px] flex items-center",
+                    currentPath.startsWith(item.href)
+                      ? "bg-secondary text-secondary-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                  ]}
+                  data-testid={`link-nav-mobile-${item.label.toLowerCase().replace(/\s+/g,'-')}`}
+                >
+                  {item.label}
+                </a>
+                <button
+                  class:list={[
+                    "mobile-nav-toggle px-3 py-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-r-md transition-colors",
+                    currentPath.startsWith(item.href)
+                      ? "bg-secondary text-secondary-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                  ]}
+                  aria-expanded="false"
+                  aria-label={`Expand ${item.label}`}
+                  data-target={`mobile-sub-${idx}`}
+                >
+                  <svg class="w-4 h-4 transition-transform duration-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </button>
+              </div>
+              <div id={`mobile-sub-${idx}`} class="hidden ml-3 mt-0.5 flex flex-col gap-0.5 border-l pl-3 pb-1">
+                {item.children.map(child => (
+                  <a
+                    href={child.href}
+                    class="px-2 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors min-h-[40px] flex items-center"
+                  >
+                    {child.label}
+                  </a>
+                ))}
+              </div>
+            </div>
+          ) : (
+            /* ── Plain link ── */
+            <a
+              href={item.href}
+              class:list={[
+                "px-3 py-2 text-sm font-medium rounded-md transition-colors min-h-[44px] flex items-center",
+                currentPath === item.href
+                  ? "bg-secondary text-secondary-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
+              ]}
+              data-testid={`link-nav-mobile-${item.label.toLowerCase().replace(/\s+/g,'-')}`}
+            >
+              {item.label}
+            </a>
+          )
+        ))}
+      </nav>
+    </div>
+  </div>
+</header>
+
+<script>
+  // Theme Toggle
+  const themeToggle = document.getElementById('theme-toggle');
+  themeToggle?.addEventListener('click', () => {
+    const isDark = document.documentElement.classList.toggle('dark');
+    localStorage.setItem('ecommerce-seo-theme', isDark ? 'dark' : 'light');
+  });
+
+  // Mobile Menu Toggle
+  const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+  const mobileMenu = document.getElementById('mobile-menu');
+  const menuOpenIcon = document.getElementById('menu-open-icon');
+  const menuCloseIcon = document.getElementById('menu-close-icon');
+
+  mobileMenuToggle?.addEventListener('click', () => {
+    const isOpen = mobileMenu?.classList.toggle('hidden');
+    menuOpenIcon?.classList.toggle('hidden', !isOpen);
+    menuCloseIcon?.classList.toggle('hidden', isOpen);
+  });
+
+  // Mobile Subcategory Toggles
+  document.querySelectorAll<HTMLButtonElement>('.mobile-nav-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.dataset.target!;
+      const panel = document.getElementById(targetId);
+      if (!panel) return;
+      const expanded = btn.getAttribute('aria-expanded') === 'true';
+      panel.classList.toggle('hidden', expanded);
+      btn.setAttribute('aria-expanded', String(!expanded));
+      const chevron = btn.querySelector('svg');
+      if (chevron) chevron.style.transform = expanded ? '' : 'rotate(180deg)';
+    });
+  });
+</script>

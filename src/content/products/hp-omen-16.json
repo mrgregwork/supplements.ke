@@ -1,0 +1,29 @@
+{
+  "name": "HP OMEN 16 Gaming Laptop",
+  "slug": "hp-omen-16-gaming-laptop",
+  "categorySlug": "laptops",
+  "subcategorySlug": "gaming-laptops",
+  "description": "Dominate your games with the HP OMEN 16 featuring RTX 4070 graphics and Intel Core i7 processor.",
+  "longDescription": "The HP OMEN 16 is engineered for gamers who demand excellence. Powered by the latest Intel Core i7 processor and NVIDIA GeForce RTX 4070 graphics, this laptop delivers stunning visuals and smooth gameplay. The 16.1-inch QHD display with 165Hz refresh rate ensures you never miss a frame, while the advanced thermal system keeps everything cool under pressure.",
+  "price": 1499.99,
+  "originalPrice": 1799.99,
+  "currency": "USD",
+  "images": [
+    "https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=800&h=800&fit=crop",
+    "https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=800&h=800&fit=crop"
+  ],
+  "brand": "HP",
+  "sku": "HP-OMEN-16-2024",
+  "inStock": true,
+  "attributes": [
+    { "name": "RAM", "value": "32GB", "slug": "32gb-laptops" },
+    { "name": "Storage", "value": "1TB SSD", "slug": "1tb-ssd-laptops" },
+    { "name": "Graphics", "value": "RTX 4070", "slug": "rtx-4070-laptops" },
+    { "name": "Display", "value": "16.1 inch QHD 165Hz", "slug": "165hz-laptops" }
+  ],
+  "seoTitle": "HP OMEN 16 Gaming Laptop - RTX 4070, 32GB RAM",
+  "seoDescription": "Buy the HP OMEN 16 gaming laptop with NVIDIA RTX 4070, 32GB RAM, and 165Hz QHD display. Perfect for AAA gaming and content creation.",
+  "primaryKeyword": "HP OMEN 16 gaming laptop",
+  "secondaryKeywords": ["HP gaming laptop", "RTX 4070 laptop", "32GB gaming laptop"],
+  "featured": true
+}

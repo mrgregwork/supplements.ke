@@ -1,0 +1,53 @@
+---
+import BaseLayout from "@layouts/BaseLayout.astro";
+import AdminSidebar from "@components/AdminSidebar.astro";
+import AdminProductForm from "@components/AdminProductForm";
+import { getAdminSessionToken, verifyAdminSession, getProductById } from "@lib/admin";
+
+const sessionToken = getAdminSessionToken(Astro.request);
+const sessionData = await verifyAdminSession(sessionToken);
+
+const isDev = import.meta.env.DEV;
+if (!isDev && !sessionData) {
+  return Astro.redirect("/admin/login");
+}
+
+const { id } = Astro.params;
+const product = id === "new" ? null : await getProductById(id!);
+
+if (id !== "new" && !product) {
+  return Astro.redirect("/admin/products");
+}
+
+const adminEmail = sessionData?.admin?.email || "Dev Mode";
+const isNew = id === "new";
+---
+
+<BaseLayout 
+  title={isNew ? "Add Product - Admin" : `Edit ${product?.name} - Admin`}
+  description={isNew ? "Add a new product" : "Edit product"}
+>
+  <div class="min-h-screen md:flex">
+    <AdminSidebar adminEmail={adminEmail} currentPage="products" />
+    
+    <main class="flex-1 px-4 py-6 md:p-8 w-full overflow-x-hidden">
+      <div class="mb-6">
+        <a href="/admin/products" class="text-primary hover:underline text-base min-h-[48px] inline-flex items-center px-2 -mx-2 rounded-lg hover:bg-primary/10 transition-colors" data-testid="link-back-products">
+          ← Back to Products
+        </a>
+      </div>
+      
+      <h2 class="text-2xl font-bold mb-6">
+        {isNew ? "Add New Product" : `Edit: ${product?.name}`}
+      </h2>
+      
+      <div class="w-full max-w-3xl">
+        <AdminProductForm 
+          client:load 
+          product={product}
+          isNew={isNew}
+        />
+      </div>
+    </main>
+  </div>
+</BaseLayout>

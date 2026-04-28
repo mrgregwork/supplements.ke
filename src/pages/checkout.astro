@@ -1,0 +1,118 @@
+---
+import BaseLayout from "@layouts/BaseLayout.astro";
+import CheckoutForm from "@components/CheckoutForm";
+import { getCartSessionId, getCartItems } from "@lib/cart";
+import { getCustomerFromRequest } from "@lib/auth";
+import siteSettings from '@config/siteSettings.json';
+import { generateBreadcrumbSchema } from '@lib/schema';
+
+const sessionId = getCartSessionId(Astro.request);
+let cartItems: any[] = [];
+let subtotal = 0;
+
+if (sessionId) {
+  cartItems = await getCartItems(sessionId);
+  subtotal = cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+}
+
+const customer = await getCustomerFromRequest(Astro.request);
+
+if (cartItems.length === 0) {
+  return Astro.redirect("/cart");
+}
+
+const baseUrl = siteSettings.siteUrl || 'https://example.com';
+const breadcrumbItems = [
+  { name: 'Cart', href: '/cart' },
+  { name: 'Checkout', href: '/checkout' }
+];
+
+const structuredData = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "CheckoutPage",
+      "@id": `${baseUrl}/checkout#webpage`,
+      "name": "Checkout",
+      "description": "Complete your purchase securely",
+      "url": `${baseUrl}/checkout`,
+      "isPartOf": { "@id": `${baseUrl}#website` }
+    },
+    generateBreadcrumbSchema(breadcrumbItems, baseUrl)
+  ]
+};
+---
+
+<BaseLayout 
+  title="Checkout" 
+  description="Complete your purchase"
+  structuredData={structuredData}
+>
+  <main class="container mx-auto px-4 py-8 max-w-6xl">
+    <h1 class="text-2xl font-bold mb-6">Checkout</h1>
+    
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div>
+        <CheckoutForm 
+          client:load 
+          cartItems={cartItems}
+          subtotal={subtotal}
+          customerEmail={customer?.email || ""}
+          customerPhone={customer?.phone || ""}
+          customerId={customer?.id || null}
+        />
+      </div>
+      
+      <div class="lg:order-first lg:order-last">
+        <div class="bg-muted/30 rounded-lg p-6 sticky top-4">
+          <h2 class="text-lg font-semibold mb-4">Order Summary</h2>
+          
+          <div class="space-y-4 mb-6">
+            {cartItems.map((item) => (
+              <div class="flex gap-4">
+                <div class="relative">
+                  <img 
+                    src={item.product.images[0] || "/placeholder.png"} 
+                    alt={item.product.name}
+                    class="w-16 h-16 object-cover rounded-md border"
+                  />
+                  <span class="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs w-5 h-5 rounded-full flex items-center justify-center font-medium">
+                    {item.quantity}
+                  </span>
+                </div>
+                <div class="flex-1">
+                  <p class="font-medium text-sm line-clamp-2">{item.product.name}</p>
+                  <p class="text-muted-foreground text-sm">
+                    ${item.product.price.toFixed(2)} each
+                  </p>
+                </div>
+                <p class="font-medium">
+                  ${(item.product.price * item.quantity).toFixed(2)}
+                </p>
+              </div>
+            ))}
+          </div>
+          
+          <div class="border-t pt-4 space-y-2">
+            <div class="flex justify-between text-sm">
+              <span class="text-muted-foreground">Subtotal</span>
+              <span>${subtotal.toFixed(2)}</span>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span class="text-muted-foreground">Shipping</span>
+              <span class="text-muted-foreground">Calculated at next step</span>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span class="text-muted-foreground">Tax</span>
+              <span class="text-muted-foreground">Calculated at next step</span>
+            </div>
+            <div class="flex justify-between font-semibold text-lg pt-2 border-t">
+              <span>Total</span>
+              <span>${subtotal.toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</BaseLayout>

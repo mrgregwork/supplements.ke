@@ -1,0 +1,14 @@
+(node:40268) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+[31m[1m23:22:50[22m [ERROR][39m getaddrinfo ENOTFOUND ep-misty-rice-anp4vu51-pooler.c-6.us-east-1.aws.neon.tech
+  [1mStack trace:[22m
+[2m    at C:\Users\GREG\projects\supplements-kenya\node_modules\pg-pool\index.js:45:11
+    [...] See full stack trace in the browser, or rerun with --verbose.[22m
+[31m[1m23:22:54[22m [ERROR][39m getaddrinfo ENOTFOUND ep-misty-rice-anp4vu51-pooler.c-6.us-east-1.aws.neon.tech
+  [1mStack trace:[22m
+[2m    at C:\Users\GREG\projects\supplements-kenya\node_modules\pg-pool\index.js:45:11
+    [...] See full stack trace in the browser, or rerun with --verbose.[22m
+[31m[1m02:50:39[22m [ERROR][39m Cannot access 'productCurrency' before initialization
+  [1mStack trace:[22m
+[2m    at C:\Users\GREG\projects\supplements-kenya\src\pages\[category]\[subcategory]\[product].astro:74:22
+    [...] See full stack trace in the browser, or rerun with --verbose.[22m

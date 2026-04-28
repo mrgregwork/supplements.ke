@@ -1,0 +1,134 @@
+---
+import siteSettings from '@config/siteSettings.json';
+import { getRegionalAltText, generateProductUrl, formatPrice } from '@lib/seo';
+import { getProductImageAlt } from '@lib/schema';
+import DualPrice from '@components/DualPrice.astro';
+
+interface Props {
+  product: {
+    name: string;
+    slug: string;
+    categorySlug: string;
+    subcategorySlug: string;
+    description: string;
+    price: number;
+    originalPrice?: number;
+    currency?: string;
+    images: string[];
+    brand: string;
+    attributes: { name: string; value: string; slug: string }[];
+    featured?: boolean;
+    ratingValue?: number;
+    reviewCount?: number;
+  };
+}
+
+const { product } = Astro.props;
+const productUrl = generateProductUrl(product.categorySlug, product.subcategorySlug, product.slug);
+const productAltText = getProductImageAlt(product.name, 0, product.images.length, product.brand);
+const rating = product.ratingValue || 4.5;
+const reviewCount = product.reviewCount || Math.floor(Math.random() * 50) + 5;
+---
+
+<article class="group relative bg-card rounded-lg border border-card-border overflow-hidden hover:shadow-lg hover:border-primary/30 transition-all duration-300" data-testid={`card-product-${product.slug}`}>
+  <!-- Quick Action Buttons - always visible on mobile, hover on desktop -->
+  <div class="absolute top-3 right-3 z-10 flex flex-col gap-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200">
+    <button 
+      class="w-12 h-12 md:w-9 md:h-9 bg-white dark:bg-card rounded-full shadow-md flex items-center justify-center hover:bg-primary hover:text-white transition-colors active:scale-95"
+      aria-label="Add to wishlist"
+      data-testid={`button-wishlist-${product.slug}`}
+    >
+      <svg class="w-5 h-5 md:w-4 md:h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+      </svg>
+    </button>
+    <button 
+      class="w-12 h-12 md:w-9 md:h-9 bg-white dark:bg-card rounded-full shadow-md flex items-center justify-center hover:bg-primary hover:text-white transition-colors active:scale-95"
+      aria-label="Quick view"
+      data-testid={`button-quickview-${product.slug}`}
+    >
+      <svg class="w-5 h-5 md:w-4 md:h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+        <circle cx="12" cy="12" r="3" />
+      </svg>
+    </button>
+  </div>
+
+  <a 
+    href={productUrl} 
+    class="block"
+    title={siteSettings.enableRegionalSeo 
+      ? `${product.name} Price In ${siteSettings.targetRegion}`
+      : product.name}
+  >
+    <!-- Image -->
+    <div class="aspect-square overflow-hidden bg-white relative flex items-center justify-center">
+      <img
+        src={product.images[0] || '/images/placeholder-product.jpg'}
+        alt={productAltText}
+        class="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
+        loading="lazy"
+      />
+      
+      <!-- Badges -->
+      <div class="absolute top-3 left-3 flex flex-col gap-1">
+        {product.featured && (
+          <span class="bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded">
+            Hot
+          </span>
+        )}
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="p-4">
+      <!-- Category/Brand -->
+      <span class="text-xs text-muted-foreground">{product.brand}</span>
+      
+      <!-- Name -->
+      <h3 class="font-medium text-sm mt-1 line-clamp-2 leading-snug min-h-[2.5rem] group-hover:text-primary transition-colors" data-testid={`text-product-name-${product.slug}`}>
+        {product.name}
+      </h3>
+
+      <!-- Rating -->
+      <div class="flex items-center gap-1 mt-2">
+        <div class="flex">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <svg 
+              class={`w-3.5 h-3.5 ${star <= Math.round(rating) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300 dark:text-gray-600'}`}
+              viewBox="0 0 24 24"
+            >
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            </svg>
+          ))}
+        </div>
+        <span class="text-xs text-muted-foreground">({rating.toFixed(1)}) {reviewCount} Reviews</span>
+      </div>
+
+      <!-- Price -->
+      <div class="mt-2">
+        <DualPrice 
+          priceUSD={product.price} 
+          originalPriceUSD={product.originalPrice}
+          size="sm"
+          testId={`text-price-${product.slug}`}
+        />
+      </div>
+
+      <!-- Short Description -->
+      <p class="text-xs text-muted-foreground mt-2 line-clamp-2">
+        {product.description}
+      </p>
+    </div>
+  </a>
+
+  <!-- Add to Cart Button -->
+  <div class="px-4 pb-4">
+    <button 
+      class="w-full py-3 min-h-[48px] bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 transition-colors active:scale-[0.98]"
+      data-testid={`button-add-cart-${product.slug}`}
+    >
+      Add to cart
+    </button>
+  </div>
+</article>

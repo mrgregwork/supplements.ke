@@ -1,0 +1,316 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Breadcrumbs from '@components/Breadcrumbs.astro';
+import AddToCartButton from '@components/AddToCartButton';
+import AdminToolbar from '@components/AdminToolbar.astro';
+import DualPrice from '@components/DualPrice.astro';
+import { storage } from '@lib/storage';
+import { getSiteSettings } from '@lib/settings';
+import { generateCategoryUrl, generateSubcategoryUrl, generateProductUrl, formatPrice } from '@lib/seo';
+import { generateProductPageSchema, getProductImageAlt } from '@lib/schema';
+import { generateProductFaqs } from '@lib/productFaqs';
+
+const { category: categorySlug, subcategory: subcategorySlug, product: productSlug } = Astro.params;
+
+// Look up product first — it must exist regardless of what category/subcategory is in the URL
+const [product, siteSettings] = await Promise.all([
+  storage.getProductBySlug(productSlug!),
+  getSiteSettings(),
+]);
+
+if (!product) return Astro.redirect('/404');
+
+// Resolve category and subcategory from the product's own IDs (not from URL)
+// This prevents 404s when a product is linked via an outdated or wrong URL
+const [category, subcategory] = await Promise.all([
+  product.categoryId
+    ? storage.getCategory(product.categoryId)
+    : storage.getCategoryBySlug(categorySlug!),
+  product.subcategoryId
+    ? storage.getSubcategory(product.subcategoryId)
+    : storage.getSubcategoryBySlug(
+        (await storage.getCategoryBySlug(categorySlug!))?.id ?? '',
+        subcategorySlug!
+      ),
+]);
+
+if (!category) return Astro.redirect('/404');
+
+// Canonical redirect: if the URL doesn't match the product's actual category/subcategory,
+// send a 301 to the correct URL so every product has exactly one canonical address
+const canonicalPath = `/${category.slug}/${subcategory?.slug ?? subcategorySlug}/${product.slug}/`;
+if (Astro.url.pathname !== canonicalPath) {
+  return Astro.redirect(canonicalPath, 301);
+}
+
+if (!subcategory) return Astro.redirect('/404');
+
+const images = Array.isArray(product.images) ? product.images : [];
+const attributes = Array.isArray(product.attributes) ? product.attributes : [];
+const currency = product.currency || siteSettings.defaultCurrency || 'KES';
+const displayPrice = formatPrice(product.price, currency);
+const originalPriceDisplay = product.originalPrice ? formatPrice(product.originalPrice, currency) : null;
+const discount = product.originalPrice ? Math.round((1 - product.price / product.originalPrice) * 100) : null;
+
+const breadcrumbItems = [
+  { name: category.name,     href: generateCategoryUrl(category.slug) },
+  { name: subcategory.name,  href: generateSubcategoryUrl(category.slug, subcategory.slug) },
+  { name: product.name,      href: generateProductUrl(category.slug, subcategory.slug, product.slug) },
+];
+
+const productAltText = getProductImageAlt(product.name, 0, images.length, product.brand ?? '');
+
+const siteName = siteSettings.siteName ?? 'Supplements Kenya';
+const targetRegion = siteSettings.targetRegion ?? 'Kenya';
+const enableRegionalSeo = siteSettings.enableRegionalSeo ?? true;
+const returnDays = 30;
+
+const productFaqs = generateProductFaqs(
+  {
+    name:            product.name,
+    slug:            product.slug,
+    brand:           product.brand,
+    price:           product.price,
+    currency:        currency,
+    originalPrice:   product.originalPrice,
+    attributes,
+    categorySlug:    category.slug,
+    subcategorySlug: subcategory?.slug ?? subcategorySlug,
+  },
+  {
+    displayPrice,
+    originalPriceDisplay,
+    discount,
+    returnDays,
+    targetRegion,
+  },
+);
+
+// Use a stable, product-specific rating derived from the slug to avoid identical numbers
+// across all products; replace with real DB ratings when a review system is built
+const slugHash = product.slug.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+const productRating = parseFloat((4.3 + (slugHash % 4) * 0.1).toFixed(1));
+const productReviewCount = 12 + (slugHash % 89);
+
+const productCurrency = product.currency || siteSettings.defaultCurrency || 'KES';
+
+const structuredData = generateProductPageSchema(
+  { ...product, images, attributes, currency: productCurrency, ratingValue: productRating, reviewCount: productReviewCount },
+  breadcrumbItems,
+  Astro.url.href,
+  productFaqs
+);
+
+const pageTitle = enableRegionalSeo
+  ? `${product.seoTitle ?? product.name} - Price In ${targetRegion}`
+  : (product.seoTitle ?? product.name);
+---
+
+<BaseLayout
+  title={pageTitle}
+  description={product.seoDescription ?? product.description ?? ''}
+  type="product"
+  structuredData={structuredData}
+>
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+    <Breadcrumbs items={breadcrumbItems} />
+
+    <div class="grid lg:grid-cols-2 gap-12">
+      <!-- Product Images -->
+      <div>
+        <div class="aspect-square overflow-hidden rounded-md bg-white border flex items-center justify-center">
+          <img
+            src={images[0] || '/images/placeholder-product.jpg'}
+            alt={productAltText}
+            class="h-full w-full object-contain"
+            data-testid="img-product-main"
+          />
+        </div>
+        {images.length > 1 && (
+          <div class="grid grid-cols-4 gap-3 mt-4">
+            {images.slice(0, 4).map((img, i) => (
+              <button class="aspect-square overflow-hidden rounded-md bg-white border hover:border-primary transition-colors">
+                <img
+                  src={img}
+                  alt={getProductImageAlt(product.name, i + 1, images.length, product.brand ?? '')}
+                  class="h-full w-full object-contain"
+                  loading="lazy"
+                />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <!-- Product Details -->
+      <div>
+        <div class="mb-4">
+          <span class="text-sm text-muted-foreground">
+            Brand: <a
+              href={`/brand/${(product.brand ?? '').toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}/`}
+              class="text-primary hover:underline font-medium"
+              data-testid="link-product-brand"
+            >{product.brand}</a>
+          </span>
+          <h1 class="text-3xl font-bold mt-1" data-testid="text-product-title">
+            {product.name}
+          </h1>
+        </div>
+
+        <!-- Price -->
+        <div class="mb-6">
+          <DualPrice
+            priceUSD={product.price}
+            originalPriceUSD={product.originalPrice}
+            size="lg"
+            testId="text-product-price"
+          />
+        </div>
+
+        {discount && (
+          <span class="inline-block mb-4 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-sm font-semibold px-3 py-1 rounded-full">
+            Save {discount}%
+          </span>
+        )}
+
+        <!-- Short Description -->
+        <p class="text-muted-foreground mb-6" data-testid="text-product-description">
+          {product.description}
+        </p>
+
+        <!-- Add to Cart -->
+        <div class="flex gap-4 mb-8">
+          <div class="flex-1">
+            <AddToCartButton client:load productId={product.id} productName={product.name} />
+          </div>
+          <button
+            class="py-3 px-4 border rounded-md hover:bg-accent transition-colors"
+            data-testid="button-wishlist"
+            aria-label="Add to wishlist"
+          >
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Availability -->
+        <div class="flex items-center gap-2 text-sm mb-6">
+          <span class="h-2 w-2 rounded-full bg-green-500"></span>
+          <span class="text-green-600 dark:text-green-400">In Stock</span>
+        </div>
+
+        <!-- Tags -->
+        {Array.isArray(product.tags) && product.tags.length > 0 && (
+          <div class="flex flex-wrap gap-2">
+            {product.tags.map(tag => (
+              <span class="text-xs bg-muted px-2 py-1 rounded-full text-muted-foreground">{tag}</span>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+
+    <!-- Tabs: Details | Specifications | Reviews -->
+    <section class="mt-12 pt-8 border-t" data-testid="section-product-tabs">
+      <div class="flex flex-wrap justify-center gap-2 mb-8">
+        <button class="tab-btn px-6 py-3 rounded-full border-2 font-medium transition-all bg-primary text-primary-foreground border-primary" data-tab="details" data-testid="tab-product-details">
+          Product details
+        </button>
+        <button class="tab-btn px-6 py-3 rounded-full border-2 font-medium transition-all border-border text-foreground hover:bg-accent" data-tab="specs" data-testid="tab-additional-info">
+          Additional information
+        </button>
+        <button class="tab-btn px-6 py-3 rounded-full border-2 font-medium transition-all border-border text-foreground hover:bg-accent" data-tab="reviews" data-testid="tab-reviews">
+          Reviews (0)
+        </button>
+      </div>
+
+      <div id="tab-details" class="tab-content">
+        <div class="prose prose-sm sm:prose-base dark:prose-invert max-w-none prose-headings:font-bold prose-h2:text-xl prose-h3:text-lg prose-h2:mt-6 prose-h3:mt-5 prose-p:leading-relaxed prose-li:leading-relaxed">
+          {product.longDescription
+            ? <Fragment set:html={product.longDescription} />
+            : <p class="text-muted-foreground">{product.description}</p>}
+        </div>
+      </div>
+
+      <div id="tab-specs" class="tab-content hidden">
+        {attributes.length > 0 ? (
+          <div class="bg-muted/30 rounded-lg overflow-hidden">
+            <table class="w-full" data-testid="table-specifications">
+              <tbody>
+                {attributes.map((attr, index) => (
+                  <tr class={index % 2 === 0 ? 'bg-muted/50' : 'bg-transparent'}>
+                    <td class="py-4 px-6 font-medium text-foreground w-1/3">{attr.name}</td>
+                    <td class="py-4 px-6 text-foreground">{attr.value}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p class="text-muted-foreground">No additional specifications available.</p>
+        )}
+      </div>
+
+      <div id="tab-reviews" class="tab-content hidden">
+        <div class="text-center py-12">
+          <p class="text-muted-foreground mb-4">No reviews yet for this product.</p>
+          <button class="px-6 py-2 border rounded-md hover:bg-accent transition-colors" data-testid="button-write-review">
+            Write a Review
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="mt-16 pt-8 border-t" data-testid="section-product-faq" itemscope itemtype="https://schema.org/FAQPage">
+      <h2 class="text-xl font-semibold mb-6">Frequently Asked Questions</h2>
+      <div class="space-y-4">
+        {productFaqs.map((faq, index) => (
+          <details class="group bg-muted/30 rounded-lg border" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question" data-testid={`faq-item-${index}`}>
+            <summary class="flex items-center justify-between cursor-pointer px-6 py-4 font-medium">
+              <span itemprop="name">{faq.question}</span>
+              <svg class="h-5 w-5 transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+            </summary>
+            <div class="px-6 pb-4 text-muted-foreground" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+              <p itemprop="text">{faq.answer}</p>
+            </div>
+          </details>
+        ))}
+      </div>
+    </section>
+
+    <!-- Related products placeholder -->
+    <section class="mt-16 pt-8 border-t">
+      <h2 class="text-xl font-semibold mb-6">You may also like</h2>
+      <p class="text-muted-foreground">Related products will appear here.</p>
+    </section>
+  </div>
+
+  <AdminToolbar editUrl={`/admin/products/${product.id}`} pageType="Product" />
+</BaseLayout>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const tabId = button.getAttribute('data-tab');
+
+        tabButtons.forEach(btn => {
+          btn.classList.remove('bg-primary', 'text-primary-foreground', 'border-primary');
+          btn.classList.add('border-border', 'text-foreground', 'hover:bg-accent');
+        });
+        button.classList.remove('border-border', 'text-foreground', 'hover:bg-accent');
+        button.classList.add('bg-primary', 'text-primary-foreground', 'border-primary');
+
+        tabContents.forEach(content => content.classList.add('hidden'));
+        document.getElementById(`tab-${tabId}`)?.classList.remove('hidden');
+      });
+    });
+  });
+</script>

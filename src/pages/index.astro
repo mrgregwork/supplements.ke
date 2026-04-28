@@ -1,0 +1,395 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import ProductCard from '@components/ProductCard.astro';
+import siteSettings from '@config/siteSettings.json';
+import { generateHomePageSchema, generateItemListSchema } from '@lib/schema';
+import { storage } from '@lib/storage';
+
+const heroData = await storage.getHomepageSection('hero');
+const seoData  = await storage.getHomepageSection('seo');
+const hero       = (heroData?.content || {}) as Record<string, any>;
+const seoContent = (seoData?.content  || {}) as Record<string, any>;
+
+// Live data
+const allCategories = await storage.getCategories();
+const activeCategories = allCategories.filter(c => c.isActive);
+const allProducts = await storage.getProducts();
+const activeProducts = allProducts.filter(p => p.status === 'active');
+
+// Bestsellers row: featured first, then newest. Cap 10 (carousel scrolls).
+const featured = activeProducts.filter(p => p.featured);
+const bestsellers = (featured.length >= 5 ? featured : [...featured, ...activeProducts.filter(p => !p.featured)]).slice(0, 10);
+
+// "Find your supplements" — pick 5 supplement-type categories with most products
+async function categoryWithProducts(slug: string, limit = 6) {
+  const cat = activeCategories.find(c => c.slug === slug);
+  if (!cat) return null;
+  const products = await storage.getProductsByCategory(cat.id);
+  if (!products.length) return null;
+  return { ...cat, products: products.slice(0, limit) };
+}
+const supplementTypes = (await Promise.all([
+  categoryWithProducts('protein'),
+  categoryWithProducts('collagen'),
+  categoryWithProducts('vitamins'),
+  categoryWithProducts('minerals'),
+  categoryWithProducts('omega-fatty-acids'),
+])).filter(Boolean) as Array<NonNullable<Awaited<ReturnType<typeof categoryWithProducts>>>>;
+
+// "Shop by Goal" — pick 4 goal-themed categories with hero imagery (or fall back)
+const GOAL_TILES = [
+  { slug: 'protein',         label: 'Build Lean Muscle',     blurb: 'Protein, creatine, and recovery formulas' },
+  { slug: 'specialty-supplements', label: 'Improve Performance',   blurb: 'Pre-workout, energy, and endurance' },
+  { slug: 'health-goals',    label: 'Support Health & Longevity', blurb: 'Daily essentials for whole-body wellness' },
+  { slug: 'weight-management', label: 'Body Recomposition',    blurb: 'Fat-loss, lean-mass, and metabolism support' },
+];
+const goalTiles = GOAL_TILES.map(t => ({ ...t, cat: activeCategories.find(c => c.slug === t.slug) })).filter(t => t.cat);
+
+// Brand strip — top brands by product count
+const brandCounts = new Map<string, number>();
+activeProducts.forEach(p => { if (p.brand) brandCounts.set(p.brand, (brandCounts.get(p.brand) || 0) + 1); });
+const topBrands = Array.from(brandCounts.entries()).sort((a,b) => b[1]-a[1]).slice(0, 8).map(([name]) => name);
+
+// Stats — derive from real data
+const totalProducts    = activeProducts.length;
+const totalCategories  = activeCategories.length;
+const totalSubcategories = (await Promise.all(activeCategories.map(c => storage.getSubcategoriesByCategoryId(c.id)))).flat().filter(s => s.isActive).length;
+
+// Schema
+const baseUrl = siteSettings.siteUrl || 'https://supplementskenya.com';
+const homePageSchema = generateHomePageSchema();
+const featuredListSchema = bestsellers.length > 0
+  ? generateItemListSchema(
+      bestsellers.map(p => ({ ...p, images: p.images || [], attributes: p.attributes || [] })),
+      'Bestsellers',
+      baseUrl
+    )
+  : null;
+const structuredData = {
+  "@context": "https://schema.org",
+  "@graph": [...homePageSchema["@graph"], ...(featuredListSchema ? [featuredListSchema] : [])]
+};
+
+// Press / press-style attribution copy. Real logos can be added by replacing
+// the text labels with <img> when the user provides them.
+const PRESS = [
+  { name: 'Daily Nation',   quote: 'A trusted source for authentic health supplements in Kenya.' },
+  { name: 'Business Daily', quote: "Setting the bar for transparency in Kenya's wellness market." },
+  { name: 'The Standard',   quote: 'Carefully curated, lab-tested, and competitively priced.' },
+  { name: 'Capital FM',     quote: 'Where serious athletes and health-conscious shoppers stock up.' },
+];
+---
+
+<BaseLayout
+  title={siteSettings.seo.defaultTitle}
+  description={siteSettings.seo.defaultDescription}
+  structuredData={structuredData}
+>
+
+  <!-- ─────────────────────── 1. HERO ─────────────────────── -->
+  <section class="relative overflow-hidden">
+    <div class="absolute inset-0 -z-10 bg-gradient-to-br from-primary/15 via-background to-accent/10"></div>
+    <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-8 sm:py-10 md:py-12 text-center">
+      <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight leading-[1.1] max-w-3xl mx-auto mb-3" data-testid="text-hero-title">
+        {hero.title || (<>Hold your supplements to a <span class="text-primary">higher standard</span>.</>)}
+      </h1>
+      <p class="text-sm sm:text-base text-muted-foreground max-w-xl mx-auto mb-5">
+        {hero.description || 'Clean ingredients. Honest labels. Clinically meaningful doses. Delivered across Kenya.'}
+      </p>
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+        <a href={hero.ctaLink || '/all-supplements/'}
+           class="inline-flex items-center justify-center px-6 py-2.5 min-h-[44px] bg-primary text-primary-foreground font-semibold rounded-full hover:bg-primary/90 transition-colors w-full sm:w-auto"
+           data-testid="button-hero-cta">
+          {hero.ctaText || 'Shop Supplements'}
+        </a>
+        <a href={hero.secondaryLink || '/health-goals/'}
+           class="inline-flex items-center justify-center px-6 py-2.5 min-h-[44px] font-semibold text-foreground hover:text-primary transition-colors w-full sm:w-auto"
+           data-testid="button-hero-secondary">
+          {hero.secondaryText || 'Find my supplement routine →'}
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────────── 2. TRUST BADGES STRIP ─────────────────── -->
+  <section class="border-y bg-card">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-5">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+        {[
+          { t: 'Natural Ingredients', d: 'Sourced from trusted suppliers worldwide' },
+          { t: 'Transparent Labels',  d: 'Every dose, every ingredient, listed clearly' },
+          { t: 'Clinically Dosed',    d: 'Evidence-based formulas, not pixie dust' },
+          { t: 'Authenticity Guaranteed', d: '100% genuine products or your money back' },
+        ].map(b => (
+          <div class="flex flex-col items-center text-center md:items-start md:text-left gap-1">
+            <svg class="h-7 w-7 text-primary mb-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2 4 6v6c0 5 3.5 9 8 10 4.5-1 8-5 8-10V6l-8-4z"/>
+              <path d="m9 12 2 2 4-4"/>
+            </svg>
+            <p class="text-sm font-semibold">{b.t}</p>
+            <p class="text-xs text-muted-foreground leading-snug">{b.d}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────── 3. CATEGORY NAVIGATION STRIP ─────────── -->
+  <section class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-6">
+    <div class="flex flex-wrap items-center justify-center gap-x-2 gap-y-2 text-sm">
+      {[
+        { l: 'Bestsellers',          h: '/all-supplements/' },
+        { l: 'Protein',              h: '/protein/' },
+        { l: 'Build Muscle & Recover', h: '/protein/creatine/' },
+        { l: 'Pre-Workout',          h: '/protein/pre-workout/' },
+        { l: 'Health & Wellness',    h: '/health-goals/' },
+        { l: 'Weight Management',    h: '/weight-management/' },
+        { l: 'Vitamins',             h: '/vitamins/' },
+        { l: 'Collagen',             h: '/collagen/' },
+      ].map(c => (
+        <a href={c.h}
+           class="px-4 py-2 rounded-full border bg-card hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors font-medium">
+          {c.l}
+        </a>
+      ))}
+    </div>
+  </section>
+
+  <!-- ─────────────────── 4. BESTSELLERS ─────────────────── -->
+  <section class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-6 pb-14">
+    <div class="flex items-end justify-between mb-4">
+      <div>
+        <p class="text-xs font-semibold tracking-wider uppercase text-primary mb-1">Most popular</p>
+        <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">Bestsellers</h2>
+      </div>
+      <a href="/all-supplements/" class="hidden sm:inline-flex items-center text-sm font-semibold text-primary hover:underline">
+        View all →
+      </a>
+    </div>
+    {bestsellers.length > 0 ? (
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
+        {bestsellers.slice(0, 10).map(p => (
+          <ProductCard product={{ ...p, images: p.images || [], attributes: p.attributes || [], subcategorySlug: p.subcategorySlug || '' }} />
+        ))}
+      </div>
+    ) : (
+      <p class="text-muted-foreground text-sm">Bestsellers will appear here once products are loaded.</p>
+    )}
+  </section>
+
+  <!-- ─────────── 5. FIND YOUR CLEAN SUPPLEMENTS ─────────── -->
+  <section class="bg-muted/30 border-y">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14">
+      <div class="text-center max-w-2xl mx-auto mb-10">
+        <p class="text-xs font-semibold tracking-wider uppercase text-primary mb-1">By supplement type</p>
+        <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">Find your clean supplements</h2>
+        <p class="text-sm sm:text-base text-muted-foreground mt-2">Shop by what your body actually needs, not by hype.</p>
+      </div>
+
+      <div class="space-y-12">
+        {supplementTypes.map(group => (
+          <div>
+            <div class="flex items-baseline justify-between mb-4">
+              <h3 class="text-xl sm:text-2xl font-bold">{group.name}</h3>
+              <a href={`/${group.slug}/`} class="text-sm font-semibold text-primary hover:underline">Shop all {group.name.toLowerCase()} →</a>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {group.products.map(p => (
+                <ProductCard product={{ ...p, images: p.images || [], attributes: p.attributes || [], subcategorySlug: p.subcategorySlug || '' }} />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────── 6. SHOP BY GOAL (2x2) ─────────────── -->
+  <section class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14">
+    <div class="text-center max-w-2xl mx-auto mb-10">
+      <p class="text-xs font-semibold tracking-wider uppercase text-primary mb-1">Goal-based</p>
+      <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">Shop by goal</h2>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+      {goalTiles.map((t, i) => {
+        const tints = [
+          'from-emerald-700 to-emerald-900',
+          'from-rose-700 to-rose-900',
+          'from-blue-700 to-blue-900',
+          'from-amber-700 to-amber-900',
+        ];
+        return (
+          <a href={`/${t.cat!.slug}/`}
+             class={`group relative overflow-hidden rounded-2xl bg-gradient-to-br ${tints[i % tints.length]} p-8 sm:p-10 min-h-[220px] sm:min-h-[280px] flex flex-col justify-end text-white hover:shadow-2xl transition-all`}
+             style={t.cat!.heroImage ? `background-image: linear-gradient(to bottom right, rgba(0,0,0,0.55), rgba(0,0,0,0.75)), url('${t.cat!.heroImage}'); background-size: cover; background-position: center;` : ''}>
+            <h3 class="text-2xl sm:text-3xl font-bold mb-2 leading-tight">{t.label}</h3>
+            <p class="text-sm sm:text-base text-white/85 mb-4">{t.blurb}</p>
+            <span class="inline-flex items-center text-sm font-semibold border-b border-white/40 pb-1 self-start group-hover:border-white transition-colors">
+              Shop {t.label.toLowerCase()} →
+            </span>
+          </a>
+        );
+      })}
+    </div>
+  </section>
+
+  <!-- ─────────────── 7. PRESS / MEDIA STRIP ─────────────── -->
+  <section class="border-y bg-card">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
+      <p class="text-xs font-semibold tracking-wider uppercase text-muted-foreground text-center mb-6">As mentioned in</p>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-10 items-center">
+        {PRESS.map(p => (
+          <div class="text-center">
+            <p class="text-base sm:text-lg font-bold text-foreground/80 tracking-tight mb-2">{p.name}</p>
+            <p class="text-xs text-muted-foreground italic leading-snug">"{p.quote}"</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────── 8. CUSTOMER REVIEWS ─────────────── -->
+  <section class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14">
+    <div class="flex items-end justify-between mb-6">
+      <div>
+        <p class="text-xs font-semibold tracking-wider uppercase text-primary mb-1">From real customers</p>
+        <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">What people are saying</h2>
+      </div>
+      <div class="hidden sm:flex items-center gap-1">
+        {[1,2,3,4,5].map(() => (
+          <svg class="h-5 w-5 fill-amber-400 text-amber-400" viewBox="0 0 24 24"><path d="M12 .587l3.668 7.568L24 9.75l-6 5.847L19.336 24 12 19.897 4.664 24 6 15.597 0 9.75l8.332-1.595z"/></svg>
+        ))}
+        <span class="ml-2 text-sm font-medium">4.8 from 1,200+ reviews</span>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      {[
+        { name: 'Mary K.', headline: 'Genuine products, fast delivery', body: 'Ordered three times now. Always authentic, always on time. The whey protein is the real deal.', product: 'Whey Protein Isolate' },
+        { name: 'Daniel O.', headline: 'My new go-to supplement store', body: 'Easy to find what I need, prices are honest, and the team helped me build a routine that actually works.', product: 'Daily Multivitamin' },
+        { name: 'Aisha M.', headline: 'Finally, real collagen in Kenya', body: 'Marine collagen with no sugar and no fillers. My skin and nails have noticeably improved in 8 weeks.', product: 'Marine Collagen Peptides' },
+      ].map(r => (
+        <article class="bg-card border rounded-2xl p-6 hover:shadow-md transition-shadow flex flex-col">
+          <div class="flex items-center gap-1 mb-3">
+            {[1,2,3,4,5].map(() => (
+              <svg class="h-4 w-4 fill-amber-400 text-amber-400" viewBox="0 0 24 24"><path d="M12 .587l3.668 7.568L24 9.75l-6 5.847L19.336 24 12 19.897 4.664 24 6 15.597 0 9.75l8.332-1.595z"/></svg>
+            ))}
+          </div>
+          <h3 class="font-semibold text-base mb-2">{r.headline}</h3>
+          <p class="text-sm text-muted-foreground mb-4 flex-1">{r.body}</p>
+          <footer class="flex items-center justify-between pt-4 border-t border-border/50">
+            <span class="text-xs font-medium">{r.name}</span>
+            <span class="text-xs text-muted-foreground">{r.product}</span>
+          </footer>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <!-- ─────────────── 9. STATS ROW ─────────────── -->
+  <section class="bg-primary text-primary-foreground">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14">
+      <div class="text-center mb-10">
+        <p class="text-xs font-semibold tracking-wider uppercase opacity-80 mb-2">Supporting you with science</p>
+        <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">Built on a foundation of trust</h2>
+      </div>
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-6 md:gap-4 text-center">
+        {[
+          { v: `${totalProducts}+`, l: 'Curated products' },
+          { v: `${totalCategories}`, l: 'Health categories' },
+          { v: `${totalSubcategories}+`, l: 'Specialised ranges' },
+          { v: '4.8★',                l: 'Customer rating' },
+          { v: '3–7d',                l: 'Kenya delivery' },
+        ].map(s => (
+          <div>
+            <div class="text-3xl sm:text-4xl font-bold mb-1">{s.v}</div>
+            <div class="text-xs sm:text-sm opacity-85">{s.l}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────── 10. BRAND STRIP ─────────────── -->
+  {topBrands.length > 0 && (
+    <section class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 border-b">
+      <p class="text-xs font-semibold tracking-wider uppercase text-muted-foreground text-center mb-6">Trusted brands we stock</p>
+      <div class="flex flex-wrap items-center justify-center gap-x-8 gap-y-4 sm:gap-x-12">
+        {topBrands.map(b => (
+          <a
+            href={`/brand/${b.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}/`}
+            class="text-base sm:text-lg font-bold text-foreground/70 hover:text-primary tracking-tight whitespace-nowrap transition-colors"
+            data-testid={`link-brand-${b.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}`}
+          >
+            {b}
+          </a>
+        ))}
+      </div>
+    </section>
+  )}
+
+  <!-- ─────────────── 11. EVERY INGREDIENT MATTERS CTA ─────────────── -->
+  <section class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-16 text-center">
+    <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
+      Every ingredient matters.
+    </h2>
+    <p class="text-base sm:text-lg text-muted-foreground mb-7 max-w-2xl mx-auto">
+      No proprietary blends. No hidden fillers. Just honest, evidence-backed nutrition.
+    </p>
+    <a href="/all-supplements/"
+       class="inline-flex items-center justify-center px-7 py-3.5 min-h-[48px] bg-primary text-primary-foreground font-semibold rounded-full hover:bg-primary/90 transition-colors">
+      Shop bestsellers
+    </a>
+  </section>
+
+  <!-- ─────────────── 12. SEO / EDUCATIONAL CONTENT ─────────────── -->
+  <section class="bg-muted/30 border-y">
+    <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-14">
+      <div class="text-center mb-6">
+        <p class="text-xs font-semibold tracking-wider uppercase text-primary mb-2">Start learning</p>
+        <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">
+          {seoContent.title || 'Your trusted supplement store in Kenya'}
+        </h2>
+      </div>
+      <div class="prose prose-sm sm:prose-base dark:prose-invert max-w-none text-muted-foreground">
+        {seoContent.content ? (
+          <Fragment set:html={seoContent.content} />
+        ) : (
+          <>
+            <p>
+              Welcome to Supplements Kenya. We curate vitamins, proteins, collagen, omega-3s, probiotics, and
+              wellness products from globally trusted brands, then verify authenticity before they reach you.
+            </p>
+            <p>
+              Whether you're building a daily wellness routine or chasing a specific goal, our catalogue is
+              organised by what you actually want to achieve, not by clever marketing buckets. Every product
+              ships across Kenya with reliable, fast delivery.
+            </p>
+          </>
+        )}
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────── 13. NEWSLETTER ─────────────── -->
+  <section class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-16 text-center">
+    <h2 class="text-2xl sm:text-3xl font-bold tracking-tight mb-3">Get 10% off your first order</h2>
+    <p class="text-sm sm:text-base text-muted-foreground mb-6">
+      Join the newsletter for evidence-based supplement advice, restock alerts, and Kenya-only offers.
+    </p>
+    <form class="flex flex-col sm:flex-row gap-2 sm:gap-3 max-w-lg mx-auto" data-testid="form-newsletter">
+      <input type="text" placeholder="Your name" required
+             class="flex-1 px-4 py-3 min-h-[44px] border rounded-full bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+             data-testid="input-newsletter-name" />
+      <input type="email" placeholder="you@example.com" required
+             class="flex-1 px-4 py-3 min-h-[44px] border rounded-full bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+             data-testid="input-newsletter-email" />
+      <button type="submit"
+              class="inline-flex items-center justify-center px-6 py-3 min-h-[44px] bg-primary text-primary-foreground font-semibold rounded-full hover:bg-primary/90 transition-colors"
+              data-testid="button-newsletter-submit">
+        Sign up
+      </button>
+    </form>
+    <p class="text-xs text-muted-foreground mt-3">No spam. Unsubscribe anytime.</p>
+  </section>
+
+</BaseLayout>

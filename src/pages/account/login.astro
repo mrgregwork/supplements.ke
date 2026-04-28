@@ -1,0 +1,48 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import LoginForm from '@components/LoginForm';
+import siteSettings from '@config/siteSettings.json';
+import { generateBreadcrumbSchema } from '@lib/schema';
+
+const breadcrumbItems = [
+  { name: 'Login', href: '/account/login' },
+];
+
+const baseUrl = siteSettings.siteUrl || 'https://example.com';
+
+const structuredData = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      "@id": `${baseUrl}/account/login#webpage`,
+      "name": "Sign In or Create Account",
+      "description": "Sign in or create an account to manage your orders",
+      "url": `${baseUrl}/account/login`,
+      "isPartOf": { "@id": `${baseUrl}#website` }
+    },
+    generateBreadcrumbSchema(breadcrumbItems, baseUrl)
+  ]
+};
+---
+
+<BaseLayout 
+  title="Login - E-Commerce SEO"
+  description="Sign in or create an account to manage your orders"
+  structuredData={structuredData}
+>
+  <div class="mx-auto max-w-md px-4 sm:px-6 lg:px-8 py-12">
+    <div class="text-center mb-8">
+      <h1 class="text-2xl font-bold mb-2" data-testid="text-login-title">Sign In or Create Account</h1>
+      <p class="text-muted-foreground">Enter your email or phone to continue</p>
+    </div>
+    
+    <div class="bg-card border border-border rounded-lg p-6 shadow-sm">
+      <LoginForm client:load />
+    </div>
+    
+    <p class="text-center text-sm text-muted-foreground mt-6">
+      We'll send you a one-time code to verify your identity. No password needed.
+    </p>
+  </div>
+</BaseLayout>

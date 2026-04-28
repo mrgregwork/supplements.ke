@@ -1,0 +1,352 @@
+---
+import BaseLayout from "@layouts/BaseLayout.astro";
+import AdminSidebar from "@components/AdminSidebar.astro";
+import { getAdminSessionToken, verifyAdminSession } from "@lib/admin";
+import { storage } from "@lib/storage";
+
+const sessionToken = getAdminSessionToken(Astro.request);
+const sessionData = await verifyAdminSession(sessionToken);
+
+const isDev = import.meta.env.DEV;
+if (!isDev && !sessionData) {
+  return Astro.redirect("/admin/login");
+}
+
+const adminEmail = sessionData?.admin?.email || "Dev Mode";
+
+const heroContent = await storage.getHomepageSection('hero');
+const statsContent = await storage.getHomepageSection('stats');
+const seoContent = await storage.getHomepageSection('seo');
+
+const hero = (heroContent?.content || {}) as Record<string, any>;
+const stats = (statsContent?.content || {}) as Record<string, any>;
+const seo = (seoContent?.content || {}) as Record<string, any>;
+---
+
+<BaseLayout 
+  title="Homepage Editor - Admin" 
+  description="Edit homepage content"
+>
+  <div class="min-h-screen flex flex-col md:flex-row">
+    <AdminSidebar adminEmail={adminEmail} currentPage="homepage" />
+    
+    <main class="flex-1 p-4 md:p-8">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold">Homepage Editor</h2>
+        <a 
+          href="/" 
+          target="_blank"
+          class="text-sm text-primary hover:underline flex items-center gap-1"
+          data-testid="link-preview-homepage"
+        >
+          Preview Homepage
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+        </a>
+      </div>
+      
+      <div id="message-container" class="hidden mb-4"></div>
+      
+      <div class="space-y-8 max-w-4xl">
+        <div class="bg-card border rounded-lg p-6">
+          <h3 class="text-lg font-semibold mb-4">Hero Section</h3>
+          <p class="text-sm text-muted-foreground mb-4">The main banner at the top of your homepage.</p>
+          
+          <div class="space-y-4">
+            <div>
+              <label for="hero-title" class="block text-sm font-medium mb-1">Hero Title</label>
+              <input 
+                type="text" 
+                id="hero-title" 
+                value={hero.title || ''}
+                placeholder="Shop Premium Tech Products"
+                class="w-full px-3 py-3 min-h-[48px] text-base border rounded-md bg-background"
+                data-testid="input-hero-title"
+              />
+            </div>
+            
+            <div>
+              <label for="hero-description" class="block text-sm font-medium mb-1">Hero Description</label>
+              <textarea 
+                id="hero-description"
+                rows="3"
+                placeholder="Discover our curated selection of products..."
+                class="w-full px-3 py-3 text-base border rounded-md bg-background resize-y"
+                data-testid="input-hero-description"
+              >{hero.description || ''}</textarea>
+            </div>
+            
+            <div class="grid md:grid-cols-2 gap-4">
+              <div>
+                <label for="hero-cta-text" class="block text-sm font-medium mb-1">Primary Button Text</label>
+                <input 
+                  type="text" 
+                  id="hero-cta-text" 
+                  value={hero.ctaText || ''}
+                  placeholder="Browse Products"
+                  class="w-full px-3 py-3 min-h-[48px] text-base border rounded-md bg-background"
+                  data-testid="input-hero-cta-text"
+                />
+              </div>
+              <div>
+                <label for="hero-cta-link" class="block text-sm font-medium mb-1">Primary Button Link</label>
+                <input 
+                  type="text" 
+                  id="hero-cta-link" 
+                  value={hero.ctaLink || ''}
+                  placeholder="/laptops/"
+                  class="w-full px-3 py-3 min-h-[48px] text-base border rounded-md bg-background"
+                  data-testid="input-hero-cta-link"
+                />
+              </div>
+            </div>
+            
+            <div class="grid md:grid-cols-2 gap-4">
+              <div>
+                <label for="hero-secondary-text" class="block text-sm font-medium mb-1">Secondary Button Text</label>
+                <input 
+                  type="text" 
+                  id="hero-secondary-text" 
+                  value={hero.secondaryText || ''}
+                  placeholder="View More"
+                  class="w-full px-3 py-3 min-h-[48px] text-base border rounded-md bg-background"
+                  data-testid="input-hero-secondary-text"
+                />
+              </div>
+              <div>
+                <label for="hero-secondary-link" class="block text-sm font-medium mb-1">Secondary Button Link</label>
+                <input 
+                  type="text" 
+                  id="hero-secondary-link" 
+                  value={hero.secondaryLink || ''}
+                  placeholder="/smartphones/"
+                  class="w-full px-3 py-3 min-h-[48px] text-base border rounded-md bg-background"
+                  data-testid="input-hero-secondary-link"
+                />
+              </div>
+            </div>
+            
+            <button 
+              type="button"
+              id="save-hero"
+              class="px-4 py-3 min-h-[48px] bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition"
+              data-testid="button-save-hero"
+            >
+              Save Hero Section
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-card border rounded-lg p-6">
+          <h3 class="text-lg font-semibold mb-4">Statistics Section</h3>
+          <p class="text-sm text-muted-foreground mb-4">Numbers displayed in the hero area to build trust.</p>
+          
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label for="stat1-value" class="block text-sm font-medium mb-1">Stat 1 Value</label>
+              <input 
+                type="text" 
+                id="stat1-value" 
+                value={stats.stat1Value || ''}
+                placeholder="10,000+"
+                class="w-full px-3 py-3 min-h-[48px] text-base border rounded-md bg-background"
+                data-testid="input-stat1-value"
+              />
+            </div>
+            <div>
+              <label for="stat1-label" class="block text-sm font-medium mb-1">Stat 1 Label</label>
+              <input 
+                type="text" 
+                id="stat1-label" 
+                value={stats.stat1Label || ''}
+                placeholder="Happy Customers"
+                class="w-full px-3 py-3 min-h-[48px] text-base border rounded-md bg-background"
+                data-testid="input-stat1-label"
+              />
+            </div>
+            <div>
+              <label for="stat2-value" class="block text-sm font-medium mb-1">Stat 2 Value</label>
+              <input 
+                type="text" 
+                id="stat2-value" 
+                value={stats.stat2Value || ''}
+                placeholder="500+"
+                class="w-full px-3 py-3 min-h-[48px] text-base border rounded-md bg-background"
+                data-testid="input-stat2-value"
+              />
+            </div>
+            <div>
+              <label for="stat2-label" class="block text-sm font-medium mb-1">Stat 2 Label</label>
+              <input 
+                type="text" 
+                id="stat2-label" 
+                value={stats.stat2Label || ''}
+                placeholder="Products"
+                class="w-full px-3 py-3 min-h-[48px] text-base border rounded-md bg-background"
+                data-testid="input-stat2-label"
+              />
+            </div>
+            <div>
+              <label for="stat3-value" class="block text-sm font-medium mb-1">Stat 3 Value</label>
+              <input 
+                type="text" 
+                id="stat3-value" 
+                value={stats.stat3Value || ''}
+                placeholder="50+"
+                class="w-full px-3 py-3 min-h-[48px] text-base border rounded-md bg-background"
+                data-testid="input-stat3-value"
+              />
+            </div>
+            <div>
+              <label for="stat3-label" class="block text-sm font-medium mb-1">Stat 3 Label</label>
+              <input 
+                type="text" 
+                id="stat3-label" 
+                value={stats.stat3Label || ''}
+                placeholder="Top Brands"
+                class="w-full px-3 py-3 min-h-[48px] text-base border rounded-md bg-background"
+                data-testid="input-stat3-label"
+              />
+            </div>
+            <div>
+              <label for="stat4-value" class="block text-sm font-medium mb-1">Stat 4 Value</label>
+              <input 
+                type="text" 
+                id="stat4-value" 
+                value={stats.stat4Value || ''}
+                placeholder="4.9/5"
+                class="w-full px-3 py-3 min-h-[48px] text-base border rounded-md bg-background"
+                data-testid="input-stat4-value"
+              />
+            </div>
+            <div>
+              <label for="stat4-label" class="block text-sm font-medium mb-1">Stat 4 Label</label>
+              <input 
+                type="text" 
+                id="stat4-label" 
+                value={stats.stat4Label || ''}
+                placeholder="Customer Rating"
+                class="w-full px-3 py-3 min-h-[48px] text-base border rounded-md bg-background"
+                data-testid="input-stat4-label"
+              />
+            </div>
+          </div>
+          
+          <button 
+            type="button"
+            id="save-stats"
+            class="mt-4 px-4 py-3 min-h-[48px] bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition"
+            data-testid="button-save-stats"
+          >
+            Save Statistics
+          </button>
+        </div>
+
+        <div class="bg-card border rounded-lg p-6">
+          <h3 class="text-lg font-semibold mb-4">SEO Content Section</h3>
+          <p class="text-sm text-muted-foreground mb-4">Bottom section with additional content for search engines.</p>
+          
+          <div class="space-y-4">
+            <div>
+              <label for="seo-title" class="block text-sm font-medium mb-1">Section Title</label>
+              <input 
+                type="text" 
+                id="seo-title" 
+                value={seo.title || ''}
+                placeholder="Your Trusted Online Tech Store"
+                class="w-full px-3 py-3 min-h-[48px] text-base border rounded-md bg-background"
+                data-testid="input-seo-title"
+              />
+            </div>
+            
+            <div>
+              <label for="seo-content" class="block text-sm font-medium mb-1">Content (HTML supported)</label>
+              <textarea 
+                id="seo-content"
+                rows="6"
+                placeholder="Welcome to our store..."
+                class="w-full px-3 py-3 text-base border rounded-md bg-background resize-y font-mono text-sm"
+                data-testid="input-seo-content"
+              >{seo.content || ''}</textarea>
+            </div>
+            
+            <button 
+              type="button"
+              id="save-seo"
+              class="px-4 py-3 min-h-[48px] bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition"
+              data-testid="button-save-seo"
+            >
+              Save SEO Content
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</BaseLayout>
+
+<script>
+  const messageContainer = document.getElementById('message-container');
+  
+  function showMessage(text, type) {
+    if (!messageContainer) return;
+    messageContainer.innerHTML = `
+      <div class="p-4 rounded-lg ${type === 'error' ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-green-500/10 text-green-600 border border-green-500/20'}">
+        ${text}
+      </div>
+    `;
+    messageContainer.classList.remove('hidden');
+    setTimeout(() => messageContainer.classList.add('hidden'), 5000);
+  }
+  
+  async function saveSection(section, content) {
+    try {
+      const response = await fetch('/api/admin/homepage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ section, content, isActive: true })
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'Failed to save');
+      }
+      
+      showMessage('Saved successfully!', 'success');
+    } catch (error) {
+      showMessage(error.message || 'Failed to save', 'error');
+    }
+  }
+  
+  document.getElementById('save-hero')?.addEventListener('click', () => {
+    saveSection('hero', {
+      title: (document.getElementById('hero-title')).value,
+      description: (document.getElementById('hero-description')).value,
+      ctaText: (document.getElementById('hero-cta-text')).value,
+      ctaLink: (document.getElementById('hero-cta-link')).value,
+      secondaryText: (document.getElementById('hero-secondary-text')).value,
+      secondaryLink: (document.getElementById('hero-secondary-link')).value,
+    });
+  });
+  
+  document.getElementById('save-stats')?.addEventListener('click', () => {
+    saveSection('stats', {
+      stat1Value: (document.getElementById('stat1-value')).value,
+      stat1Label: (document.getElementById('stat1-label')).value,
+      stat2Value: (document.getElementById('stat2-value')).value,
+      stat2Label: (document.getElementById('stat2-label')).value,
+      stat3Value: (document.getElementById('stat3-value')).value,
+      stat3Label: (document.getElementById('stat3-label')).value,
+      stat4Value: (document.getElementById('stat4-value')).value,
+      stat4Label: (document.getElementById('stat4-label')).value,
+    });
+  });
+  
+  document.getElementById('save-seo')?.addEventListener('click', () => {
+    saveSection('seo', {
+      title: (document.getElementById('seo-title')).value,
+      content: (document.getElementById('seo-content')).value,
+    });
+  });
+</script>

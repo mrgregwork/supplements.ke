@@ -1,0 +1,77 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import { getSiteSettings } from '@lib/settings';
+
+const siteSettings = await getSiteSettings();
+const siteName = siteSettings.siteName ?? 'Supplements Kenya';
+---
+
+<BaseLayout
+  title={`Terms of Service | ${siteName}`}
+  description={`Read the ${siteName} Terms of Service governing your use of our website and purchase of our products.`}
+>
+  <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-16">
+    <h1 class="text-3xl font-bold mb-2">Terms of Service</h1>
+    <p class="text-sm text-muted-foreground mb-10">Last updated: January 2025</p>
+
+    <div class="prose prose-sm sm:prose-base dark:prose-invert max-w-none space-y-6">
+      <h2>Acceptance of Terms</h2>
+      <p>
+        By accessing or using {siteName} you agree to be bound by these Terms of Service.
+        If you do not agree, please do not use our website.
+      </p>
+
+      <h2>Products and Pricing</h2>
+      <p>
+        We reserve the right to modify prices at any time. All prices are displayed in
+        Kenyan Shillings (KES) unless otherwise stated. Product images are for
+        illustrative purposes; actual packaging may vary.
+      </p>
+
+      <h2>Orders and Payment</h2>
+      <p>
+        An order confirmation email does not constitute acceptance of your order.
+        We reserve the right to cancel any order due to stock availability, pricing
+        errors, or suspected fraud.
+      </p>
+
+      <h2>Delivery</h2>
+      <p>
+        Delivery times are estimates only. We are not liable for delays caused by
+        circumstances beyond our control (e.g. courier delays, public holidays).
+      </p>
+
+      <h2>Returns and Refunds</h2>
+      <p>
+        We accept returns of unopened products within 30 days of delivery. Contact
+        us via our <a href="/contact/" class="text-primary hover:underline">contact page</a>
+        to initiate a return.
+      </p>
+
+      <h2>Health Disclaimer</h2>
+      <p>
+        The products and information on this website are not intended to diagnose,
+        treat, cure, or prevent any disease. Always consult a qualified healthcare
+        professional before starting any supplement regimen.
+      </p>
+
+      <h2>Limitation of Liability</h2>
+      <p>
+        To the maximum extent permitted by law, {siteName} shall not be liable for
+        any indirect, incidental, or consequential damages arising from your use of
+        our products or website.
+      </p>
+
+      <h2>Changes to These Terms</h2>
+      <p>
+        We may update these Terms at any time. Continued use of the website after
+        changes are posted constitutes acceptance of the revised Terms.
+      </p>
+
+      <h2>Contact</h2>
+      <p>
+        Questions? <a href="/contact/" class="text-primary hover:underline">Contact us</a>.
+      </p>
+    </div>
+  </div>
+</BaseLayout>

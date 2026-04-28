@@ -1,0 +1,44 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import { getSiteSettings } from '@lib/settings';
+
+const siteSettings = await getSiteSettings();
+const siteName = siteSettings.siteName ?? 'Supplements Kenya';
+---
+
+<BaseLayout
+  title={`Contact Us | ${siteName}`}
+  description={`Get in touch with the ${siteName} team. We're here to help with orders, product questions, and general enquiries.`}
+>
+  <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-16">
+    <h1 class="text-3xl font-bold mb-6">Contact Us</h1>
+
+    <p class="text-muted-foreground mb-10">
+      Have a question about an order, a product, or anything else? Fill in the form below
+      and we'll respond within one business day.
+    </p>
+
+    <div class="space-y-6 text-sm text-muted-foreground">
+      <div class="bg-card border border-border rounded-lg p-6">
+        <h2 class="text-base font-semibold text-foreground mb-1">Email</h2>
+        <p>Send us an email and we'll reply within one business day.</p>
+        <a href="mailto:info@supplementskenya.com" class="text-primary hover:underline font-medium">
+          info@supplementskenya.com
+        </a>
+      </div>
+
+      <div class="bg-card border border-border rounded-lg p-6">
+        <h2 class="text-base font-semibold text-foreground mb-1">WhatsApp</h2>
+        <p>Prefer to chat? Message us on WhatsApp during business hours (Mon–Fri, 9am–6pm EAT).</p>
+      </div>
+
+      <div class="bg-card border border-border rounded-lg p-6">
+        <h2 class="text-base font-semibold text-foreground mb-1">Order Support</h2>
+        <p>
+          For questions about an existing order, please have your order number ready.
+          Orders can also be tracked from your <a href="/account/" class="text-primary hover:underline">account page</a>.
+        </p>
+      </div>
+    </div>
+  </div>
+</BaseLayout>

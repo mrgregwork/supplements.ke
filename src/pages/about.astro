@@ -1,0 +1,45 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import { getSiteSettings } from '@lib/settings';
+
+const siteSettings = await getSiteSettings();
+const siteName = siteSettings.siteName ?? 'Supplements Kenya';
+---
+
+<BaseLayout
+  title={`About Us | ${siteName}`}
+  description={`Learn about ${siteName} — your trusted source for premium supplements and health products in Kenya.`}
+>
+  <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-16">
+    <h1 class="text-3xl font-bold mb-6">About Us</h1>
+
+    <div class="prose prose-sm sm:prose-base dark:prose-invert max-w-none space-y-6">
+      <p>
+        Welcome to {siteName} — Kenya's trusted online destination for premium supplements,
+        vitamins, and health products. We source only from reputable international brands
+        and stock a carefully curated range to support your health and wellness goals.
+      </p>
+
+      <h2>Our Mission</h2>
+      <p>
+        To make high-quality health supplements accessible and affordable to everyone in Kenya,
+        backed by honest product information and reliable delivery.
+      </p>
+
+      <h2>Why Shop With Us</h2>
+      <ul>
+        <li>Genuine products from trusted global brands</li>
+        <li>Fast delivery across Kenya</li>
+        <li>Competitive pricing with no hidden fees</li>
+        <li>Knowledgeable customer support</li>
+        <li>30-day return policy for your peace of mind</li>
+      </ul>
+
+      <h2>Contact Us</h2>
+      <p>
+        Have a question? Visit our <a href="/contact/" class="text-primary hover:underline">Contact page</a>
+        and we'll get back to you promptly.
+      </p>
+    </div>
+  </div>
+</BaseLayout>

@@ -1,0 +1,68 @@
+{
+  "siteName": "Supplements Kenya",
+  "siteDescription": "Premium health supplements delivered across Kenya. Shop 400+ trusted vitamins, proteins, collagen and wellness products.",
+  "enableRegionalSeo": true,
+  "targetRegion": "Kenya",
+  "includeBrandInH1": false,
+  "defaultCurrency": "KES",
+  "defaultLocale": "en-KE",
+  "siteUrl": "https://supplementskenya.com",
+  "seo": {
+    "defaultTitle": "Supplements Kenya — Premium Health Supplements Delivered in Kenya",
+    "titleTemplate": "%s | Supplements Kenya",
+    "defaultDescription": "Shop 400+ premium vitamins, proteins, collagen and wellness supplements in Kenya. Authentic products, competitive prices, fast delivery nationwide.",
+    "openGraph": {
+      "type": "website",
+      "siteName": "Supplements Kenya"
+    }
+  },
+  "navigation": {
+    "maxClickDepth": 3
+  },
+  "organization": {
+    "name": "Supplements Kenya",
+    "legalName": "Supplements Kenya Ltd",
+    "description": "Premium online supplement retailer specialising in vitamins, proteins, collagen, probiotics and wellness products delivered across Kenya.",
+    "foundingDate": "2024",
+    "logo": "/images/logo.png",
+    "email": "support@supplementskenya.com",
+    "telephone": "+254700000000",
+    "address": {
+      "streetAddress": "123 Tech Street",
+      "addressLocality": "Nairobi",
+      "addressRegion": "Nairobi County",
+      "postalCode": "00100",
+      "addressCountry": "KE"
+    },
+    "sameAs": [
+      "https://facebook.com/supplementskenya",
+      "https://instagram.com/supplementskenya",
+      "https://twitter.com/supplementskenya"
+    ],
+    "priceRange": "$$",
+    "paymentAccepted": ["Credit Card", "Debit Card", "M-Pesa", "PayPal"],
+    "currenciesAccepted": "KES, USD",
+    "openingHours": "Mo-Fr 08:00-18:00, Sa 09:00-14:00",
+    "areaServed": {
+      "type": "Country",
+      "name": "Kenya"
+    },
+    "returnPolicy": {
+      "daysToReturn": 30,
+      "returnMethod": "ReturnByMail",
+      "returnFees": "FreeReturn"
+    },
+    "shippingPolicy": {
+      "freeShippingThreshold": 5000,
+      "deliveryTime": "3-7 business days"
+    }
+  },
+  "reviews": {
+    "aggregateRating": {
+      "ratingValue": 4.8,
+      "reviewCount": 520,
+      "bestRating": 5,
+      "worstRating": 1
+    }
+  }
+}

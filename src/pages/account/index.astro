@@ -1,0 +1,174 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import { getCustomer, getSessionByToken, getCustomerOrders } from '@lib/auth';
+import siteSettings from '@config/siteSettings.json';
+import { generateBreadcrumbSchema } from '@lib/schema';
+
+const sessionToken = Astro.cookies.get('session')?.value;
+let customer = null;
+let customerOrders: any[] = [];
+
+if (sessionToken) {
+  const session = await getSessionByToken(sessionToken);
+  if (session) {
+    customer = await getCustomer(session.customerId);
+    if (customer) {
+      customerOrders = await getCustomerOrders(customer.id);
+    }
+  }
+}
+
+if (!customer) {
+  return Astro.redirect('/login');
+}
+
+const baseUrl = siteSettings.siteUrl || 'https://example.com';
+const breadcrumbItems = [{ name: 'My Account', href: '/account' }];
+
+const structuredData = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "ProfilePage",
+      "@id": `${baseUrl}/account#webpage`,
+      "name": "My Account",
+      "description": "Manage your account and view order history",
+      "url": `${baseUrl}/account`,
+      "isPartOf": { "@id": `${baseUrl}#website` }
+    },
+    generateBreadcrumbSchema(breadcrumbItems, baseUrl)
+  ]
+};
+---
+
+<BaseLayout 
+  title="My Account - E-Commerce SEO"
+  description="Manage your account and view order history"
+  structuredData={structuredData}
+>
+  <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-12">
+    <div class="flex items-center justify-between mb-8">
+      <div>
+        <h1 class="text-2xl font-bold" data-testid="text-account-title">My Account</h1>
+        <p class="text-muted-foreground">Welcome back, {customer.firstName || customer.email || customer.phone}</p>
+      </div>
+      <form action="/api/auth/logout" method="POST">
+        <button 
+          type="submit"
+          class="px-4 py-2 text-sm border border-border rounded-md hover:bg-accent transition-colors"
+          data-testid="button-logout"
+        >
+          Sign Out
+        </button>
+      </form>
+    </div>
+    
+    <div class="grid gap-8 md:grid-cols-2">
+      <!-- Account Info -->
+      <div class="bg-card border border-border rounded-lg p-6">
+        <h2 class="text-lg font-semibold mb-4">Account Information</h2>
+        <dl class="space-y-3">
+          <div>
+            <dt class="text-sm text-muted-foreground">Email</dt>
+            <dd class="font-medium" data-testid="text-email">{customer.email || 'Not set'}</dd>
+          </div>
+          <div>
+            <dt class="text-sm text-muted-foreground">Phone</dt>
+            <dd class="font-medium" data-testid="text-phone">{customer.phone || 'Not set'}</dd>
+          </div>
+          <div>
+            <dt class="text-sm text-muted-foreground">Name</dt>
+            <dd class="font-medium" data-testid="text-name">
+              {customer.firstName || customer.lastName 
+                ? `${customer.firstName || ''} ${customer.lastName || ''}`.trim()
+                : 'Not set'}
+            </dd>
+          </div>
+        </dl>
+        <a 
+          href="/account/settings"
+          class="inline-block mt-4 text-sm text-primary hover:underline"
+          data-testid="link-edit-account"
+        >
+          Edit account details
+        </a>
+      </div>
+      
+      <!-- Quick Actions -->
+      <div class="bg-card border border-border rounded-lg p-6">
+        <h2 class="text-lg font-semibold mb-4">Quick Actions</h2>
+        <div class="space-y-3">
+          <a 
+            href="/cart"
+            class="block px-4 py-3 border border-border rounded-md hover:bg-accent transition-colors"
+            data-testid="link-cart"
+          >
+            <span class="font-medium">View Cart</span>
+            <span class="text-sm text-muted-foreground block">Check items in your shopping cart</span>
+          </a>
+          <a 
+            href="/all-supplements/"
+            class="block px-4 py-3 border border-border rounded-md hover:bg-accent transition-colors"
+            data-testid="link-shop"
+          >
+            <span class="font-medium">Continue Shopping</span>
+            <span class="text-sm text-muted-foreground block">Browse our product catalog</span>
+          </a>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Order History -->
+    <div class="mt-8 bg-card border border-border rounded-lg p-6">
+      <h2 class="text-lg font-semibold mb-4">Order History</h2>
+      {customerOrders.length > 0 ? (
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b">
+                <th class="text-left py-3 px-2 font-medium">Order</th>
+                <th class="text-left py-3 px-2 font-medium">Date</th>
+                <th class="text-left py-3 px-2 font-medium">Status</th>
+                <th class="text-right py-3 px-2 font-medium">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {customerOrders.map((order) => (
+                <tr class="border-b border-border/50">
+                  <td class="py-3 px-2">
+                    <a href={`/account/orders/${order.id}`} class="text-primary hover:underline">
+                      {order.orderNumber}
+                    </a>
+                  </td>
+                  <td class="py-3 px-2 text-muted-foreground">
+                    {new Date(order.createdAt).toLocaleDateString()}
+                  </td>
+                  <td class="py-3 px-2">
+                    <span class={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                      order.status === 'delivered' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                      order.status === 'shipped' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' :
+                      order.status === 'cancelled' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
+                      'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                    }`}>
+                      {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                    </span>
+                  </td>
+                  <td class="py-3 px-2 text-right font-medium">
+                    {order.currency} {order.total.toFixed(2)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div class="text-center py-8 text-muted-foreground" data-testid="text-no-orders">
+          <p>You haven't placed any orders yet.</p>
+          <a href="/all-supplements/" class="inline-block mt-2 text-primary hover:underline">
+            Start shopping
+          </a>
+        </div>
+      )}
+    </div>
+  </div>
+</BaseLayout>

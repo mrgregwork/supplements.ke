@@ -1,0 +1,62 @@
+---
+import siteSettings from '@config/siteSettings.json';
+import { getRegionalAnchorText } from '@lib/seo';
+
+interface SiblingLink {
+  name: string;
+  slug: string;
+}
+
+interface Props {
+  content: string;
+  parentLink?: { name: string; href: string };
+  siblingLinks?: SiblingLink[];
+  categorySlug?: string;
+}
+
+const { content, parentLink, siblingLinks = [], categorySlug } = Astro.props;
+---
+
+<section class="mt-16 pt-8 border-t" data-testid="seo-content-section">
+  <!-- SEO Content -->
+  <div class="prose prose-sm dark:prose-invert max-w-none">
+    <p class="text-muted-foreground leading-relaxed">{content}</p>
+  </div>
+
+  <!-- Contextual Linking Module -->
+  {(parentLink || siblingLinks.length > 0) && (
+    <nav class="mt-8 pt-6 border-t" aria-label="Related categories">
+      <h4 class="text-sm font-semibold mb-4 text-muted-foreground uppercase tracking-wide">
+        Browse More
+      </h4>
+      <div class="flex flex-wrap gap-3">
+        {parentLink && (
+          <a 
+            href={parentLink.href}
+            title={`Back to all ${parentLink.name}`}
+            class="inline-flex items-center gap-2 px-4 py-2 bg-muted hover:bg-accent rounded-md text-sm font-medium transition-colors"
+            data-testid="link-parent-category"
+          >
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="m15 18-6-6 6-6" />
+            </svg>
+            {`Back to ${parentLink.name}`}
+          </a>
+        )}
+        {siblingLinks.slice(0, 3).map((link) => (
+          <a 
+            href={`/${categorySlug}/${link.slug}/`}
+            title={`View ${link.name}`}
+            class="inline-flex items-center gap-2 px-4 py-2 bg-muted hover:bg-accent rounded-md text-sm font-medium transition-colors"
+            data-testid={`link-sibling-${link.slug}`}
+          >
+            {link.name}
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="m9 18 6-6-6-6" />
+            </svg>
+          </a>
+        ))}
+      </div>
+    </nav>
+  )}
+</section>

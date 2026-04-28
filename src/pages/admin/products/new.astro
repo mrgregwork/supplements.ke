@@ -1,0 +1,43 @@
+---
+import BaseLayout from "@layouts/BaseLayout.astro";
+import AdminSidebar from "@components/AdminSidebar.astro";
+import AdminProductForm from "@components/AdminProductForm";
+import { getAdminSessionToken, verifyAdminSession } from "@lib/admin";
+
+const sessionToken = getAdminSessionToken(Astro.request);
+const sessionData = await verifyAdminSession(sessionToken);
+
+const isDev = import.meta.env.DEV;
+if (!isDev && !sessionData) {
+  return Astro.redirect("/admin/login");
+}
+
+const adminEmail = sessionData?.admin?.email || "Dev Mode";
+---
+
+<BaseLayout 
+  title="Add Product - Admin"
+  description="Add a new product"
+>
+  <div class="min-h-screen md:flex">
+    <AdminSidebar adminEmail={adminEmail} currentPage="products" />
+    
+    <main class="flex-1 px-4 py-6 md:p-8 w-full overflow-x-hidden">
+      <div class="mb-6">
+        <a href="/admin/products" class="text-primary hover:underline text-base min-h-[48px] inline-flex items-center px-2 -mx-2 rounded-lg hover:bg-primary/10 transition-colors" data-testid="link-back-products">
+          ← Back to Products
+        </a>
+      </div>
+      
+      <h2 class="text-2xl font-bold mb-6">Add New Product</h2>
+      
+      <div class="w-full max-w-3xl">
+        <AdminProductForm 
+          client:load 
+          product={null}
+          isNew={true}
+        />
+      </div>
+    </main>
+  </div>
+</BaseLayout>

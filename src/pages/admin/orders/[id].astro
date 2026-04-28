@@ -1,0 +1,180 @@
+---
+import BaseLayout from "@layouts/BaseLayout.astro";
+import AdminOrderStatusForm from "@components/AdminOrderStatusForm";
+import { getAdminSessionToken, verifyAdminSession, getOrderWithItems } from "@lib/admin";
+
+const sessionToken = getAdminSessionToken(Astro.request);
+const sessionData = await verifyAdminSession(sessionToken);
+
+// In development, allow access without login for visualization
+const isDev = import.meta.env.DEV;
+if (!isDev && !sessionData) {
+  return Astro.redirect("/admin/login");
+}
+
+const { id } = Astro.params;
+const order = await getOrderWithItems(id!);
+
+if (!order) {
+  return Astro.redirect("/admin/orders");
+}
+
+const adminEmail = sessionData?.admin?.email || "Dev Mode";
+
+const statusColors: Record<string, string> = {
+  pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+  confirmed: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+  processing: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+  shipped: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
+  delivered: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+  cancelled: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+};
+---
+
+<BaseLayout 
+  title={`Order ${order.orderNumber} - Admin`}
+  description="View order details"
+>
+  <div class="min-h-screen flex">
+    <aside class="w-64 bg-card border-r p-6">
+      <div class="mb-8">
+        <h1 class="text-xl font-bold">Admin Panel</h1>
+        <p class="text-sm text-muted-foreground">{adminEmail}</p>
+      </div>
+      
+      <nav class="space-y-2">
+        <a href="/admin" class="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-muted transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          </svg>
+          Dashboard
+        </a>
+        <a href="/admin/orders" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary font-medium">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+          Orders
+        </a>
+        <a href="/admin/products" class="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-muted transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+          </svg>
+          Products
+        </a>
+      </nav>
+    </aside>
+    
+    <main class="flex-1 p-8">
+      <div class="mb-6">
+        <a href="/admin/orders" class="text-primary hover:underline text-sm">
+          ← Back to Orders
+        </a>
+      </div>
+      
+      <div class="flex items-start justify-between mb-6">
+        <div>
+          <h2 class="text-2xl font-bold">{order.orderNumber}</h2>
+          <p class="text-muted-foreground">
+            {new Date(order.createdAt).toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit"
+            })}
+          </p>
+        </div>
+        <span class={`px-3 py-1 text-sm font-medium rounded-full ${statusColors[order.status] || statusColors.pending}`}>
+          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+        </span>
+      </div>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 space-y-6">
+          <div class="bg-card border rounded-lg">
+            <div class="p-4 border-b font-semibold">Order Items</div>
+            <div class="divide-y">
+              {order.items.map((item) => (
+                <div class="flex gap-4 p-4">
+                  <img 
+                    src={item.productImage || "/placeholder.png"} 
+                    alt={item.productName}
+                    class="w-16 h-16 object-cover rounded-md border"
+                  />
+                  <div class="flex-1">
+                    <p class="font-medium">{item.productName}</p>
+                    <p class="text-sm text-muted-foreground">
+                      ${item.unitPrice.toFixed(2)} × {item.quantity}
+                    </p>
+                  </div>
+                  <p class="font-medium">${item.totalPrice.toFixed(2)}</p>
+                </div>
+              ))}
+            </div>
+            <div class="p-4 bg-muted/30 border-t">
+              <div class="space-y-1">
+                <div class="flex justify-between text-sm">
+                  <span>Subtotal</span>
+                  <span>${order.subtotal.toFixed(2)}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span>Shipping</span>
+                  <span>${order.shipping.toFixed(2)}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span>Tax</span>
+                  <span>${order.tax.toFixed(2)}</span>
+                </div>
+                <div class="flex justify-between font-semibold text-lg pt-2 border-t">
+                  <span>Total</span>
+                  <span>${order.total.toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="space-y-6">
+          <div class="bg-card border rounded-lg p-4">
+            <h3 class="font-semibold mb-4">Update Status</h3>
+            <AdminOrderStatusForm 
+              client:load 
+              orderId={order.id}
+              currentStatus={order.status}
+            />
+          </div>
+          
+          <div class="bg-card border rounded-lg p-4">
+            <h3 class="font-semibold mb-2">Customer</h3>
+            <p class="text-sm">{order.email}</p>
+            {order.phone && <p class="text-sm text-muted-foreground">{order.phone}</p>}
+          </div>
+          
+          {order.shippingAddress && (
+            <div class="bg-card border rounded-lg p-4">
+              <h3 class="font-semibold mb-2">Shipping Address</h3>
+              <address class="not-italic text-sm text-muted-foreground">
+                <p class="text-foreground font-medium">
+                  {order.shippingAddress.firstName} {order.shippingAddress.lastName}
+                </p>
+                <p>{order.shippingAddress.address1}</p>
+                {order.shippingAddress.address2 && <p>{order.shippingAddress.address2}</p>}
+                <p>
+                  {order.shippingAddress.city}, {order.shippingAddress.state || ""} {order.shippingAddress.postalCode}
+                </p>
+                <p>{order.shippingAddress.country}</p>
+              </address>
+            </div>
+          )}
+          
+          {order.notes && (
+            <div class="bg-card border rounded-lg p-4">
+              <h3 class="font-semibold mb-2">Notes</h3>
+              <p class="text-sm text-muted-foreground">{order.notes}</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </main>
+  </div>
+</BaseLayout>

@@ -1,0 +1,50 @@
+---
+import BaseLayout from "@layouts/BaseLayout.astro";
+import LoginForm from "@components/LoginForm";
+import { getCustomerFromRequest } from "@lib/auth";
+import siteSettings from '@config/siteSettings.json';
+import { generateBreadcrumbSchema } from '@lib/schema';
+
+const customer = await getCustomerFromRequest(Astro.request);
+
+if (customer) {
+  return Astro.redirect("/account");
+}
+
+const baseUrl = siteSettings.siteUrl || 'https://example.com';
+const breadcrumbItems = [{ name: 'Login', href: '/login' }];
+
+const structuredData = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      "@id": `${baseUrl}/login#webpage`,
+      "name": "Login",
+      "description": "Sign in to your account",
+      "url": `${baseUrl}/login`,
+      "isPartOf": { "@id": `${baseUrl}#website` }
+    },
+    generateBreadcrumbSchema(breadcrumbItems, baseUrl)
+  ]
+};
+---
+
+<BaseLayout 
+  title="Login" 
+  description="Login to your account"
+  structuredData={structuredData}
+>
+  <main class="container mx-auto px-4 py-12 max-w-md">
+    <div class="text-center mb-8">
+      <h1 class="text-2xl font-bold mb-2">Welcome Back</h1>
+      <p class="text-muted-foreground">Sign in to access your account</p>
+    </div>
+    
+    <LoginForm client:load />
+    
+    <p class="text-center text-sm text-muted-foreground mt-6">
+      New customer? Just enter your email to create an account.
+    </p>
+  </main>
+</BaseLayout>

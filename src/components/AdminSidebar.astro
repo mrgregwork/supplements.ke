@@ -1,0 +1,163 @@
+---
+interface Props {
+  adminEmail: string;
+  currentPage?: string;
+}
+
+const { adminEmail, currentPage = "dashboard" } = Astro.props;
+
+const navItems = [
+  { id: "dashboard", href: "/admin", label: "Dashboard", icon: "home" },
+  { id: "orders", href: "/admin/orders", label: "Orders", icon: "orders" },
+  { id: "products", href: "/admin/products", label: "Products", icon: "products" },
+  { id: "categories", href: "/admin/categories", label: "Categories", icon: "categories" },
+  { id: "attributes", href: "/admin/attributes", label: "Attributes", icon: "attributes" },
+  { id: "import", href: "/admin/import", label: "Import (Amazon)", icon: "import" },
+  { id: "import-csv", href: "/admin/products/import", label: "Import (CSV)", icon: "import" },
+  { id: "homepage", href: "/admin/homepage", label: "Homepage", icon: "homepage" },
+  { id: "navigation", href: "/admin/navigation", label: "Navigation", icon: "navigation" },
+  { id: "settings", href: "/admin/settings", label: "Settings", icon: "settings" },
+];
+
+const iconPaths: Record<string, string> = {
+  home: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6",
+  orders: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2",
+  products: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4",
+  categories: "M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10",
+  subcategories: "M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z",
+  attributes: "M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4",
+  import: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12",
+  homepage: "M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z",
+  navigation: "M4 6h16M4 12h16M4 18h7",
+  settings: "M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z",
+};
+---
+
+<!-- Mobile Header Bar - Only visible on mobile -->
+<div class="md:hidden sticky top-0 z-50 bg-card border-b px-4 py-3 flex items-center justify-between gap-4">
+  <div class="flex-1 min-w-0">
+    <h1 class="text-lg font-bold">Admin Panel</h1>
+    <p class="text-xs text-muted-foreground truncate">Dev Mode</p>
+  </div>
+  <button 
+    id="admin-sidebar-toggle"
+    class="w-12 h-12 min-h-[48px] flex items-center justify-center rounded-lg hover:bg-accent transition-colors flex-shrink-0"
+    aria-label="Toggle menu"
+    data-testid="button-admin-menu"
+  >
+    <svg id="admin-menu-open" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
+    <svg id="admin-menu-close" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  </button>
+</div>
+
+<!-- Overlay for mobile -->
+<div id="admin-sidebar-overlay" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden" aria-hidden="true"></div>
+
+<!-- Sidebar -->
+<aside 
+  id="admin-sidebar"
+  class="fixed md:static inset-y-0 left-0 z-50 w-64 bg-card border-r p-4 md:p-6 flex flex-col min-h-screen transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out"
+>
+  <!-- Close button for mobile -->
+  <button 
+    id="admin-sidebar-close"
+    class="md:hidden absolute top-3 right-3 w-12 h-12 min-h-[48px] flex items-center justify-center rounded-lg hover:bg-accent"
+    aria-label="Close menu"
+  >
+    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  </button>
+
+  <div class="mb-6 md:mb-8">
+    <h1 class="text-xl font-bold">Admin Panel</h1>
+    <p class="text-sm text-muted-foreground truncate">Dev Mode</p>
+  </div>
+  
+  <nav class="space-y-1 flex-1 overflow-y-auto">
+    {navItems.map((item) => (
+      <a 
+        href={item.href}
+        class={`flex items-center gap-3 px-3 py-3 min-h-[48px] md:min-h-0 md:py-2 rounded-lg transition text-base md:text-sm ${
+          currentPage === item.id 
+            ? "bg-primary/10 text-primary font-medium" 
+            : "hover:bg-muted"
+        }`}
+        data-testid={`link-${item.id}`}
+      >
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={iconPaths[item.icon]} />
+        </svg>
+        <span>{item.label}</span>
+      </a>
+    ))}
+  </nav>
+  
+  <div class="pt-4 md:pt-8 border-t mt-4">
+    <a 
+      href="/"
+      class="flex items-center gap-3 px-3 py-3 min-h-[48px] md:min-h-0 md:py-2 text-base md:text-sm text-muted-foreground hover:text-foreground transition rounded-lg hover:bg-muted"
+      data-testid="link-view-site"
+    >
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+      </svg>
+      View Site
+    </a>
+    <a 
+      href="/admin/logout"
+      class="flex items-center gap-3 px-3 py-3 min-h-[48px] md:min-h-0 md:py-2 text-base md:text-sm text-muted-foreground hover:text-foreground transition rounded-lg hover:bg-muted"
+      data-testid="link-logout"
+    >
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+      </svg>
+      Sign Out
+    </a>
+  </div>
+</aside>
+
+<script>
+  const sidebarToggle = document.getElementById('admin-sidebar-toggle');
+  const sidebarClose = document.getElementById('admin-sidebar-close');
+  const sidebar = document.getElementById('admin-sidebar');
+  const overlay = document.getElementById('admin-sidebar-overlay');
+  const menuOpen = document.getElementById('admin-menu-open');
+  const menuClose = document.getElementById('admin-menu-close');
+
+  function openSidebar() {
+    sidebar?.classList.remove('-translate-x-full');
+    overlay?.classList.remove('hidden');
+    menuOpen?.classList.add('hidden');
+    menuClose?.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeSidebar() {
+    sidebar?.classList.add('-translate-x-full');
+    overlay?.classList.add('hidden');
+    menuOpen?.classList.remove('hidden');
+    menuClose?.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+
+  sidebarToggle?.addEventListener('click', () => {
+    if (sidebar?.classList.contains('-translate-x-full')) {
+      openSidebar();
+    } else {
+      closeSidebar();
+    }
+  });
+
+  sidebarClose?.addEventListener('click', closeSidebar);
+  overlay?.addEventListener('click', closeSidebar);
+
+  // Close on escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeSidebar();
+  });
+</script>

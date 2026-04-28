@@ -1,0 +1,393 @@
+---
+import BaseLayout from "@layouts/BaseLayout.astro";
+import AdminSidebar from "@components/AdminSidebar.astro";
+import { getAdminSessionToken, verifyAdminSession, getAllAttributeDefinitions } from "@lib/admin";
+
+const sessionToken = getAdminSessionToken(Astro.request);
+const sessionData = await verifyAdminSession(sessionToken);
+
+const isDev = import.meta.env.DEV;
+if (!isDev && !sessionData) {
+  return Astro.redirect("/admin/login");
+}
+
+const adminEmail = sessionData?.admin?.email || "Dev Mode";
+const allAttributes = await getAllAttributeDefinitions();
+---
+
+<BaseLayout 
+  title="Attributes - Admin" 
+  description="Manage product attribute definitions"
+>
+  <div class="min-h-screen flex flex-col md:flex-row">
+    <AdminSidebar adminEmail={adminEmail} currentPage="attributes" />
+    
+    <main class="flex-1 p-4 md:p-6 lg:p-8">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h2 class="text-2xl font-bold">Attributes</h2>
+          <p class="text-sm text-muted-foreground hidden sm:block">Define product specifications like RAM, Storage, Color</p>
+        </div>
+        <button 
+          id="add-attribute-btn"
+          class="px-4 py-3 min-h-[48px] bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition flex items-center gap-2"
+          data-testid="button-add-attribute"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          <span class="hidden sm:inline">Add Attribute</span>
+        </button>
+      </div>
+      
+      <div class="bg-card border rounded-lg overflow-hidden">
+        {allAttributes.length === 0 ? (
+          <div class="p-8 text-center text-muted-foreground">
+            No attributes defined yet. Click "Add Attribute" to create your first attribute.
+          </div>
+        ) : (
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[600px]">
+              <thead>
+                <tr class="border-b bg-muted/50">
+                  <th class="text-left py-4 px-4 lg:px-6 font-medium">Name</th>
+                  <th class="text-left py-4 px-4 lg:px-6 font-medium hidden sm:table-cell">Slug</th>
+                  <th class="text-left py-4 px-4 lg:px-6 font-medium">Type</th>
+                  <th class="text-left py-4 px-4 lg:px-6 font-medium hidden lg:table-cell">Unit</th>
+                  <th class="text-left py-4 px-4 lg:px-6 font-medium hidden lg:table-cell">Filterable</th>
+                  <th class="text-right py-4 px-4 lg:px-6 font-medium w-32">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y">
+                {allAttributes.map((attr) => (
+                  <tr class="hover:bg-muted/30 transition" data-id={attr.id}>
+                    <td class="py-4 px-4 lg:px-6">
+                      <div class="font-medium">{attr.name}</div>
+                      <div class="text-sm text-muted-foreground sm:hidden">{attr.slug}</div>
+                    </td>
+                    <td class="py-4 px-4 lg:px-6 text-sm text-muted-foreground hidden sm:table-cell">{attr.slug}</td>
+                    <td class="py-4 px-4 lg:px-6 text-sm">{attr.dataType}</td>
+                    <td class="py-4 px-4 lg:px-6 text-sm hidden lg:table-cell">{attr.unit || '—'}</td>
+                    <td class="py-4 px-4 lg:px-6 hidden lg:table-cell">
+                      <span class={`inline-block px-2 py-1 text-xs rounded-full ${
+                        attr.isFilterable 
+                          ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                          : "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400"
+                      }`}>
+                        {attr.isFilterable ? "Yes" : "No"}
+                      </span>
+                    </td>
+                    <td class="py-4 px-4 lg:px-6 text-right">
+                      <div class="flex items-center justify-end gap-2">
+                        <button 
+                          class="px-3 py-2 min-h-[40px] text-sm text-primary hover:bg-primary/10 rounded-md transition edit-btn"
+                          data-id={attr.id}
+                          data-testid={`button-edit-${attr.id}`}
+                        >
+                          Edit
+                        </button>
+                        <button 
+                          class="px-3 py-2 min-h-[40px] text-sm text-red-500 hover:bg-red-500/10 rounded-md transition delete-btn"
+                          data-id={attr.id}
+                          data-testid={`button-delete-${attr.id}`}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </main>
+  </div>
+  
+  <!-- Modal Overlay -->
+  <div id="modal-overlay" class="fixed inset-0 bg-black/50 z-40 hidden" data-testid="modal-overlay"></div>
+  
+  <!-- Slide-in Modal/Drawer for Form -->
+  <div 
+    id="form-modal" 
+    class="fixed inset-y-0 right-0 w-full sm:w-[400px] lg:w-[450px] bg-background border-l shadow-xl z-50 transform translate-x-full transition-transform duration-300 ease-in-out overflow-y-auto"
+    data-testid="modal-form"
+  >
+    <div class="sticky top-0 bg-background border-b p-4 flex items-center justify-between">
+      <h3 id="modal-title" class="text-lg font-semibold">Add Attribute</h3>
+      <button 
+        id="close-modal-btn"
+        class="p-2 min-h-[48px] min-w-[48px] hover:bg-muted rounded-lg transition flex items-center justify-center"
+        data-testid="button-close-modal"
+      >
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+    
+    <form id="attribute-form" class="p-4 sm:p-6 space-y-5">
+      <input type="hidden" name="id" id="form-id" />
+      
+      <div>
+        <label class="block text-sm font-medium mb-2">Name *</label>
+        <input 
+          type="text" 
+          name="name" 
+          id="form-name"
+          required
+          placeholder="e.g., RAM, Storage, Color"
+          class="w-full px-4 py-3 min-h-[48px] text-base border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:outline-none"
+          data-testid="input-name"
+        />
+      </div>
+      
+      <div>
+        <label class="block text-sm font-medium mb-2">Slug *</label>
+        <input 
+          type="text" 
+          name="slug" 
+          id="form-slug"
+          required
+          placeholder="e.g., ram, storage, color"
+          class="w-full px-4 py-3 min-h-[48px] text-base border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:outline-none"
+          data-testid="input-slug"
+        />
+      </div>
+      
+      <div>
+        <label class="block text-sm font-medium mb-2">Description</label>
+        <textarea 
+          name="description" 
+          id="form-description"
+          rows="2"
+          placeholder="What this attribute represents"
+          class="w-full px-4 py-3 border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:outline-none resize-none"
+          data-testid="input-description"
+        ></textarea>
+      </div>
+      
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium mb-2">Data Type</label>
+          <select 
+            name="dataType" 
+            id="form-dataType"
+            class="w-full px-4 py-3 min-h-[48px] text-base border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:outline-none"
+            data-testid="select-dataType"
+          >
+            <option value="text">Text</option>
+            <option value="number">Number</option>
+            <option value="boolean">Yes/No</option>
+            <option value="select">Select (Options)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">Unit</label>
+          <input 
+            type="text" 
+            name="unit" 
+            id="form-unit"
+            placeholder="e.g., GB, inches"
+            class="w-full px-4 py-3 min-h-[48px] text-base border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:outline-none"
+            data-testid="input-unit"
+          />
+        </div>
+      </div>
+      
+      <div>
+        <label class="block text-sm font-medium mb-2">Sort Order</label>
+        <input 
+          type="number" 
+          name="sortOrder" 
+          id="form-sortOrder"
+          value="0"
+          class="w-full px-4 py-3 min-h-[48px] text-base border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:outline-none"
+          data-testid="input-sortOrder"
+        />
+      </div>
+      
+      <div class="flex gap-6 py-2">
+        <div class="flex items-center">
+          <input 
+            type="checkbox" 
+            name="isFilterable" 
+            id="form-isFilterable"
+            checked
+            class="w-5 h-5 mr-2"
+            data-testid="input-isFilterable"
+          />
+          <label for="form-isFilterable" class="text-sm">Filterable</label>
+        </div>
+        <div class="flex items-center">
+          <input 
+            type="checkbox" 
+            name="isRequired" 
+            id="form-isRequired"
+            class="w-5 h-5 mr-2"
+            data-testid="input-isRequired"
+          />
+          <label for="form-isRequired" class="text-sm">Required</label>
+        </div>
+      </div>
+      
+      <div class="flex gap-3 pt-4">
+        <button 
+          type="button" 
+          id="cancel-btn"
+          class="flex-1 px-4 py-3 min-h-[48px] border rounded-lg hover:bg-muted transition font-medium"
+          data-testid="button-cancel"
+        >
+          Cancel
+        </button>
+        <button 
+          type="submit"
+          class="flex-1 px-4 py-3 min-h-[48px] bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition"
+          data-testid="button-submit"
+        >
+          Save
+        </button>
+      </div>
+    </form>
+  </div>
+</BaseLayout>
+
+<script>
+  const formModal = document.getElementById('form-modal') as HTMLDivElement;
+  const modalOverlay = document.getElementById('modal-overlay') as HTMLDivElement;
+  const modalTitle = document.getElementById('modal-title') as HTMLHeadingElement;
+  const form = document.getElementById('attribute-form') as HTMLFormElement;
+  const addBtn = document.getElementById('add-attribute-btn') as HTMLButtonElement;
+  const cancelBtn = document.getElementById('cancel-btn') as HTMLButtonElement;
+  const closeModalBtn = document.getElementById('close-modal-btn') as HTMLButtonElement;
+  
+  function openModal(isEdit = false) {
+    formModal.classList.remove('translate-x-full');
+    modalOverlay.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    modalTitle.textContent = isEdit ? 'Edit Attribute' : 'Add Attribute';
+    setTimeout(() => (document.getElementById('form-name') as HTMLInputElement).focus(), 100);
+  }
+  
+  function closeModal() {
+    formModal.classList.add('translate-x-full');
+    modalOverlay.classList.add('hidden');
+    document.body.style.overflow = '';
+    form.reset();
+    (document.getElementById('form-id') as HTMLInputElement).value = '';
+    slugManuallyEdited = false;
+  }
+  
+  function generateSlug(name: string): string {
+    return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  }
+  
+  addBtn.addEventListener('click', () => openModal(false));
+  cancelBtn.addEventListener('click', closeModal);
+  closeModalBtn.addEventListener('click', closeModal);
+  modalOverlay.addEventListener('click', closeModal);
+  
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !formModal.classList.contains('translate-x-full')) {
+      closeModal();
+    }
+  });
+  
+  const nameInput = document.getElementById('form-name') as HTMLInputElement;
+  const slugInput = document.getElementById('form-slug') as HTMLInputElement;
+  let slugManuallyEdited = false;
+  
+  nameInput.addEventListener('input', () => {
+    if (!slugManuallyEdited && !(document.getElementById('form-id') as HTMLInputElement).value) {
+      slugInput.value = generateSlug(nameInput.value);
+    }
+  });
+  
+  slugInput.addEventListener('input', () => {
+    slugManuallyEdited = true;
+  });
+  
+  document.querySelectorAll('.edit-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const id = (e.target as HTMLButtonElement).dataset.id;
+      try {
+        const res = await fetch(`/api/admin/attributes/${id}`);
+        const attr = await res.json();
+        
+        (document.getElementById('form-id') as HTMLInputElement).value = attr.id;
+        (document.getElementById('form-name') as HTMLInputElement).value = attr.name;
+        (document.getElementById('form-slug') as HTMLInputElement).value = attr.slug;
+        (document.getElementById('form-description') as HTMLTextAreaElement).value = attr.description || '';
+        (document.getElementById('form-dataType') as HTMLSelectElement).value = attr.dataType;
+        (document.getElementById('form-unit') as HTMLInputElement).value = attr.unit || '';
+        (document.getElementById('form-sortOrder') as HTMLInputElement).value = attr.sortOrder;
+        (document.getElementById('form-isFilterable') as HTMLInputElement).checked = attr.isFilterable;
+        (document.getElementById('form-isRequired') as HTMLInputElement).checked = attr.isRequired;
+        
+        slugManuallyEdited = true;
+        openModal(true);
+      } catch (err) {
+        console.error('Failed to load attribute:', err);
+        alert('Failed to load attribute');
+      }
+    });
+  });
+  
+  document.querySelectorAll('.delete-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const id = (e.target as HTMLButtonElement).dataset.id;
+      if (!confirm('Are you sure you want to delete this attribute?')) return;
+      
+      try {
+        const res = await fetch(`/api/admin/attributes/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+          window.location.reload();
+        } else {
+          const data = await res.json();
+          alert(data.error || 'Failed to delete attribute');
+        }
+      } catch (err) {
+        console.error('Delete failed:', err);
+        alert('Failed to delete attribute');
+      }
+    });
+  });
+  
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const id = (document.getElementById('form-id') as HTMLInputElement).value;
+    const data = {
+      name: (document.getElementById('form-name') as HTMLInputElement).value,
+      slug: (document.getElementById('form-slug') as HTMLInputElement).value,
+      description: (document.getElementById('form-description') as HTMLTextAreaElement).value || null,
+      dataType: (document.getElementById('form-dataType') as HTMLSelectElement).value,
+      unit: (document.getElementById('form-unit') as HTMLInputElement).value || null,
+      sortOrder: parseInt((document.getElementById('form-sortOrder') as HTMLInputElement).value) || 0,
+      isFilterable: (document.getElementById('form-isFilterable') as HTMLInputElement).checked,
+      isRequired: (document.getElementById('form-isRequired') as HTMLInputElement).checked,
+    };
+    
+    try {
+      const url = id ? `/api/admin/attributes/${id}` : '/api/admin/attributes';
+      const method = id ? 'PUT' : 'POST';
+      
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        const result = await res.json();
+        alert(result.error || 'Failed to save attribute');
+      }
+    } catch (err) {
+      console.error('Save failed:', err);
+      alert('Failed to save attribute');
+    }
+  });
+</script>

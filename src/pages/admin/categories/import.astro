@@ -1,0 +1,439 @@
+---
+import BaseLayout from "@layouts/BaseLayout.astro";
+import AdminSidebar from "@components/AdminSidebar.astro";
+import { getAdminSessionToken, verifyAdminSession } from "@lib/admin";
+
+const sessionToken = getAdminSessionToken(Astro.request);
+const sessionData = await verifyAdminSession(sessionToken);
+
+const isDev = import.meta.env.DEV;
+if (!isDev && !sessionData) {
+  return Astro.redirect("/admin/login");
+}
+
+const adminEmail = sessionData?.admin?.email || "Dev Mode";
+---
+
+<BaseLayout 
+  title="Import Categories - Admin" 
+  description="Bulk import category tree"
+>
+  <div class="min-h-screen flex flex-col md:flex-row">
+    <AdminSidebar adminEmail={adminEmail} currentPage="categories" />
+    
+    <main class="flex-1 p-4 md:p-6 lg:p-8">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h2 class="text-2xl font-bold">Import Categories</h2>
+          <p class="text-sm text-muted-foreground mt-1">Bulk import your category tree from a CSV file</p>
+        </div>
+        <a 
+          href="/admin/categories"
+          class="px-4 py-3 min-h-[48px] border rounded-lg font-medium hover:bg-muted transition flex items-center gap-2"
+          data-testid="link-back"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+          <span class="hidden sm:inline">Back</span>
+        </a>
+      </div>
+      
+      <div class="space-y-6 max-w-4xl">
+        <div class="bg-card border rounded-lg p-4 md:p-6 space-y-4">
+          <h3 class="font-semibold">CSV Format</h3>
+          <p class="text-sm text-muted-foreground">
+            Upload a CSV file with your category structure. Each row defines a category or subcategory. 
+            Leave the Subcategory column empty for top-level categories.
+          </p>
+          <div class="bg-muted/30 rounded-lg p-4 overflow-x-auto">
+            <pre class="text-xs"><code>Category,Subcategory,Description,SEO Title,SEO Description
+Laptops,,,Best Laptops 2024,Find the best laptops for every budget
+Laptops,Gaming Laptops,High-performance gaming notebooks,Gaming Laptops,Top gaming laptops
+Laptops,Business Laptops,Professional work machines,Business Laptops,Best business laptops
+Phones,,,Best Phones 2024,Discover the latest smartphones
+Phones,Android Phones,Latest Android devices,Android Phones,Best Android phones
+Phones,iPhones,Apple iPhone lineup,iPhones for Sale,Buy the latest iPhones</code></pre>
+          </div>
+          <button 
+            type="button"
+            id="download-template"
+            class="px-4 py-2 min-h-[48px] text-sm border rounded-lg hover:bg-muted transition flex items-center gap-2"
+            data-testid="button-download-template"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Download CSV Template
+          </button>
+        </div>
+
+        <div class="bg-card border rounded-lg p-4 md:p-6 space-y-4">
+          <h3 class="font-semibold">Upload CSV File</h3>
+          <div class="border-2 border-dashed rounded-lg p-8 text-center" id="drop-zone">
+            <input type="file" id="csv-file" accept=".csv,.txt" class="hidden" />
+            <label for="csv-file" class="cursor-pointer">
+              <svg class="w-12 h-12 mx-auto text-muted-foreground mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              <p class="text-sm font-medium mb-1">Click to upload or drag and drop</p>
+              <p class="text-xs text-muted-foreground">CSV file with your category tree</p>
+            </label>
+          </div>
+          
+          <div class="relative">
+            <div class="absolute inset-0 flex items-center"><div class="w-full border-t"></div></div>
+            <div class="relative flex justify-center text-xs"><span class="bg-card px-2 text-muted-foreground">or paste CSV data</span></div>
+          </div>
+          
+          <textarea 
+            id="csv-paste"
+            class="w-full px-4 py-3 min-h-[120px] text-sm font-mono border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+            placeholder="Category,Subcategory,Description,SEO Title,SEO Description&#10;Laptops,,,Best Laptops,Find the best laptops&#10;Laptops,Gaming Laptops,High-performance gaming notebooks,,"
+            data-testid="textarea-csv"
+          ></textarea>
+          
+          <button 
+            type="button"
+            id="parse-btn"
+            class="px-4 py-3 min-h-[48px] bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition flex items-center gap-2"
+            data-testid="button-parse"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+            Preview Import
+          </button>
+        </div>
+
+        <div id="preview-section" class="hidden bg-card border rounded-lg p-4 md:p-6 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="font-semibold">Preview</h3>
+            <div class="text-sm text-muted-foreground">
+              <span id="preview-cat-count">0</span> categories, <span id="preview-sub-count">0</span> subcategories
+            </div>
+          </div>
+          
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[500px] text-sm">
+              <thead>
+                <tr class="border-b bg-muted/50">
+                  <th class="text-left py-2 px-3 font-medium">Category</th>
+                  <th class="text-left py-2 px-3 font-medium">Subcategory</th>
+                  <th class="text-left py-2 px-3 font-medium hidden md:table-cell">Description</th>
+                  <th class="text-left py-2 px-3 font-medium hidden lg:table-cell">SEO Title</th>
+                </tr>
+              </thead>
+              <tbody id="preview-body" class="divide-y"></tbody>
+            </table>
+          </div>
+          
+          <button 
+            type="button"
+            id="import-btn"
+            class="px-6 py-3 min-h-[48px] bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition flex items-center gap-2"
+            data-testid="button-import"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            Import All
+          </button>
+        </div>
+
+        <div id="progress-section" class="hidden bg-card border rounded-lg p-4 md:p-6 space-y-4">
+          <h3 class="font-semibold">Importing...</h3>
+          <div class="w-full bg-muted rounded-full h-3">
+            <div id="progress-bar" class="bg-primary h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+          <p id="progress-text" class="text-sm text-muted-foreground">Starting import...</p>
+        </div>
+
+        <div id="results-section" class="hidden bg-card border rounded-lg p-4 md:p-6 space-y-4">
+          <h3 class="font-semibold">Import Complete</h3>
+          <div id="results-summary" class="grid grid-cols-2 sm:grid-cols-4 gap-4"></div>
+          <div id="results-errors" class="hidden">
+            <h4 class="font-medium text-sm text-red-600 mb-2">Issues:</h4>
+            <ul id="errors-list" class="text-sm text-red-500 space-y-1 list-disc list-inside"></ul>
+          </div>
+          <div class="flex gap-3">
+            <a 
+              href="/admin/categories"
+              class="px-4 py-3 min-h-[48px] bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition"
+              data-testid="link-view-categories"
+            >
+              View Categories
+            </a>
+            <button 
+              type="button"
+              id="import-more-btn"
+              class="px-4 py-3 min-h-[48px] border rounded-lg font-medium hover:bg-muted transition"
+              data-testid="button-import-more"
+            >
+              Import More
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</BaseLayout>
+
+<script>
+  const csvFile = document.getElementById('csv-file');
+  const csvPaste = document.getElementById('csv-paste');
+  const parseBtn = document.getElementById('parse-btn');
+  const importBtn = document.getElementById('import-btn');
+  const importMoreBtn = document.getElementById('import-more-btn');
+  const downloadTemplate = document.getElementById('download-template');
+  const previewSection = document.getElementById('preview-section');
+  const progressSection = document.getElementById('progress-section');
+  const resultsSection = document.getElementById('results-section');
+  const previewBody = document.getElementById('preview-body');
+  const previewCatCount = document.getElementById('preview-cat-count');
+  const previewSubCount = document.getElementById('preview-sub-count');
+  const progressBar = document.getElementById('progress-bar');
+  const progressText = document.getElementById('progress-text');
+  const resultsSummary = document.getElementById('results-summary');
+  const resultsErrors = document.getElementById('results-errors');
+  const errorsList = document.getElementById('errors-list');
+  const dropZone = document.getElementById('drop-zone');
+
+  let parsedRows = [];
+
+  function parseCSV(text) {
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    if (lines.length < 2) return [];
+
+    const header = lines[0].toLowerCase();
+    const hasHeader = header.includes('category') || header.includes('subcategory');
+    const startIdx = hasHeader ? 1 : 0;
+
+    const rows = [];
+    for (let i = startIdx; i < lines.length; i++) {
+      const parts = parseCSVLine(lines[i]);
+      if (parts.length === 0 || !parts[0]) continue;
+
+      rows.push({
+        category: (parts[0] || '').trim(),
+        subcategory: (parts[1] || '').trim(),
+        description: (parts[2] || '').trim(),
+        seoTitle: (parts[3] || '').trim(),
+        seoDescription: (parts[4] || '').trim(),
+      });
+    }
+    return rows;
+  }
+
+  function parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          current += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        result.push(current);
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    result.push(current);
+    return result;
+  }
+
+  function renderPreview(rows) {
+    parsedRows = rows;
+    previewBody.innerHTML = '';
+
+    const categories = new Set();
+    const subcategories = [];
+
+    rows.forEach(row => {
+      categories.add(row.category);
+      if (row.subcategory) subcategories.push(row.subcategory);
+    });
+
+    previewCatCount.textContent = categories.size.toString();
+    previewSubCount.textContent = subcategories.length.toString();
+
+    rows.forEach((row, i) => {
+      const tr = document.createElement('tr');
+      tr.className = row.subcategory ? 'bg-muted/10' : '';
+      tr.innerHTML = `
+        <td class="py-2 px-3 font-medium">${escapeHtml(row.category)}</td>
+        <td class="py-2 px-3 ${row.subcategory ? '' : 'text-muted-foreground'}">${row.subcategory ? '&rarr; ' + escapeHtml(row.subcategory) : '(top level)'}</td>
+        <td class="py-2 px-3 text-muted-foreground hidden md:table-cell max-w-xs truncate">${escapeHtml(row.description || '—')}</td>
+        <td class="py-2 px-3 text-muted-foreground hidden lg:table-cell">${escapeHtml(row.seoTitle || '—')}</td>
+      `;
+      previewBody.appendChild(tr);
+    });
+
+    previewSection.classList.remove('hidden');
+    progressSection.classList.add('hidden');
+    resultsSection.classList.add('hidden');
+  }
+
+  function escapeHtml(s) {
+    const div = document.createElement('div');
+    div.textContent = s;
+    return div.innerHTML;
+  }
+
+  csvFile?.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target.result;
+      csvPaste.value = text;
+      const rows = parseCSV(text);
+      if (rows.length > 0) {
+        renderPreview(rows);
+      } else {
+        alert('No valid rows found in the CSV file. Make sure the first column is "Category".');
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  ['dragover', 'dragenter'].forEach(evt => {
+    dropZone?.addEventListener(evt, (e) => {
+      e.preventDefault();
+      dropZone.classList.add('border-primary', 'bg-primary/5');
+    });
+  });
+  ['dragleave', 'drop'].forEach(evt => {
+    dropZone?.addEventListener(evt, () => {
+      dropZone.classList.remove('border-primary', 'bg-primary/5');
+    });
+  });
+  dropZone?.addEventListener('drop', (e) => {
+    e.preventDefault();
+    const file = e.dataTransfer?.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        csvPaste.value = ev.target.result;
+        const rows = parseCSV(ev.target.result);
+        if (rows.length > 0) renderPreview(rows);
+      };
+      reader.readAsText(file);
+    }
+  });
+
+  parseBtn?.addEventListener('click', () => {
+    const text = csvPaste?.value || '';
+    if (!text.trim()) {
+      alert('Please upload a file or paste CSV data first.');
+      return;
+    }
+    const rows = parseCSV(text);
+    if (rows.length === 0) {
+      alert('No valid rows found. Check the CSV format.');
+      return;
+    }
+    renderPreview(rows);
+  });
+
+  importBtn?.addEventListener('click', async () => {
+    if (parsedRows.length === 0) return;
+
+    importBtn.disabled = true;
+    previewSection.classList.add('hidden');
+    progressSection.classList.remove('hidden');
+
+    progressBar.style.width = '10%';
+    progressText.textContent = 'Sending import data...';
+
+    try {
+      const res = await fetch('/api/admin/categories/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rows: parsedRows }),
+      });
+
+      progressBar.style.width = '90%';
+      progressText.textContent = 'Processing...';
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Import failed');
+      }
+
+      progressBar.style.width = '100%';
+
+      setTimeout(() => {
+        progressSection.classList.add('hidden');
+        resultsSection.classList.remove('hidden');
+
+        resultsSummary.innerHTML = `
+          <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 text-center">
+            <p class="text-2xl font-bold text-green-700 dark:text-green-400">${data.categoriesCreated}</p>
+            <p class="text-xs text-green-600 dark:text-green-500">Categories Created</p>
+          </div>
+          <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 text-center">
+            <p class="text-2xl font-bold text-blue-700 dark:text-blue-400">${data.subcategoriesCreated}</p>
+            <p class="text-xs text-blue-600 dark:text-blue-500">Subcategories Created</p>
+          </div>
+          <div class="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4 text-center">
+            <p class="text-2xl font-bold text-yellow-700 dark:text-yellow-400">${data.skipped}</p>
+            <p class="text-xs text-yellow-600 dark:text-yellow-500">Skipped (existing)</p>
+          </div>
+          <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 text-center">
+            <p class="text-2xl font-bold">${data.categoriesCreated + data.subcategoriesCreated + data.skipped}</p>
+            <p class="text-xs text-muted-foreground">Total Rows</p>
+          </div>
+        `;
+
+        if (data.errors && data.errors.length > 0) {
+          resultsErrors.classList.remove('hidden');
+          errorsList.innerHTML = data.errors.map(e => `<li>${escapeHtml(e)}</li>`).join('');
+        } else {
+          resultsErrors.classList.add('hidden');
+        }
+      }, 500);
+    } catch (err) {
+      progressSection.classList.add('hidden');
+      previewSection.classList.remove('hidden');
+      alert('Import failed: ' + err.message);
+    } finally {
+      importBtn.disabled = false;
+    }
+  });
+
+  importMoreBtn?.addEventListener('click', () => {
+    resultsSection.classList.add('hidden');
+    csvPaste.value = '';
+    csvFile.value = '';
+    parsedRows = [];
+  });
+
+  downloadTemplate?.addEventListener('click', () => {
+    const template = `Category,Subcategory,Description,SEO Title,SEO Description
+Laptops,,,Best Laptops 2024,Find the best laptops for every budget
+Laptops,Gaming Laptops,High-performance gaming notebooks,Gaming Laptops,Top gaming laptops with latest GPUs
+Laptops,Business Laptops,Professional work machines,Business Laptops,Best business laptops for professionals
+Phones,,,Best Phones 2024,Discover the latest smartphones
+Phones,Android Phones,Latest Android devices,Android Phones,Best Android phones reviewed
+Phones,iPhones,Apple iPhone lineup,iPhones for Sale,Buy the latest iPhones
+Tablets,,,Best Tablets 2024,Find the perfect tablet
+Tablets,iPad,Apple iPad models,iPad for Sale,Compare iPad models and prices
+Tablets,Android Tablets,Android tablet devices,Android Tablets,Best Android tablets reviewed`;
+    const blob = new Blob([template], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'categories-template.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+</script>

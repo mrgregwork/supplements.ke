@@ -1,0 +1,29 @@
+{
+  "name": "ASUS ROG Strix G16 Gaming Laptop",
+  "slug": "asus-rog-strix-g16-gaming-laptop",
+  "categorySlug": "laptops",
+  "subcategorySlug": "gaming-laptops",
+  "description": "Unleash your gaming potential with the ASUS ROG Strix G16 featuring RTX 4060 and stunning RGB lighting.",
+  "longDescription": "The ASUS ROG Strix G16 brings Republic of Gamers excellence to your fingertips. With an Intel Core i7 processor, NVIDIA GeForce RTX 4060 graphics, and a blazing-fast 165Hz display, this laptop is built for competitive gaming. The iconic ROG design with customizable Aura Sync RGB lighting lets you express your style while the advanced cooling system maintains peak performance.",
+  "price": 1199.99,
+  "originalPrice": 1399.99,
+  "currency": "USD",
+  "images": [
+    "https://images.unsplash.com/photo-1625842268584-8f3296236761?w=800&h=800&fit=crop",
+    "https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=800&h=800&fit=crop"
+  ],
+  "brand": "ASUS",
+  "sku": "ASUS-ROG-STRIX-G16",
+  "inStock": true,
+  "attributes": [
+    { "name": "RAM", "value": "16GB", "slug": "16gb-laptops" },
+    { "name": "Storage", "value": "512GB SSD", "slug": "512gb-ssd-laptops" },
+    { "name": "Graphics", "value": "RTX 4060", "slug": "rtx-4060-laptops" },
+    { "name": "Display", "value": "16 inch FHD 165Hz", "slug": "165hz-laptops" }
+  ],
+  "seoTitle": "ASUS ROG Strix G16 Gaming Laptop - RTX 4060, 16GB RAM",
+  "seoDescription": "Shop the ASUS ROG Strix G16 gaming laptop with RTX 4060 graphics, 16GB RAM, and 165Hz display. Built for esports and AAA gaming.",
+  "primaryKeyword": "ASUS ROG Strix G16",
+  "secondaryKeywords": ["ASUS gaming laptop", "ROG laptop", "RTX 4060 laptop"],
+  "featured": true
+}
