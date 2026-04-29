@@ -34,7 +34,9 @@ function classify(p) {
   const all = `${n} ${cat} ${sub}`;
 
   if (/krill/.test(all))                                  return 'krill';
-  if (/fish.oil|omega.3|epa|dha|anchovy|sardine/.test(all)) return 'omega3';
+  if (/ashwagandha|sensoril|ksm/.test(all))              return 'ashwagandha';
+  if (/prenatal|pregnancy/.test(all))                    return 'prenatal';
+  if (/fish\.oil|omega.?3|\bepa\b|\bdha\b|anchovy|sardine/.test(all)) return 'omega3';
   if (/collagen/.test(all))                               return 'collagen';
   if (/probiotic|dophilus|lactobacillus|bifidobacterium|saccharomyces/.test(all)) return 'probiotic';
   if (/prebiotic|inulin|fos/.test(all))                   return 'prebiotic';
@@ -50,7 +52,6 @@ function classify(p) {
   if (/zinc/.test(all))                                   return 'zinc';
   if (/iron|ferrous/.test(all))                           return 'iron';
   if (/calcium/.test(all))                                return 'calcium';
-  if (/ashwagandha|sensoril|ksm/.test(all))               return 'ashwagandha';
   if (/turmeric|curcumin/.test(all))                      return 'turmeric';
   if (/coq10|ubiquinol|ubiquinone|co-q10/.test(all))      return 'coq10';
   if (/glutathione/.test(all))                            return 'glutathione';
@@ -238,7 +239,7 @@ const INTRO_A = {
   joint:      `Cartilage has no blood supply, which is why it heals slowly and degrades gradually under the cumulative stress of movement over decades. Glucosamine and chondroitin are the building blocks of cartilage matrix and synovial fluid, respectively. MSM (methylsulfonylmethane) provides the sulfur that cartilage proteins require for structural integrity. Together, these three compounds address the maintenance and repair of the joint tissues most commonly affected by age-related wear.`,
   milkthistle:`Milk thistle (Silybum marianum) has been used as a liver-protective herb in European traditional medicine since antiquity. The active compounds — a group of flavonolignans collectively called silymarin — are concentrated in the seeds and have a well-documented mechanism: they compete with hepatotoxic compounds for the same liver cell membrane receptors, effectively blocking the uptake of certain toxins while simultaneously stimulating liver cell regeneration and acting as antioxidants within hepatocytes.`,
   berberine:  `Berberine is an isoquinoline alkaloid extracted from several plants including barberries and goldenseal. It is one of the most studied natural compounds for blood glucose regulation, with clinical trial data showing effects on fasting glucose, HbA1c, and insulin sensitivity that are comparable in magnitude to metformin in some short-term studies. Its primary mechanism is activation of AMPK — the same cellular energy-sensing enzyme targeted by metformin and some longevity research compounds.`,
-  heart:      `Cardiovascular disease begins with the accumulation of oxidised LDL cholesterol in arterial walls — a process that takes decades and is driven by elevated LDL, low HDL, high triglycerides, inflammation, and oxidative stress. Specific nutrients and plant compounds have been studied for their ability to address one or more of these underlying drivers. The most evidence-backed include omega-3 fatty acids, red yeast rice monacolin K (a natural statin-equivalent), bergamot polyphenols, and CoQ10.`,
+  heart:      `Cardiovascular disease begins with the accumulation of oxidised LDL cholesterol in arterial walls — a process that takes decades and is driven by elevated LDL, low HDL, high triglycerides, inflammation, and oxidative stress. Specific nutrients and plant compounds have been studied for their ability to address one or more of these underlying drivers. The most evidence-backed include red yeast rice monacolin K (a natural statin-equivalent), bergamot polyphenols, plant sterols, nattokinase, and CoQ10.`,
   general:    `The nutritional supplement market is crowded with products that overpromise and underdeliver. What distinguishes effective supplementation from expensive urine is formulating with the right ingredient, at the studied dose, in a bioavailable form — and taking it consistently enough for the physiology to respond. The products stocked by Supplements Kenya are chosen to meet all three of these criteria.`,
 };
 

@@ -83,8 +83,12 @@ function extractData(entry) {
   // Category
   const all = (fullName + ' ' + (entry.slug || '') + ' ' + short).toLowerCase();
   let category = 'supplement';
-  if (/omega.?3|epa|dha|krill|fish.oil/.test(all))                          category = 'omega3';
-  else if (/ashwagandha|sensoril|ksm/.test(all))                            category = 'ashwagandha';
+  if (/ashwagandha|sensoril|ksm/.test(all))                                 category = 'ashwagandha';
+  else if (/iodine|potassium.iodide/.test(all))                             category = 'iodine';
+  else if (/thyroid/.test(all))                                             category = 'thyroid';
+  else if (/prenatal|pregnancy/.test(all))                                  category = 'prenatal';
+  else if (/dna.protection|dna protect/.test(all))                          category = 'antioxidant';
+  else if (/omega.?3|\bepa\b|\bdha\b|krill|fish\.oil/.test(all))           category = 'omega3';
   else if (/vitamin.?d3?|cholecalciferol/.test(all))                        category = 'vitd';
   else if (/vitamin.?k2?|mk-7|mk-4|menaquinone/.test(all))                 category = 'vitk';
   else if (/vitamin.?c|ascorbic/.test(all))                                 category = 'vitc';
