@@ -58,6 +58,7 @@ export interface IStorage {
   getProductsBySubcategory(subcategoryId: string): Promise<Product[]>;
   getProductsByBrand(brand: string): Promise<Product[]>;
   getProductsByBrandSlug(slug: string): Promise<Product[]>;
+  getRelatedProducts(product: Product, limit?: number): Promise<Product[]>;
   createProduct(product: InsertProduct): Promise<Product>;
   updateProduct(id: string, data: Partial<InsertProduct>): Promise<Product | undefined>;
   deleteProduct(id: string): Promise<void>;
@@ -272,6 +273,40 @@ export class DatabaseStorage implements IStorage {
       sql`regexp_replace(regexp_replace(lower(${products.brand}), '-', ' ', 'g'), '[^a-z0-9 ]', '', 'g') ilike ${normalized}`
     ).orderBy(asc(products.name));
     return result;
+  }
+
+  async getRelatedProducts(product: Product, limit = 4): Promise<Product[]> {
+    // Primary: same subcategory, excluding this product
+    const bySub = product.subcategoryId
+      ? await db.select().from(products).where(
+          and(
+            or(
+              eq(products.subcategoryId, product.subcategoryId),
+              sql`${products.additionalSubcategoryIds} @> ${JSON.stringify([product.subcategoryId])}::jsonb`
+            ),
+            sql`${products.id} != ${product.id}`
+          )
+        ).orderBy(desc(products.featured), asc(products.name)).limit(limit)
+      : [];
+
+    if (bySub.length >= limit) return bySub;
+
+    // Fallback: fill remaining slots from same brand
+    if (product.brand) {
+      const existingIds = new Set(bySub.map(p => p.id));
+      const byBrand = await db.select().from(products).where(
+        and(
+          ilike(products.brand, product.brand),
+          sql`${products.id} != ${product.id}`
+        )
+      ).orderBy(desc(products.featured), asc(products.name)).limit(limit);
+      for (const p of byBrand) {
+        if (!existingIds.has(p.id)) bySub.push(p);
+        if (bySub.length >= limit) break;
+      }
+    }
+
+    return bySub;
   }
 
   async createProduct(product: InsertProduct): Promise<Product> {
