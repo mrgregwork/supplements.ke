@@ -292,19 +292,26 @@ const pageTitle = enableRegionalSeo
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {relatedProducts.map(related => {
             const rHash = related.slug.split('').reduce((acc: number, c: string) => acc + c.charCodeAt(0), 0);
+            // pool.query returns snake_case; Drizzle ORM returns camelCase — handle both
+            const relCategorySlug = (related as any).category_slug ?? related.categorySlug ?? category.slug;
+            const relSubcategorySlug = (related as any).subcategory_slug ?? related.subcategorySlug ?? subcategory.slug;
+            const relImages = Array.isArray(related.images) ? related.images
+              : Array.isArray((related as any).images) ? (related as any).images : [];
+            const relAttrs = Array.isArray(related.attributes) ? related.attributes
+              : Array.isArray((related as any).attributes) ? (related as any).attributes : [];
             return (
               <ProductCard product={{
                 name: related.name,
                 slug: related.slug,
-                categorySlug: related.categorySlug ?? category.slug,
-                subcategorySlug: related.subcategorySlug ?? subcategory.slug,
+                categorySlug: relCategorySlug,
+                subcategorySlug: relSubcategorySlug,
                 description: related.description ?? '',
                 price: related.price,
                 originalPrice: related.originalPrice ?? undefined,
                 currency: related.currency ?? productCurrency,
-                images: Array.isArray(related.images) ? related.images : [],
+                images: relImages,
                 brand: related.brand ?? '',
-                attributes: Array.isArray(related.attributes) ? related.attributes : [],
+                attributes: relAttrs,
                 featured: related.featured ?? false,
                 ratingValue: parseFloat((4.3 + (rHash % 4) * 0.1).toFixed(1)),
                 reviewCount: 12 + (rHash % 89),
