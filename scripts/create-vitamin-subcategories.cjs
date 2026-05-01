@@ -9,7 +9,7 @@ const newSubcategories = [
     slug: 'vitamin-b12',
     name: 'Vitamin B12',
     description: 'Vitamin B12 (methylcobalamin) supplements for energy, nerve health, and cognitive function. Essential for vegans and those with absorption issues.',
-    seoTitle: 'Vitamin B12 Supplements Kenya — Methylcobalamin Price',
+    seoTitle: 'Vitamin B12 Supplements Kenya | Methylcobalamin Price',
     seoDescription: 'Buy Vitamin B12 methylcobalamin supplements in Kenya. Best price on Jarrow, Life Extension B12 for energy and nerve support.',
     sortOrder: 20,
     // Products to reassign (matched by name fragment)
@@ -24,7 +24,7 @@ const newSubcategories = [
     slug: 'womens-vitamins',
     name: "Women's Vitamins",
     description: "Multivitamins and supplements formulated for women's health, hormonal balance, energy, and beauty support.",
-    seoTitle: "Women's Vitamins Kenya — Best Multivitamins for Women Price",
+    seoTitle: "Women's Vitamins Kenya | Best Multivitamins for Women Price",
     seoDescription: "Buy women's multivitamins in Kenya. OLLY, One A Day, Silver Women 50+ — best price on women's vitamins.",
     sortOrder: 30,
     productNames: [
@@ -39,7 +39,7 @@ const newSubcategories = [
     slug: 'mens-vitamins',
     name: "Men's Vitamins",
     description: "Multivitamins and supplements formulated for men's health, energy, prostate support, and active lifestyles.",
-    seoTitle: "Men's Vitamins Kenya — Best Multivitamins for Men Price",
+    seoTitle: "Men's Vitamins Kenya | Best Multivitamins for Men Price",
     seoDescription: "Buy men's multivitamins in Kenya. Centrum Silver Men 50+, One A Day Men — best price on men's vitamins.",
     sortOrder: 35,
     productNames: [
