@@ -104,8 +104,17 @@ const structuredData = generateProductPageSchema(
   productFaqs
 );
 
+// Three title variants — chosen deterministically by slug hash so each product
+// always gets the same variant on every request (consistent for Google crawlers)
+// but the variants are spread across the catalog to break any detectable pattern.
+const titleBase = product.name;
+const regionalTitleVariants = [
+  `${titleBase} in ${targetRegion} | Same-Day Delivery in Nairobi`,
+  `${titleBase} in ${targetRegion} | Price in ${targetRegion} | Order on WhatsApp`,
+  `${titleBase} in ${targetRegion} | Shop in Nairobi`,
+];
 const pageTitle = enableRegionalSeo
-  ? `${product.seoTitle ?? product.name} - Price In ${targetRegion}`
+  ? regionalTitleVariants[slugHash % 3]
   : (product.seoTitle ?? product.name);
 ---
 
