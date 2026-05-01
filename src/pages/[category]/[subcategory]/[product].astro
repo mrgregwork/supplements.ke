@@ -21,7 +21,25 @@ const [product, siteSettings] = await Promise.all([
 
 if (!product) return Astro.redirect('/404');
 
-const relatedProducts = await storage.getRelatedProducts(product, 4);
+// Fetch related products: same subcategory first, fall back to same brand
+// Using getProductsBySubcategory (proven method) rather than getRelatedProducts
+const relatedProducts = await (async () => {
+  try {
+    const pool: Product[] = [];
+    if (product.subcategoryId) {
+      const bySub = await storage.getProductsBySubcategory(product.subcategoryId);
+      pool.push(...bySub.filter(p => p.id !== product.id).slice(0, 4));
+    }
+    if (pool.length < 4 && product.brand) {
+      const byBrand = await storage.getProductsByBrand(product.brand);
+      const ids = new Set(pool.map(p => p.id));
+      for (const p of byBrand) {
+        if (!ids.has(p.id) && p.id !== product.id) { pool.push(p); if (pool.length >= 4) break; }
+      }
+    }
+    return pool.slice(0, 4);
+  } catch { return []; }
+})();
 
 // Resolve category and subcategory from the product's own IDs (not from URL)
 // This prevents 404s when a product is linked via an outdated or wrong URL
@@ -301,26 +319,19 @@ const pageTitle = enableRegionalSeo
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {relatedProducts.map(related => {
             const rHash = related.slug.split('').reduce((acc: number, c: string) => acc + c.charCodeAt(0), 0);
-            // pool.query returns snake_case; Drizzle ORM returns camelCase — handle both
-            const relCategorySlug = (related as any).category_slug ?? related.categorySlug ?? category.slug;
-            const relSubcategorySlug = (related as any).subcategory_slug ?? related.subcategorySlug ?? subcategory.slug;
-            const relImages = Array.isArray(related.images) ? related.images
-              : Array.isArray((related as any).images) ? (related as any).images : [];
-            const relAttrs = Array.isArray(related.attributes) ? related.attributes
-              : Array.isArray((related as any).attributes) ? (related as any).attributes : [];
             return (
               <ProductCard product={{
                 name: related.name,
                 slug: related.slug,
-                categorySlug: relCategorySlug,
-                subcategorySlug: relSubcategorySlug,
+                categorySlug: related.categorySlug ?? category.slug,
+                subcategorySlug: related.subcategorySlug ?? subcategory.slug,
                 description: related.description ?? '',
                 price: related.price,
                 originalPrice: related.originalPrice ?? undefined,
                 currency: related.currency ?? productCurrency,
-                images: relImages,
+                images: Array.isArray(related.images) ? related.images : [],
                 brand: related.brand ?? '',
-                attributes: relAttrs,
+                attributes: Array.isArray(related.attributes) ? related.attributes : [],
                 featured: related.featured ?? false,
                 ratingValue: parseFloat((4.3 + (rHash % 4) * 0.1).toFixed(1)),
                 reviewCount: 12 + (rHash % 89),

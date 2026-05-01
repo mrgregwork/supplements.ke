@@ -19,7 +19,7 @@ import {
   type NavigationItem, type InsertNavigationItem,
   type HomepageContent, type InsertHomepageContent,
 } from "@shared/schema";
-import { db, pool } from "./db";
+import { db } from "./db";
 import { eq, and, gt, or, desc, asc, ilike, sql } from "drizzle-orm";
 
 export interface IStorage {
@@ -278,37 +278,38 @@ export class DatabaseStorage implements IStorage {
   async getRelatedProducts(product: Product, limit = 4): Promise<Product[]> {
     try {
       // Step 1: same subcategory, excluding this product
-      const subResult = product.subcategoryId
-        ? await pool.query<Product>(
-            `SELECT * FROM products
-             WHERE (subcategory_id = $1
-               OR additional_subcategory_ids @> $2::jsonb)
-               AND id != $3
-             ORDER BY featured DESC, name ASC
-             LIMIT $4`,
-            [
-              product.subcategoryId,
-              JSON.stringify([product.subcategoryId]),
-              product.id,
-              limit,
-            ]
-          )
-        : { rows: [] as Product[] };
+      const bySub = product.subcategoryId
+        ? await db
+            .select()
+            .from(products)
+            .where(
+              and(
+                eq(products.subcategoryId, product.subcategoryId),
+                sql`${products.id} != ${product.id}`
+              )
+            )
+            .orderBy(desc(products.featured), asc(products.name))
+            .limit(limit)
+        : [];
 
-      const results: Product[] = [...subResult.rows];
+      if (bySub.length >= limit) return bySub;
 
       // Step 2: fill remaining slots from same brand
-      if (results.length < limit && product.brand) {
+      const results: Product[] = [...bySub];
+      if (product.brand) {
         const existingIds = new Set(results.map((p) => p.id));
-        const brandResult = await pool.query<Product>(
-          `SELECT * FROM products
-           WHERE LOWER(brand) = LOWER($1)
-             AND id != $2
-           ORDER BY featured DESC, name ASC
-           LIMIT $3`,
-          [product.brand, product.id, limit]
-        );
-        for (const p of brandResult.rows) {
+        const byBrand = await db
+          .select()
+          .from(products)
+          .where(
+            and(
+              ilike(products.brand, product.brand),
+              sql`${products.id} != ${product.id}`
+            )
+          )
+          .orderBy(desc(products.featured), asc(products.name))
+          .limit(limit);
+        for (const p of byBrand) {
           if (!existingIds.has(p.id)) {
             results.push(p);
             if (results.length >= limit) break;
