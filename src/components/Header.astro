@@ -76,20 +76,78 @@ const currentPath = Astro.url.pathname;
 
 <header class="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
   <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-    <div class="flex h-16 items-center justify-between gap-4">
+
+    <!-- Row 1: Logo + Right Actions -->
+    <div class="flex h-14 items-center justify-between gap-4">
       <!-- Logo -->
-      <div class="flex items-center gap-6">
-        <a href="/" class="flex items-center gap-2" data-testid="link-logo">
-          <svg class="h-7 w-7 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M2 22c1.25-1.25 2.5-2.5 3.5-4 1-1.5 1.5-3 1.5-5 0-3.5-2-6.5-5-8 0 0 2 3.5 2 7 0 2-.5 3.5-1.5 5C1.5 18.5 2 22 2 22z"/>
-            <path d="M16 2c-3 1.5-5 4.5-5 8 0 2 .5 3.5 1.5 5 1 1.5 2.25 2.75 3.5 4 0 0 .5-3.5-1-5-1-1.5-1.5-3-1.5-5 0-3.5 2-6.5 5-8z"/>
-            <path d="M9 10c0 5 3 10 6 12"/>
+      <a href="/" class="flex items-center gap-2 shrink-0" data-testid="link-logo">
+        <svg class="h-7 w-7 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M2 22c1.25-1.25 2.5-2.5 3.5-4 1-1.5 1.5-3 1.5-5 0-3.5-2-6.5-5-8 0 0 2 3.5 2 7 0 2-.5 3.5-1.5 5C1.5 18.5 2 22 2 22z"/>
+          <path d="M16 2c-3 1.5-5 4.5-5 8 0 2 .5 3.5 1.5 5 1 1.5 2.25 2.75 3.5 4 0 0 .5-3.5-1-5-1-1.5-1.5-3-1.5-5 0-3.5 2-6.5 5-8z"/>
+          <path d="M9 10c0 5 3 10 6 12"/>
+        </svg>
+        <span class="text-lg font-semibold tracking-tight">{siteSettings.siteName}</span>
+      </a>
+
+      <!-- Desktop full-width search bar -->
+      <div class="hidden md:block flex-1 mx-6 relative" id="search-wrapper">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8" />
+          <path d="m21 21-4.3-4.3" />
+        </svg>
+        <input
+          id="search-input"
+          type="search"
+          placeholder="Search supplements, vitamins, brands…"
+          autocomplete="off"
+          class="w-full pl-10 pr-4 py-2 text-sm border-2 rounded-lg bg-background focus:outline-none focus:border-primary transition-colors"
+          data-testid="input-search"
+        />
+        <!-- Autocomplete dropdown -->
+        <div id="search-results" class="hidden absolute top-full left-0 right-0 mt-1 bg-popover border rounded-lg shadow-xl z-50 overflow-hidden"></div>
+      </div>
+
+      <!-- Right Actions -->
+      <div class="flex items-center gap-2 shrink-0">
+        <!-- Theme Toggle -->
+        <button id="theme-toggle" class="p-2 rounded-md hover:bg-accent transition-colors" data-testid="button-theme-toggle" aria-label="Toggle theme">
+          <svg class="h-5 w-5 dark:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="4" />
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
           </svg>
-          <span class="text-lg font-semibold tracking-tight">{siteSettings.siteName}</span>
+          <svg class="h-5 w-5 hidden dark:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+          </svg>
+        </button>
+        <a href="/account" class="p-2 rounded-md hover:bg-accent transition-colors" data-testid="link-account" aria-label="Account">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="8" r="4" />
+            <path d="M20 21a8 8 0 1 0-16 0" />
+          </svg>
         </a>
-        
-        <!-- Desktop Navigation -->
-        <nav class="hidden md:flex items-center gap-1">
+        <a href="/cart" class="p-2 rounded-md hover:bg-accent transition-colors" data-testid="button-cart" aria-label="Cart">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="8" cy="21" r="1" />
+            <circle cx="19" cy="21" r="1" />
+            <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
+          </svg>
+        </a>
+        <button id="mobile-menu-toggle" class="p-2 rounded-md hover:bg-accent transition-colors md:hidden" data-testid="button-mobile-menu" aria-label="Toggle menu">
+          <svg id="menu-open-icon" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="4" x2="20" y1="12" y2="12" />
+            <line x1="4" x2="20" y1="6" y2="6" />
+            <line x1="4" x2="20" y1="18" y2="18" />
+          </svg>
+          <svg id="menu-close-icon" class="h-5 w-5 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6 6 18M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Row 2: Desktop Navigation -->
+    <div class="hidden md:block border-t">
+      <nav class="flex items-center gap-1 py-1">
           {navItems.map((item) => (
             item.isMegaMenu ? (
               /* ── Mega Menu ── */
@@ -242,91 +300,25 @@ const currentPath = Astro.url.pathname;
             )
           ))}
         </nav>
-      </div>
-
-      <!-- Search Bar -->
-      <div class="hidden md:flex flex-1 max-w-md mx-4">
-        <div class="relative w-full">
-          <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="8" />
-            <path d="m21 21-4.3-4.3" />
-          </svg>
-          <input
-            type="search"
-            placeholder={getRegionalAnchorText("Search products")}
-            class="w-full pl-10 pr-4 py-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-            data-testid="input-search"
-          />
-        </div>
-      </div>
-
-      <!-- Right Side Actions -->
-      <div class="flex items-center gap-2">
-        <!-- Theme Toggle -->
-        <button 
-          id="theme-toggle"
-          class="p-2 rounded-md hover:bg-accent transition-colors"
-          data-testid="button-theme-toggle"
-          aria-label="Toggle theme"
-        >
-          <svg class="h-5 w-5 dark:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="4" />
-            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
-          </svg>
-          <svg class="h-5 w-5 hidden dark:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-          </svg>
-        </button>
-
-        <!-- Account - visible on all screen sizes -->
-        <a href="/account" class="p-2 rounded-md hover:bg-accent transition-colors" data-testid="link-account" aria-label="Account">
-          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="8" r="4" />
-            <path d="M20 21a8 8 0 1 0-16 0" />
-          </svg>
-        </a>
-
-        <!-- Cart - visible on all screen sizes -->
-        <a href="/cart" class="p-2 rounded-md hover:bg-accent transition-colors" data-testid="button-cart" aria-label="Cart">
-          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="8" cy="21" r="1" />
-            <circle cx="19" cy="21" r="1" />
-            <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
-          </svg>
-        </a>
-
-        <!-- Mobile Menu Button -->
-        <button 
-          id="mobile-menu-toggle"
-          class="p-2 rounded-md hover:bg-accent transition-colors md:hidden"
-          data-testid="button-mobile-menu"
-          aria-label="Toggle menu"
-        >
-          <svg id="menu-open-icon" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="4" x2="20" y1="12" y2="12" />
-            <line x1="4" x2="20" y1="6" y2="6" />
-            <line x1="4" x2="20" y1="18" y2="18" />
-          </svg>
-          <svg id="menu-close-icon" class="h-5 w-5 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M18 6 6 18M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
     </div>
 
     <!-- Mobile Menu -->
     <div id="mobile-menu" class="hidden md:hidden py-4 border-t">
+      <!-- Mobile Search -->
       <div class="relative mb-4">
-        <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="11" cy="11" r="8" />
           <path d="m21 21-4.3-4.3" />
         </svg>
         <input
+          id="search-input-mobile"
           type="search"
-          placeholder={getRegionalAnchorText("Search products")}
-          class="w-full pl-10 pr-4 py-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+          placeholder="Search supplements, vitamins, brands…"
+          autocomplete="off"
+          class="w-full pl-10 pr-4 py-2 text-sm border-2 rounded-lg bg-background focus:outline-none focus:border-primary transition-colors"
           data-testid="input-search-mobile"
         />
+        <div id="search-results-mobile" class="hidden absolute top-full left-0 right-0 mt-1 bg-popover border rounded-lg shadow-xl z-50 overflow-hidden"></div>
       </div>
       <nav class="flex flex-col gap-1">
         {navItems.map((item, idx) => (
@@ -469,26 +461,25 @@ const currentPath = Astro.url.pathname;
 </header>
 
 <script>
-  // Theme Toggle
+  // ── Theme Toggle ──────────────────────────────────────────────
   const themeToggle = document.getElementById('theme-toggle');
   themeToggle?.addEventListener('click', () => {
     const isDark = document.documentElement.classList.toggle('dark');
     localStorage.setItem('ecommerce-seo-theme', isDark ? 'dark' : 'light');
   });
 
-  // Mobile Menu Toggle
+  // ── Mobile Menu Toggle ────────────────────────────────────────
   const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
   const mobileMenu = document.getElementById('mobile-menu');
   const menuOpenIcon = document.getElementById('menu-open-icon');
   const menuCloseIcon = document.getElementById('menu-close-icon');
-
   mobileMenuToggle?.addEventListener('click', () => {
     const isOpen = mobileMenu?.classList.toggle('hidden');
     menuOpenIcon?.classList.toggle('hidden', !isOpen);
     menuCloseIcon?.classList.toggle('hidden', isOpen);
   });
 
-  // Mobile Subcategory Toggles
+  // ── Mobile Subcategory Toggles ────────────────────────────────
   document.querySelectorAll<HTMLButtonElement>('.mobile-nav-toggle').forEach(btn => {
     btn.addEventListener('click', () => {
       const targetId = btn.dataset.target!;
@@ -501,4 +492,92 @@ const currentPath = Astro.url.pathname;
       if (chevron) chevron.style.transform = expanded ? '' : 'rotate(180deg)';
     });
   });
+
+  // ── Search Autocomplete ───────────────────────────────────────
+  function initSearch(inputId: string, resultsId: string) {
+    const input = document.getElementById(inputId) as HTMLInputElement | null;
+    const results = document.getElementById(resultsId);
+    if (!input || !results) return;
+
+    let debounce: ReturnType<typeof setTimeout>;
+    let activeIdx = -1;
+
+    function formatPrice(p: number | string | null) {
+      if (!p) return '';
+      return `KSh ${Number(p).toLocaleString()}`;
+    }
+
+    function renderResults(items: any[]) {
+      activeIdx = -1;
+      if (!items.length) {
+        results!.innerHTML = `<div class="px-4 py-3 text-sm text-muted-foreground">No results found</div>`;
+      } else {
+        results!.innerHTML = items.map((item, i) => `
+          <a href="/${item.categorySlug}/${item.subcategorySlug}/${item.slug}/"
+             class="search-result-item flex items-center justify-between px-4 py-2.5 hover:bg-accent transition-colors cursor-pointer border-b last:border-0"
+             data-idx="${i}">
+            <div>
+              <div class="text-sm font-medium text-foreground leading-tight">${item.name}</div>
+              <div class="text-xs text-muted-foreground mt-0.5">${item.brand ?? ''}</div>
+            </div>
+            <div class="text-sm font-semibold text-primary ml-4 shrink-0">${formatPrice(item.price)}</div>
+          </a>`).join('');
+      }
+      results!.classList.remove('hidden');
+    }
+
+    function highlightItem(idx: number) {
+      const items = results!.querySelectorAll<HTMLElement>('.search-result-item');
+      items.forEach((el, i) => {
+        el.classList.toggle('bg-accent', i === idx);
+      });
+    }
+
+    function hide() {
+      results!.classList.add('hidden');
+      activeIdx = -1;
+    }
+
+    input.addEventListener('input', () => {
+      clearTimeout(debounce);
+      const q = input.value.trim();
+      if (q.length < 2) { hide(); return; }
+      debounce = setTimeout(async () => {
+        try {
+          const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+          const data = await res.json();
+          renderResults(data);
+        } catch { hide(); }
+      }, 200);
+    });
+
+    input.addEventListener('keydown', (e) => {
+      const items = results!.querySelectorAll<HTMLElement>('.search-result-item');
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        activeIdx = Math.min(activeIdx + 1, items.length - 1);
+        highlightItem(activeIdx);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        activeIdx = Math.max(activeIdx - 1, 0);
+        highlightItem(activeIdx);
+      } else if (e.key === 'Enter') {
+        if (activeIdx >= 0 && items[activeIdx]) {
+          (items[activeIdx] as HTMLAnchorElement).click();
+        } else if (input.value.trim()) {
+          window.location.href = `/all-supplements/?search=${encodeURIComponent(input.value.trim())}`;
+        }
+      } else if (e.key === 'Escape') {
+        hide();
+        input.blur();
+      }
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!input.contains(e.target as Node) && !results!.contains(e.target as Node)) hide();
+    });
+  }
+
+  initSearch('search-input', 'search-results');
+  initSearch('search-input-mobile', 'search-results-mobile');
 </script>
