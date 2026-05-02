@@ -1,7 +1,7 @@
 ---
 import BaseLayout from "@layouts/BaseLayout.astro";
 import { getCustomer, getSessionByToken, getCustomerOrders } from "@lib/auth";
-import { db } from "../../../../server/db";
+import { db } from "@server/db";
 import { orders, orderItems, products } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import siteSettings from '@config/siteSettings.json';

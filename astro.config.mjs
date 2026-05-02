@@ -35,7 +35,8 @@ export default defineConfig({
         '@config': path.resolve(__dirname, './src/config'),
         '@lib': path.resolve(__dirname, './src/lib'),
         '@utils': path.resolve(__dirname, './src/utils'),
-        '@shared': path.resolve(__dirname, './shared')
+        '@shared': path.resolve(__dirname, './shared'),
+        '@server': path.resolve(__dirname, './server')
       }
     },
     server: {
