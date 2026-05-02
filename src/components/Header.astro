@@ -29,33 +29,29 @@ await Promise.all(
   })
 );
 
-type NavChild    = { href: string; label: string; description?: string | null; subs: { name: string; href: string }[] };
-type ColumnGroup = { label: string; items: NavChild[] };
-type NavItem     = { href: string; label: string; isMegaMenu?: boolean; isTwoColumn?: boolean; columns?: ColumnGroup[]; children?: NavChild[] };
+type NavChild = { href: string; label: string; description?: string | null; subs: { name: string; href: string }[] };
+type NavItem  = { href: string; label: string; isMegaMenu?: boolean; isTwoColumn?: boolean; children?: NavChild[] };
+
+// Pre-build vitamins and minerals link lists for the two-column dropdown
+const vitMinItem = activeItems.find(i => i.description === 'two-column');
+const vitMinChildren = vitMinItem
+  ? (childrenMap.get(vitMinItem.id) ?? []).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+  : [];
+const vitaminsLinks = vitMinChildren.filter(c => c.description === 'Vitamins').map(c => ({ href: c.href, label: c.label }));
+const mineralsLinks = vitMinChildren.filter(c => c.description === 'Minerals').map(c => ({ href: c.href, label: c.label }));
 
 const navItems: NavItem[] = topLevel.length > 0
   ? topLevel
       .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
-      .map(item => {
-        const isTwoColumn = item.description === 'two-column';
-        const isMegaMenu  = item.description === 'mega-menu';
-        const children: NavChild[] = (childrenMap.get(item.id) ?? [])
+      .map(item => ({
+        href: item.href,
+        label: item.label,
+        isMegaMenu:  item.description === 'mega-menu',
+        isTwoColumn: item.description === 'two-column',
+        children: (childrenMap.get(item.id) ?? [])
           .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
-          .map(c => ({ href: c.href, label: c.label, description: c.description, subs: megaSubsMap.get(c.href) ?? [] }));
-
-        let columns: ColumnGroup[] = [];
-        if (isTwoColumn) {
-          const colMap = new Map<string, NavChild[]>();
-          for (const c of children) {
-            const key = c.description || 'Other';
-            if (!colMap.has(key)) colMap.set(key, []);
-            colMap.get(key)!.push(c);
-          }
-          columns = Array.from(colMap.entries()).map(([label, items]) => ({ label, items }));
-        }
-
-        return { href: item.href, label: item.label, isMegaMenu, isTwoColumn, children, columns };
-      })
+          .map(c => ({ href: c.href, label: c.label, description: c.description, subs: megaSubsMap.get(c.href) ?? [] })),
+      }))
   : [
       { href: '/all-supplements/', label: 'All Supplements', isMegaMenu: true },
       { href: '/vitamins/', label: 'Vitamins' },
@@ -155,8 +151,8 @@ const currentPath = Astro.url.pathname;
                   </div>
                 </div>
               </div>
-            ) : item.isTwoColumn && item.children && item.children.length > 0 ? (
-              /* ── Two-Column Dropdown (Vitamins & Minerals) ── */
+            ) : item.isTwoColumn ? (
+              /* ── Vitamins & Minerals Two-Column Dropdown ── */
               <div class="relative group">
                 <a
                   href={item.href}
@@ -166,7 +162,6 @@ const currentPath = Astro.url.pathname;
                       ? "bg-secondary text-secondary-foreground"
                       : "text-muted-foreground hover:text-foreground hover:bg-accent"
                   ]}
-                  data-testid={`link-nav-${item.label.toLowerCase().replace(/\s+/g,'-')}`}
                 >
                   {item.label}
                   <svg class="w-3.5 h-3.5 transition-transform group-hover:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -174,23 +169,25 @@ const currentPath = Astro.url.pathname;
                   </svg>
                 </a>
                 <div class="absolute left-0 top-full pt-1 hidden group-hover:block z-50">
-                  <div class="rounded-xl shadow-2xl ring-1 ring-primary/10 bg-gradient-to-br from-emerald-50 via-white to-teal-50 dark:from-emerald-950/40 dark:via-slate-900 dark:to-teal-950/40 p-5 min-w-[420px]">
-                    <div class="grid grid-cols-2 gap-x-8">
-                      {(item.columns ?? []).map(col => (
-                        <div>
-                          <p class="text-[11px] font-semibold uppercase tracking-wider text-primary/80 mb-2 pb-1 border-b border-primary/20">
-                            {col.label}
-                          </p>
-                          {col.items.map(child => (
-                            <a
-                              href={child.href}
-                              class="block py-1 text-sm text-muted-foreground hover:text-primary transition-colors"
-                            >
-                              {child.label}
-                            </a>
-                          ))}
-                        </div>
-                      ))}
+                  <div class="rounded-xl shadow-2xl ring-1 ring-primary/10 bg-gradient-to-br from-emerald-50 via-white to-teal-50 dark:from-emerald-950/40 dark:via-slate-900 dark:to-teal-950/40 p-5" style="min-width:420px">
+                    <div class="grid grid-cols-2 gap-8">
+
+                      <!-- Column 1: Vitamins -->
+                      <div>
+                        <p class="text-[11px] font-semibold uppercase tracking-wider text-primary/80 mb-2 pb-1 border-b border-primary/20">Vitamins</p>
+                        {vitaminsLinks.map(link => (
+                          <a href={link.href} class="block py-1 text-sm text-muted-foreground hover:text-primary transition-colors">{link.label}</a>
+                        ))}
+                      </div>
+
+                      <!-- Column 2: Minerals -->
+                      <div>
+                        <p class="text-[11px] font-semibold uppercase tracking-wider text-primary/80 mb-2 pb-1 border-b border-primary/20">Minerals</p>
+                        {mineralsLinks.map(link => (
+                          <a href={link.href} class="block py-1 text-sm text-muted-foreground hover:text-primary transition-colors">{link.label}</a>
+                        ))}
+                      </div>
+
                     </div>
                     <div class="mt-4 pt-3 border-t border-primary/20 flex gap-4">
                       <a href="/vitamins/" class="text-xs text-primary font-semibold hover:underline">All Vitamins →</a>
@@ -423,19 +420,20 @@ const currentPath = Astro.url.pathname;
               <div id={`mobile-sub-${idx}`} class="hidden ml-3 mt-0.5 border-l pl-3 pb-1">
                 {item.isTwoColumn ? (
                   /* Two-column mobile layout */
-                  (item.columns ?? []).map(col => (
+                  <>
                     <div class="mb-3">
-                      <p class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-2 py-1">{col.label}</p>
-                      {col.items.map(child => (
-                        <a
-                          href={child.href}
-                          class="block px-2 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors min-h-[36px] flex items-center"
-                        >
-                          {child.label}
-                        </a>
+                      <p class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-2 py-1">Vitamins</p>
+                      {vitaminsLinks.map(link => (
+                        <a href={link.href} class="block px-2 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors min-h-[36px] flex items-center">{link.label}</a>
                       ))}
                     </div>
-                  ))
+                    <div class="mb-3">
+                      <p class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-2 py-1">Minerals</p>
+                      {mineralsLinks.map(link => (
+                        <a href={link.href} class="block px-2 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors min-h-[36px] flex items-center">{link.label}</a>
+                      ))}
+                    </div>
+                  </>
                 ) : (
                   /* Standard flat list */
                   <div class="flex flex-col gap-0.5">
