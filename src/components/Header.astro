@@ -30,7 +30,7 @@ await Promise.all(
 );
 
 type NavChild = { href: string; label: string; description?: string | null; subs: { name: string; href: string }[] };
-type NavItem  = { href: string; label: string; isMegaMenu?: boolean; children?: NavChild[] };
+type NavItem  = { href: string; label: string; isMegaMenu?: boolean; isTwoColumn?: boolean; children?: NavChild[] };
 
 const navItems: NavItem[] = topLevel.length > 0
   ? topLevel
@@ -39,6 +39,7 @@ const navItems: NavItem[] = topLevel.length > 0
         href: item.href,
         label: item.label,
         isMegaMenu: item.description === 'mega-menu',
+        isTwoColumn: item.description === 'two-column',
         children: (childrenMap.get(item.id) ?? [])
           .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
           .map(c => ({ href: c.href, label: c.label, description: c.description, subs: megaSubsMap.get(c.href) ?? [] })),
@@ -138,6 +139,58 @@ const currentPath = Astro.url.pathname;
                     <div class="mt-3 pt-3 border-t border-primary/20 flex items-center justify-between">
                       <span class="text-xs text-muted-foreground">Browse all supplement categories</span>
                       <a href={item.href} class="text-xs text-primary font-semibold hover:underline">View all →</a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : item.isTwoColumn && item.children && item.children.length > 0 ? (
+              /* ── Two-Column Dropdown (Vitamins & Minerals) ── */
+              <div class="relative group">
+                <a
+                  href={item.href}
+                  class:list={[
+                    "flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                    currentPath.startsWith(item.href)
+                      ? "bg-secondary text-secondary-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                  ]}
+                  data-testid={`link-nav-${item.label.toLowerCase().replace(/\s+/g,'-')}`}
+                >
+                  {item.label}
+                  <svg class="w-3.5 h-3.5 transition-transform group-hover:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </a>
+                <div class="absolute left-0 top-full pt-1 hidden group-hover:block z-50">
+                  <div class="rounded-xl shadow-2xl ring-1 ring-primary/10 bg-gradient-to-br from-emerald-50 via-white to-teal-50 dark:from-emerald-950/40 dark:via-slate-900 dark:to-teal-950/40 p-4 min-w-[380px]">
+                    <div class="grid grid-cols-2 gap-x-6">
+                      {(() => {
+                        const cols = new Map<string, NavChild[]>();
+                        for (const c of item.children!) {
+                          const key = c.description || 'Other';
+                          if (!cols.has(key)) cols.set(key, []);
+                          cols.get(key)!.push(c);
+                        }
+                        return Array.from(cols.entries()).map(([colLabel, colItems]) => (
+                          <div>
+                            <p class="text-[11px] font-semibold uppercase tracking-wider text-primary/80 mb-2 pb-1 border-b border-primary/20">
+                              {colLabel}
+                            </p>
+                            {colItems.map(child => (
+                              <a
+                                href={child.href}
+                                class="block py-1 text-sm text-muted-foreground hover:text-primary transition-colors"
+                              >
+                                {child.label}
+                              </a>
+                            ))}
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                    <div class="mt-3 pt-2 border-t border-primary/20 flex gap-4">
+                      <a href="/vitamins/" class="text-xs text-primary font-semibold hover:underline">All Vitamins →</a>
+                      <a href="/minerals/" class="text-xs text-primary font-semibold hover:underline">All Minerals →</a>
                     </div>
                   </div>
                 </div>
@@ -331,8 +384,8 @@ const currentPath = Astro.url.pathname;
                 ))}
               </div>
             </div>
-          ) : item.children && item.children.length > 0 ? (
-            /* ── Standard mobile dropdown ── */
+          ) : (item.isTwoColumn || (item.children && item.children.length > 0)) ? (
+            /* ── Mobile Two-Column or Standard Dropdown ── */
             <div class="mobile-nav-group">
               <div class="flex items-center">
                 <a
@@ -363,15 +416,43 @@ const currentPath = Astro.url.pathname;
                   </svg>
                 </button>
               </div>
-              <div id={`mobile-sub-${idx}`} class="hidden ml-3 mt-0.5 flex flex-col gap-0.5 border-l pl-3 pb-1">
-                {item.children.map(child => (
-                  <a
-                    href={child.href}
-                    class="px-2 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors min-h-[40px] flex items-center"
-                  >
-                    {child.label}
-                  </a>
-                ))}
+              <div id={`mobile-sub-${idx}`} class="hidden ml-3 mt-0.5 border-l pl-3 pb-1">
+                {item.isTwoColumn ? (
+                  /* Two-column mobile layout */
+                  (() => {
+                    const cols = new Map<string, NavChild[]>();
+                    for (const c of item.children ?? []) {
+                      const key = c.description || 'Other';
+                      if (!cols.has(key)) cols.set(key, []);
+                      cols.get(key)!.push(c);
+                    }
+                    return Array.from(cols.entries()).map(([colLabel, colItems]) => (
+                      <div class="mb-3">
+                        <p class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-2 py-1">{colLabel}</p>
+                        {colItems.map(child => (
+                          <a
+                            href={child.href}
+                            class="block px-2 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors min-h-[36px] flex items-center"
+                          >
+                            {child.label}
+                          </a>
+                        ))}
+                      </div>
+                    ));
+                  })()
+                ) : (
+                  /* Standard flat list */
+                  <div class="flex flex-col gap-0.5">
+                    {(item.children ?? []).map(child => (
+                      <a
+                        href={child.href}
+                        class="px-2 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors min-h-[40px] flex items-center"
+                      >
+                        {child.label}
+                      </a>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           ) : (
