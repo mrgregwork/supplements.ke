@@ -36,25 +36,26 @@ type NavItem     = { href: string; label: string; isMegaMenu?: boolean; isTwoCol
 const navItems: NavItem[] = topLevel.length > 0
   ? topLevel
       .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
-      .map(item => ({
-        href: item.href,
-        label: item.label,
-        isMegaMenu: item.description === 'mega-menu',
-        isTwoColumn: item.description === 'two-column',
-        children: (childrenMap.get(item.id) ?? [])
+      .map(item => {
+        const isTwoColumn = item.description === 'two-column';
+        const isMegaMenu  = item.description === 'mega-menu';
+        const children: NavChild[] = (childrenMap.get(item.id) ?? [])
           .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
-          .map(c => ({ href: c.href, label: c.label, description: c.description, subs: megaSubsMap.get(c.href) ?? [] })),
-        get columns(): ColumnGroup[] {
-          if (!this.isTwoColumn) return [];
-          const map = new Map<string, NavChild[]>();
-          for (const c of this.children ?? []) {
+          .map(c => ({ href: c.href, label: c.label, description: c.description, subs: megaSubsMap.get(c.href) ?? [] }));
+
+        let columns: ColumnGroup[] = [];
+        if (isTwoColumn) {
+          const colMap = new Map<string, NavChild[]>();
+          for (const c of children) {
             const key = c.description || 'Other';
-            if (!map.has(key)) map.set(key, []);
-            map.get(key)!.push(c);
+            if (!colMap.has(key)) colMap.set(key, []);
+            colMap.get(key)!.push(c);
           }
-          return Array.from(map.entries()).map(([label, items]) => ({ label, items }));
-        },
-      }))
+          columns = Array.from(colMap.entries()).map(([label, items]) => ({ label, items }));
+        }
+
+        return { href: item.href, label: item.label, isMegaMenu, isTwoColumn, children, columns };
+      })
   : [
       { href: '/all-supplements/', label: 'All Supplements', isMegaMenu: true },
       { href: '/vitamins/', label: 'Vitamins' },
