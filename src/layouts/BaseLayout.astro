@@ -45,7 +45,7 @@ const canonical = canonicalUrl || Astro.url.href;
     <title>{fullTitle}</title>
     <meta name="title" content={fullTitle} />
     <meta name="description" content={description} />
-    {noindex && <meta name="robots" content="noindex, nofollow" />}
+    {noindex && <meta name="robots" content="noindex, follow" />}
     <link rel="canonical" href={canonical} />
     
     <!-- Open Graph / Facebook -->

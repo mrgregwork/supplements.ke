@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+
+# Block product pages from indexing until category and subcategory pages are established
+Disallow: /*/*/
+
+# Allow crawling of category and subcategory pages
+Allow: /*/
+
+# Admin and account pages
+Disallow: /admin/
+Disallow: /account/
+Disallow: /api/
+Disallow: /cart
+Disallow: /checkout
+
+Sitemap: https://supplementskenya.com/sitemap.xml
