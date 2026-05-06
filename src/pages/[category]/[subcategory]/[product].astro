@@ -1,8 +1,8 @@
 ---
 import BaseLayout from '@layouts/BaseLayout.astro';
 import Breadcrumbs from '@components/Breadcrumbs.astro';
-import AddToCartButton from '@components/AddToCartButton';
 import AdminToolbar from '@components/AdminToolbar.astro';
+import BundleSelector from '@components/BundleSelector';
 import DualPrice from '@components/DualPrice.astro';
 import ProductCard from '@components/ProductCard.astro';
 import { storage } from '@lib/storage';
@@ -188,41 +188,21 @@ const pageTitle = enableRegionalSeo
           </h1>
         </div>
 
-        <!-- Price -->
-        <div class="mb-6">
-          <DualPrice
-            priceUSD={product.price}
-            originalPriceUSD={product.originalPrice}
-            size="lg"
-            testId="text-product-price"
-          />
-        </div>
-
-        {discount && (
-          <span class="inline-block mb-4 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-sm font-semibold px-3 py-1 rounded-full">
-            Save {discount}%
-          </span>
-        )}
-
         <!-- Short Description -->
         <p class="text-muted-foreground mb-6" data-testid="text-product-description">
           {product.description}
         </p>
 
-        <!-- Add to Cart -->
-        <div class="flex gap-4 mb-8">
-          <div class="flex-1">
-            <AddToCartButton client:load productId={product.id} productName={product.name} />
-          </div>
-          <button
-            class="py-3 px-4 border rounded-md hover:bg-accent transition-colors"
-            data-testid="button-wishlist"
-            aria-label="Add to wishlist"
-          >
-            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
-            </svg>
-          </button>
+        <!-- Bundle Selector (price anchoring + add to cart) -->
+        <div class="mb-8">
+          <BundleSelector
+            client:load
+            productId={product.id}
+            productName={product.name}
+            price={product.price}
+            originalPrice={product.originalPrice ?? undefined}
+            currency={currency}
+          />
         </div>
 
         <!-- Availability -->
