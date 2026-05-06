@@ -634,15 +634,16 @@ export function getProductImageAlt(
   brand?: string
 ): string {
   const brandPrefix = brand ? `${brand} ` : '';
+  const base = `${brandPrefix}${productName}`;
 
-  if (totalImages === 1) {
-    return getSchemaAltText(`${brandPrefix}${productName}`, undefined, 'Supplement Product Image');
+  if (totalImages <= 1) {
+    return base;
   }
 
   const viewDescriptions = ['Front View', 'Label View', 'Back View', 'Ingredients View', 'Angle View'];
-  const viewDesc = viewDescriptions[imageIndex] || `View ${imageIndex + 1}`;
+  const viewDesc = viewDescriptions[imageIndex] ?? `View ${imageIndex + 1}`;
 
-  return getSchemaAltText(`${brandPrefix}${productName}`, viewDesc, 'for Sale');
+  return `${base} - ${viewDesc}`;
 }
 
 export function getCategoryImageAlt(categoryName: string): string {
