@@ -150,25 +150,25 @@ const pageTitle = enableRegionalSeo
   <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
     <Breadcrumbs items={breadcrumbItems} />
 
-    <div class="grid lg:grid-cols-2 gap-12">
+    <div class="grid lg:grid-cols-2 gap-12 items-start">
       <!-- Product Images -->
-      <div>
-        <div class="aspect-square overflow-hidden rounded-md bg-white border flex items-center justify-center">
+      <div class="lg:sticky lg:top-24">
+        <div class="aspect-square overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-50 via-white to-stone-50 border border-border/50 flex items-center justify-center shadow-sm">
           <img
             src={images[0] || '/images/placeholder-product.jpg'}
             alt={productAltText}
-            class="h-full w-full object-contain"
+            class="h-full w-full object-contain p-4"
             data-testid="img-product-main"
           />
         </div>
         {images.length > 1 && (
           <div class="grid grid-cols-4 gap-3 mt-4">
             {images.slice(0, 4).map((img, i) => (
-              <button class="aspect-square overflow-hidden rounded-md bg-white border hover:border-primary transition-colors">
+              <button class="aspect-square overflow-hidden rounded-xl bg-gradient-to-br from-emerald-50 via-white to-stone-50 border border-border/50 hover:border-primary hover:shadow-md transition-all">
                 <img
                   src={img}
                   alt={getProductImageAlt(product.name, i + 1, images.length, product.brand ?? '')}
-                  class="h-full w-full object-contain"
+                  class="h-full w-full object-contain p-1"
                   loading="lazy"
                 />
               </button>
@@ -179,21 +179,18 @@ const pageTitle = enableRegionalSeo
 
       <!-- Product Details -->
       <div>
-        <div class="mb-4">
-          <span class="text-sm text-muted-foreground">
-            Brand: <a
-              href={`/brand/${(product.brand ?? '').toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}/`}
-              class="text-primary hover:underline font-medium"
-              data-testid="link-product-brand"
-            >{product.brand}</a>
+        <div class="mb-3">
+          <span class="inline-flex items-center gap-1 text-xs font-semibold text-primary bg-primary/8 border border-primary/20 rounded-full px-3 py-0.5 mb-2">
+            <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
+            {product.brand}
           </span>
-          <h1 class="text-3xl font-bold mt-1" data-testid="text-product-title">
+          <h1 class="text-2xl sm:text-3xl font-extrabold leading-tight mt-1" data-testid="text-product-title">
             {product.name}
           </h1>
         </div>
 
         <!-- Short Description -->
-        <p class="text-muted-foreground mb-6" data-testid="text-product-description">
+        <p class="text-muted-foreground mb-5 leading-relaxed" data-testid="text-product-description">
           {product.description}
         </p>
 
@@ -209,12 +206,6 @@ const pageTitle = enableRegionalSeo
             ratingValue={productRating}
             reviewCount={productReviewCount}
           />
-        </div>
-
-        <!-- Availability -->
-        <div class="flex items-center gap-2 text-sm mb-6">
-          <span class="h-2 w-2 rounded-full bg-green-500"></span>
-          <span class="text-green-600 dark:text-green-400">In Stock</span>
         </div>
 
         <!-- Tags -->
