@@ -1,19 +1,18 @@
 import { useState } from 'react';
 
-type Step = 'identifier' | 'otp';
+type Step = 'email' | 'otp';
 
 interface LoginFormProps {
   redirectTo?: string;
 }
 
 export default function LoginForm({ redirectTo = '/account' }: LoginFormProps) {
-  const [step, setStep] = useState<Step>('identifier');
-  const [identifier, setIdentifier] = useState('');
+  const [step, setStep] = useState<Step>('email');
+  const [email, setEmail] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [devCode, setDevCode] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
 
   const requestOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,7 +23,7 @@ export default function LoginForm({ redirectTo = '/account' }: LoginFormProps) {
       const res = await fetch('/api/auth/request-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier }),
+        body: JSON.stringify({ identifier: email.trim().toLowerCase() }),
       });
 
       const data = await res.json();
@@ -33,10 +32,7 @@ export default function LoginForm({ redirectTo = '/account' }: LoginFormProps) {
         throw new Error(data.error || 'Failed to send code');
       }
 
-      setMessage(data.message);
-      if (data.devCode) {
-        setDevCode(data.devCode);
-      }
+      if (data.devCode) setDevCode(data.devCode);
       setStep('otp');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
@@ -54,7 +50,7 @@ export default function LoginForm({ redirectTo = '/account' }: LoginFormProps) {
       const res = await fetch('/api/auth/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier, code: otpCode }),
+        body: JSON.stringify({ identifier: email.trim().toLowerCase(), code: otpCode }),
       });
 
       const data = await res.json();
@@ -72,10 +68,9 @@ export default function LoginForm({ redirectTo = '/account' }: LoginFormProps) {
   };
 
   const goBack = () => {
-    setStep('identifier');
+    setStep('email');
     setOtpCode('');
     setError(null);
-    setMessage(null);
     setDevCode(null);
   };
 
@@ -84,10 +79,10 @@ export default function LoginForm({ redirectTo = '/account' }: LoginFormProps) {
       <form onSubmit={verifyOtp} className="space-y-4">
         <div>
           <label htmlFor="otp" className="block text-sm font-medium mb-1">
-            Verification Code
+            Enter your login code
           </label>
           <p className="text-sm text-muted-foreground mb-3">
-            We sent a 6-digit code to <strong>{identifier}</strong>
+            We sent a 6-digit code to <strong>{email}</strong>
           </p>
           <input
             id="otp"
@@ -97,8 +92,8 @@ export default function LoginForm({ redirectTo = '/account' }: LoginFormProps) {
             maxLength={6}
             value={otpCode}
             onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-            placeholder="Enter 6-digit code"
-            className="w-full px-4 py-3 text-center text-xl font-mono tracking-widest border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+            placeholder="000000"
+            className="w-full px-4 py-3 text-center text-2xl font-mono tracking-widest border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
             autoFocus
             data-testid="input-otp"
           />
@@ -122,7 +117,7 @@ export default function LoginForm({ redirectTo = '/account' }: LoginFormProps) {
           className="w-full py-3 px-4 bg-primary text-primary-foreground font-medium rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           data-testid="button-verify"
         >
-          {loading ? 'Verifying...' : 'Verify Code'}
+          {loading ? 'Verifying...' : 'Sign In'}
         </button>
 
         <button
@@ -131,7 +126,7 @@ export default function LoginForm({ redirectTo = '/account' }: LoginFormProps) {
           className="w-full py-2 px-4 text-sm text-muted-foreground hover:text-foreground transition-colors"
           data-testid="button-back"
         >
-          Use different email/phone
+          Use a different email
         </button>
       </form>
     );
@@ -140,18 +135,19 @@ export default function LoginForm({ redirectTo = '/account' }: LoginFormProps) {
   return (
     <form onSubmit={requestOtp} className="space-y-4">
       <div>
-        <label htmlFor="identifier" className="block text-sm font-medium mb-1">
-          Email or Phone Number
+        <label htmlFor="email" className="block text-sm font-medium mb-1">
+          Email Address
         </label>
         <input
-          id="identifier"
-          type="text"
-          value={identifier}
-          onChange={(e) => setIdentifier(e.target.value)}
-          placeholder="you@example.com or +254..."
+          id="email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@example.com"
           className="w-full px-4 py-3 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
           autoFocus
-          data-testid="input-identifier"
+          required
+          data-testid="input-email"
         />
       </div>
 
@@ -163,11 +159,11 @@ export default function LoginForm({ redirectTo = '/account' }: LoginFormProps) {
 
       <button
         type="submit"
-        disabled={loading || !identifier.trim()}
+        disabled={loading || !email.trim()}
         className="w-full py-3 px-4 bg-primary text-primary-foreground font-medium rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         data-testid="button-send-code"
       >
-        {loading ? 'Sending...' : 'Continue'}
+        {loading ? 'Sending...' : 'Send Login Code'}
       </button>
     </form>
   );
