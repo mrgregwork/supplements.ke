@@ -4,7 +4,7 @@
  * Not linked from anywhere. Visit: https://supplements.co.ke/test-bundle
  */
 import '@/styles/global.css';
-import CodCheckoutModal from '@components/CodCheckoutModal';
+import ProductBuyBox from '@components/ProductBuyBox';
 
 const testProduct = {
   id:            'test-boron-3mg',
@@ -34,79 +34,45 @@ const testProduct = {
 </head>
 <body class="min-h-screen bg-background text-foreground font-sans antialiased">
 
-  <div class="min-h-screen bg-background">
+  <!-- Test banner -->
+  <div class="bg-amber-50 border-b border-amber-200 px-4 py-2 text-center text-sm text-amber-800">
+    🧪 <strong>CRO Test Page</strong> — not live on the site yet
+  </div>
 
-    <!-- Test banner -->
-    <div class="bg-amber-50 border-b border-amber-200 px-4 py-2 text-center text-sm text-amber-800">
-      🧪 <strong>CRO Test Page</strong> — not live on the site
-    </div>
+  <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-10">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-10 items-start">
 
-    <!-- Two-column layout: image left, bundle selector right -->
-    <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-10">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-10 items-start">
-
-        <!-- Left: product image + info -->
-        <div>
-          <div class="aspect-square overflow-hidden rounded-lg bg-white border flex items-center justify-center mb-5">
-            <img
-              src={testProduct.image}
-              alt={testProduct.name}
-              class="h-full w-full object-contain"
-              onerror="this.src='/images/placeholder-product.jpg'"
-            />
-          </div>
-          <p class="text-sm text-muted-foreground font-medium">{testProduct.brand}</p>
-          <h1 class="text-3xl font-bold mt-1 mb-3">{testProduct.name}</h1>
-          <p class="text-muted-foreground leading-relaxed">{testProduct.description}</p>
-
-          <div class="mt-6 space-y-2 text-sm text-muted-foreground">
-            <div class="flex items-center gap-2">
-              <svg class="h-4 w-4 text-green-500 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
-              Free delivery within Nairobi
-            </div>
-            <div class="flex items-center gap-2">
-              <svg class="h-4 w-4 text-green-500 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
-              Pay on delivery (cash or M-Pesa)
-            </div>
-            <div class="flex items-center gap-2">
-              <svg class="h-4 w-4 text-green-500 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
-              30-day returns
-            </div>
-          </div>
-        </div>
-
-        <!-- Right: bundle selector -->
-        <div class="md:sticky md:top-8">
-          <h2 class="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
-            Choose your supply
-          </h2>
-          <CodCheckoutModal
-            client:load
-            productId={testProduct.id}
-            productName={testProduct.name}
-            price={testProduct.price}
-            originalPrice={testProduct.originalPrice}
-            currency={testProduct.currency}
-            buttonLabel="Order Now — Cash on Delivery"
+      <!-- Left: product image + name + description -->
+      <div class="md:sticky md:top-8">
+        <div class="aspect-square overflow-hidden rounded-xl bg-white border flex items-center justify-center mb-5 shadow-sm">
+          <img
+            src={testProduct.image}
+            alt={testProduct.name}
+            class="h-full w-full object-contain p-4"
+            onerror="this.src='/images/placeholder-product.jpg'"
           />
         </div>
-
+        <p class="text-sm text-muted-foreground font-medium uppercase tracking-wide">{testProduct.brand}</p>
+        <h1 class="text-3xl font-bold mt-1 mb-3">{testProduct.name}</h1>
+        <p class="text-muted-foreground leading-relaxed text-sm">{testProduct.description}</p>
       </div>
 
-      <!-- Review notes -->
-      <div class="mt-12 p-5 bg-muted/40 rounded-xl border text-sm space-y-2">
-        <p class="font-semibold">What to review:</p>
-        <ul class="list-disc list-inside space-y-1 text-muted-foreground">
-          <li>2 Bottles pre-selected ("Most Popular") — change if you prefer 1 bottle default</li>
-          <li>Crossed-out anchor price on every tier</li>
-          <li>Escalating savings: 10% for 2, 20% for 3 bottles</li>
-          <li>Green savings strip when multi-unit selected</li>
-          <li>CTA label updates with quantity ("Add 2 Bottles to Cart")</li>
-          <li>Per-unit price shown on multi-bottle tiers</li>
-        </ul>
+      <!-- Right: full buy box (pricing, bundles, CTA, trust) -->
+      <div>
+        <ProductBuyBox
+          client:load
+          productId={testProduct.id}
+          productName={testProduct.name}
+          price={testProduct.price}
+          originalPrice={testProduct.originalPrice}
+          currency={testProduct.currency}
+          ratingValue={4.8}
+          reviewCount={127}
+        />
       </div>
+
     </div>
-
   </div>
+
 </body>
 </html>
