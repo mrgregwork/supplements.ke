@@ -48,7 +48,7 @@ export default function CodCheckoutModal({
   const [error,    setError]    = useState<string | null>(null);
 
   const [form, setForm] = useState({
-    name: '', phone: '', whatsapp: '', address: '', city: '',
+    name: '', whatsapp: '', address: '', city: '',
   });
 
   // Prevent body scroll when modal is open
@@ -65,7 +65,7 @@ export default function CodCheckoutModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.phone || !form.address || !form.city) return;
+    if (!form.name || !form.whatsapp || !form.address || !form.city) return;
     setSubmitting(true);
     setError(null);
     try {
@@ -76,7 +76,7 @@ export default function CodCheckoutModal({
           productId,
           quantity: qty,
           name: form.name,
-          phone: form.phone,
+          phone: form.whatsapp,
           whatsapp: form.whatsapp,
           address: form.address,
           city: form.city,
@@ -264,41 +264,26 @@ export default function CodCheckoutModal({
                     </div>
                   </div>
 
-                  {/* Phone */}
+                  {/* WhatsApp */}
                   <div>
                     <label className="block text-sm font-medium mb-1">
-                      Phone Number <span className="text-destructive">*</span>
+                      WhatsApp Number <span className="text-destructive">*</span>
                     </label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.62 3.44 2 2 0 0 1 3.59 1.27h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.96a16 16 0 0 0 6 6l.96-.96a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 21.73 16.92Z"/>
+                      {/* Official WhatsApp logo */}
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2">
+                        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.978-1.418A9.955 9.955 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2Z" fill="#25D366"/>
+                          <path fillRule="evenodd" clipRule="evenodd" d="M9.076 7.5c-.215-.48-.44-.49-.645-.499L7.8 7c-.18 0-.47.067-.716.338C6.838 7.61 6 8.388 6 9.974c0 1.587 1.144 3.12 1.304 3.337.161.215 2.195 3.535 5.425 4.812 2.683 1.058 3.23.848 3.813.795.584-.053 1.883-.77 2.149-1.514.265-.744.265-1.381.185-1.514-.08-.133-.295-.213-.619-.373-.323-.16-1.91-.942-2.206-1.05-.295-.107-.51-.16-.724.16-.215.32-.831 1.05-.969 1.263-.214.266-.161.32-.484.16-.323-.16-1.363-.502-2.595-1.602-.96-.855-1.608-1.91-1.797-2.23-.188-.32-.02-.493.142-.652.145-.142.323-.373.484-.558.162-.187.216-.32.323-.534.108-.214.054-.4-.027-.56-.08-.16-.704-1.755-.976-2.404Z" fill="white"/>
                         </svg>
                       </span>
                       <input
                         type="tel"
                         required
                         placeholder="07XX XXX XXX"
-                        value={form.phone}
-                        onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-                        className="w-full pl-9 pr-3 py-2.5 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                    </div>
-                  </div>
-
-                  {/* WhatsApp */}
-                  <div>
-                    <label className="block text-sm font-medium mb-1">
-                      WhatsApp Number <span className="text-muted-foreground text-xs">(if different)</span>
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-bold">WA</span>
-                      <input
-                        type="tel"
-                        placeholder="WhatsApp number"
                         value={form.whatsapp}
                         onChange={e => setForm(f => ({ ...f, whatsapp: e.target.value }))}
-                        className="w-full pl-9 pr-3 py-2.5 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                        className="w-full pl-10 pr-3 py-2.5 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
                   </div>
