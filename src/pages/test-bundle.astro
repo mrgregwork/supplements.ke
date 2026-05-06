@@ -4,7 +4,7 @@
  * Not linked from anywhere. Visit: https://supplements.co.ke/test-bundle
  */
 import '@/styles/global.css';
-import BundleSelector from '@components/BundleSelector';
+import CodCheckoutModal from '@components/CodCheckoutModal';
 
 const testProduct = {
   id:            'test-boron-3mg',
@@ -80,13 +80,14 @@ const testProduct = {
           <h2 class="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
             Choose your supply
           </h2>
-          <BundleSelector
+          <CodCheckoutModal
             client:load
             productId={testProduct.id}
             productName={testProduct.name}
             price={testProduct.price}
             originalPrice={testProduct.originalPrice}
             currency={testProduct.currency}
+            buttonLabel="Order Now — Cash on Delivery"
           />
         </div>
 
