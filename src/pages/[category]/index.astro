@@ -146,7 +146,16 @@ const noindex = NOINDEX_SLUGS.includes(category.slug);
     )}
   </div>
 
-  <AdminToolbar editUrl="/admin/categories" pageType="Category" />
+  <AdminToolbar
+    editUrl="/admin/categories"
+    pageType="Category"
+    seoData={{
+      entityType: "category",
+      entityId: category.id,
+      currentTitle: category.seoTitle ?? category.name,
+      currentDescription: category.seoDescription ?? category.description ?? "",
+    }}
+  />
 
 <script>
   const toggle = document.getElementById('long-desc-toggle');

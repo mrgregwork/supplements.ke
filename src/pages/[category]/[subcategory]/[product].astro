@@ -344,7 +344,16 @@ const pageTitle = enableRegionalSeo
     )}
   </div>
 
-  <AdminToolbar editUrl={`/admin/products/${product.id}`} pageType="Product" />
+  <AdminToolbar
+    editUrl={`/admin/products/${product.id}`}
+    pageType="Product"
+    seoData={{
+      entityType: "product",
+      entityId: product.id,
+      currentTitle: product.seoTitle ?? pageTitle,
+      currentDescription: product.seoDescription ?? product.description ?? "",
+    }}
+  />
 </BaseLayout>
 
 <script>
