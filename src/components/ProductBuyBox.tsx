@@ -23,15 +23,12 @@ interface Props {
   price: number;
   originalPrice?: number;
   currency?: string;
+  /** Override default discounts per product: e.g. [0, 15, 25] for 1/2/3 bottles */
+  discounts?: [number, number, number];
   ratingValue?: number;
   reviewCount?: number;
 }
 
-const TIERS = [
-  { qty: 1, label: '1 Bottle',  discount: 0,  badge: null,           badgeClass: '' },
-  { qty: 2, label: '2 Bottles', discount: 10, badge: 'Most Popular', badgeClass: 'bg-primary text-primary-foreground' },
-  { qty: 3, label: '3 Bottles', discount: 20, badge: 'Best Value',   badgeClass: 'bg-green-600 text-white' },
-];
 
 function fmt(n: number, cur = 'KES') {
   return `${cur} ${n.toLocaleString('en-KE', { maximumFractionDigits: 0 })}`;
@@ -51,12 +48,18 @@ function Stars({ value }: { value: number }) {
 
 export default function ProductBuyBox({
   productId, productName, price, originalPrice, currency = 'KES',
-  ratingValue = 4.7, reviewCount = 84,
+  ratingValue = 4.7, reviewCount = 84, discounts,
 }: Props) {
+  // Allow per-product discount overrides; fallback to site defaults
+  const TIERS_EFFECTIVE = [
+    { qty: 1, label: '1 Bottle',  discount: discounts?.[0] ?? 0,  badge: null,           badgeClass: '' },
+    { qty: 2, label: '2 Bottles', discount: discounts?.[1] ?? 10, badge: 'Most Popular', badgeClass: 'bg-primary text-primary-foreground' },
+    { qty: 3, label: '3 Bottles', discount: discounts?.[2] ?? 20, badge: 'Best Value',   badgeClass: 'bg-green-600 text-white' },
+  ];
   const [qty, setQty]           = useState(2);
   const [modalOpen, setModal]   = useState(false);
 
-  const tier      = TIERS.find(t => t.qty === qty)!;
+  const tier      = TIERS_EFFECTIVE.find(t => t.qty === qty)!;
   const unitPrice = Math.round(price * (1 - tier.discount / 100));
   const subtotal  = unitPrice * qty;
   const anchor    = price * qty;
@@ -92,7 +95,7 @@ export default function ProductBuyBox({
         {/* 3 ── Bundle selector */}
         <div className="space-y-2">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Choose your supply</p>
-          {TIERS.map(t => {
+          {TIERS_EFFECTIVE.map(t => {
             const tUnit    = Math.round(price * (1 - t.discount / 100));
             const tTotal   = tUnit * t.qty;
             const tAnchor  = price * t.qty;
