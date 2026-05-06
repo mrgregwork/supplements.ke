@@ -1,25 +1,14 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
-function createTransporter() {
-  return nodemailer.createTransport({
-    host: process.env.EMAIL_HOST || "smtp.gmail.com",
-    port: Number(process.env.EMAIL_PORT) || 587,
-    secure: false, // TLS
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
-}
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+const FROM_ADDRESS = "Supplements Kenya <noreply@supplements.co.ke>";
 
 export async function sendOtpEmail(to: string, code: string): Promise<void> {
-  const transporter = createTransporter();
-
-  await transporter.sendMail({
-    from: `"Supplements Kenya" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
+  const { error } = await resend.emails.send({
+    from: FROM_ADDRESS,
     to,
     subject: "Your Supplements Kenya Login Code",
-    text: `Your one-time login code is: ${code}\n\nThis code expires in 10 minutes. Do not share it with anyone.`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #fff;">
         <div style="text-align: center; margin-bottom: 24px;">
@@ -35,5 +24,10 @@ export async function sendOtpEmail(to: string, code: string): Promise<void> {
         <p style="color: #999; font-size: 12px; text-align: center;">If you did not request this code, you can safely ignore this email.</p>
       </div>
     `,
+    text: `Your Supplements Kenya login code is: ${code}\n\nThis code expires in 10 minutes. Do not share it with anyone.`,
   });
+
+  if (error) {
+    throw new Error(`Resend email error: ${error.message}`);
+  }
 }
