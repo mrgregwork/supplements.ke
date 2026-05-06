@@ -1,0 +1,91 @@
+---
+/**
+ * /test-bundle — private CRO test page for bundle selector
+ * Not linked from anywhere. Visit: https://supplements.co.ke/test-bundle
+ */
+import BaseLayout from '@layouts/BaseLayout.astro';
+import BundleSelector from '@components/BundleSelector';
+
+// Sample product data for testing — mimics a real product
+const testProduct = {
+  id:            'test-boron-3mg',
+  name:          'Boron 3mg',
+  brand:         'Life Extension',
+  price:         1200,
+  originalPrice: 1800,
+  currency:      'KES',
+  image:         '/images/products/boron-3mg.jpg',
+  description:   'Supports bone density, hormone balance, and cognitive function. Each capsule delivers 3 mg of boron as sodium tetraborate.',
+};
+---
+
+<BaseLayout title="Bundle Selector Test" noindex={true}>
+  <div class="mx-auto max-w-2xl px-4 py-12">
+
+    <div class="mb-8 p-3 bg-amber-50 border border-amber-200 rounded-md text-sm text-amber-800">
+      <strong>🧪 CRO Test Page</strong> — not linked from the live site.
+      Test the bundle selector before rolling out to all products.
+    </div>
+
+    <div class="grid sm:grid-cols-2 gap-8 items-start">
+
+      <!-- Product image + info -->
+      <div>
+        <div class="aspect-square overflow-hidden rounded-md bg-white border flex items-center justify-center mb-4">
+          <img
+            src={testProduct.image}
+            alt={testProduct.name}
+            class="h-full w-full object-contain"
+            onerror="this.src='/images/placeholder-product.jpg'"
+          />
+        </div>
+        <p class="text-sm text-muted-foreground">{testProduct.brand}</p>
+        <h1 class="text-2xl font-bold mt-1 mb-3">{testProduct.name}</h1>
+        <p class="text-muted-foreground text-sm">{testProduct.description}</p>
+      </div>
+
+      <!-- Bundle selector -->
+      <div>
+        <h2 class="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+          Choose your supply
+        </h2>
+        <BundleSelector
+          client:load
+          productId={testProduct.id}
+          productName={testProduct.name}
+          price={testProduct.price}
+          originalPrice={testProduct.originalPrice}
+          currency={testProduct.currency}
+        />
+
+        <div class="mt-6 pt-6 border-t space-y-2 text-sm text-muted-foreground">
+          <div class="flex items-center gap-2">
+            <svg class="h-4 w-4 text-green-500 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
+            Free delivery within Nairobi
+          </div>
+          <div class="flex items-center gap-2">
+            <svg class="h-4 w-4 text-green-500 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
+            Pay on delivery (cash or M-Pesa)
+          </div>
+          <div class="flex items-center gap-2">
+            <svg class="h-4 w-4 text-green-500 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
+            30-day returns
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notes for review -->
+    <div class="mt-12 p-4 bg-muted/50 rounded-lg text-sm space-y-2">
+      <p class="font-semibold">What to check:</p>
+      <ul class="list-disc list-inside space-y-1 text-muted-foreground">
+        <li>2 Bottles pre-selected ("Most Popular") — change if you prefer 1</li>
+        <li>Crossed-out anchor price on each tier</li>
+        <li>Escalating savings: 10 % for 2, 20 % for 3</li>
+        <li>Green savings strip appears when multi-unit selected</li>
+        <li>CTA button label updates with quantity</li>
+        <li>Per-unit price shown on 2 &amp; 3 bottle tiers</li>
+      </ul>
+    </div>
+  </div>
+</BaseLayout>
