@@ -1,21 +1,127 @@
 ---
 /**
- * /test-bundle — private CRO test page (no navbar, no footer)
- * Not linked from anywhere. Visit: https://supplements.co.ke/test-bundle
+ * /test-bundle — CRO landing page (no navbar/footer)
+ * ════════════════════════════════════════════════
+ * ALL editable content lives in the `config` object below.
+ * Ask Claude to change any section — everything is labelled.
  */
 import '@/styles/global.css';
 import ProductBuyBox from '@components/ProductBuyBox';
 
-const testProduct = {
-  id:            'test-boron-3mg',
-  name:          'Boron 3mg',
-  brand:         'Life Extension',
-  price:         1200,
-  originalPrice: 1800,
-  currency:      'KES',
-  image:         '/images/products/boron-3mg.jpg',
-  description:   'Supports bone density, hormone balance, and cognitive function. Each capsule delivers 3 mg of boron as sodium tetraborate.',
+/* ─────────────────────────────────────────────
+   EDITABLE CONFIG — change anything here
+───────────────────────────────────────────── */
+const config = {
+
+  /* Top announcement bar */
+  announcement: '🚚 Free Delivery in Nairobi Today · Pay Cash on Arrival',
+
+  /* Product */
+  product: {
+    id:            'test-boron-3mg',
+    name:          'Boron 3mg',
+    brand:         'Life Extension',
+    price:         1200,
+    originalPrice: 1800,
+    currency:      'KES',
+    image:         '/images/products/boron-3mg.jpg',
+    badge:         'Best Seller',        // or null
+    tagline:       'The mineral most Kenyans are missing — now available for same-day delivery',
+    ratingValue:   4.8,
+    reviewCount:   127,
+  },
+
+  /* Hero sub-bullets (appear under the buy box) */
+  heroBullets: [
+    'Supports strong bones & joint health',
+    'Balances testosterone & oestrogen naturally',
+    'Sharpens focus and mental clarity',
+    '100% vegetarian capsules · Non-GMO',
+  ],
+
+  /* Pain-point section */
+  pain: {
+    headline:    'Are you dealing with any of these?',
+    image:       '/images/products/boron-3mg.jpg',  // swap with a lifestyle/person image
+    points: [
+      'Achy joints that make walking or climbing stairs painful',
+      'Feeling mentally foggy or struggling to concentrate',
+      'Low energy and mood — especially in men over 40',
+      'Brittle bones or frequent muscle cramps',
+    ],
+  },
+
+  /* How it works — 3 steps */
+  howItWorks: [
+    { step: '1', title: 'Place your order', desc: 'Choose your supply above and enter your WhatsApp number. Takes 60 seconds.' },
+    { step: '2', title: 'We deliver to your door', desc: 'Free same-day delivery in Nairobi. Rest of Kenya within 2–3 days.' },
+    { step: '3', title: 'Pay on arrival', desc: 'Cash or M-Pesa when it arrives. No upfront payment, no risk.' },
+  ],
+
+  /* Key benefits */
+  benefits: [
+    { icon: '🦴', title: 'Bone & Joint Support',      desc: 'Boron helps the body use calcium and magnesium — the building blocks of strong bones and flexible joints.' },
+    { icon: '⚡', title: 'Natural Energy & Hormones', desc: 'Shown to support healthy testosterone in men and oestrogen balance in women — improving energy and mood.' },
+    { icon: '🧠', title: 'Sharper Mental Focus',      desc: 'Boron is essential for brain function. Many customers notice clearer thinking within the first few weeks.' },
+    { icon: '🛡️', title: 'Inflammation Reduction',    desc: 'Helps reduce inflammatory markers, which means less pain and faster recovery after physical activity.' },
+  ],
+
+  /* Customer testimonials */
+  testimonials: [
+    {
+      name:   'James M.',
+      city:   'Nairobi',
+      stars:  5,
+      text:   'I have been taking Boron for 3 months now. My knee pain is almost completely gone and I feel more energetic than I have in years. Delivery was fast and the price is very fair.',
+      avatar: null,
+    },
+    {
+      name:   'Grace W.',
+      city:   'Nakuru',
+      stars:  5,
+      text:   'My doctor recommended boron for my bone density. I was sceptical but after 6 weeks I can feel the difference. No more waking up stiff in the morning.',
+      avatar: null,
+    },
+    {
+      name:   'David K.',
+      city:   'Mombasa',
+      stars:  5,
+      text:   'Ordered 3 bottles as the best value option. Delivery reached Mombasa in 2 days — very impressed. I have tried other supplements but Life Extension is the best quality.',
+      avatar: null,
+    },
+  ],
+
+  /* FAQ */
+  faqs: [
+    {
+      q: 'How long before I notice results?',
+      a: 'Most customers notice improved joint comfort and mental clarity within 2–4 weeks of consistent daily use. Full bone and hormone benefits are typically felt at the 6–8 week mark.',
+    },
+    {
+      q: 'Is it safe to take daily?',
+      a: 'Yes. The 3 mg dose in each capsule is well within the safe upper limit established by health authorities. Life Extension products are third-party tested for purity and potency.',
+    },
+    {
+      q: 'How do I pay?',
+      a: 'You pay cash or M-Pesa when the order arrives at your door. There is no upfront payment required — we deliver first.',
+    },
+    {
+      q: 'Can I return it if it does not work for me?',
+      a: 'Yes — 30-day money-back guarantee. If you are not satisfied for any reason, contact us on WhatsApp and we will arrange a full refund.',
+    },
+    {
+      q: 'What is the recommended dose?',
+      a: 'Take one capsule daily with food. Each bottle contains 100 vegetarian capsules — a 3-month supply at the standard dose.',
+    },
+  ],
+
+  /* Final CTA section headline */
+  finalCtaHeadline: 'Ready to feel the difference?',
+  finalCtaSubline:  'Join 127 Kenyans already taking Boron 3mg. Free delivery. Pay on arrival.',
 };
+/* ─────────────────────────────────────────────
+   END OF EDITABLE CONFIG
+───────────────────────────────────────────── */
 ---
 
 <!DOCTYPE html>
@@ -24,55 +130,220 @@ const testProduct = {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="noindex, nofollow" />
-  <title>Bundle Selector Test</title>
+  <title>{config.product.name} — Supplements Kenya</title>
   <script is:inline>
-    const theme = localStorage.getItem('ecommerce-seo-theme') || 'light';
-    if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    const t = localStorage.getItem('ecommerce-seo-theme') || 'light';
+    if (t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
       document.documentElement.classList.add('dark');
     }
   </script>
 </head>
 <body class="min-h-screen bg-background text-foreground font-sans antialiased">
 
-  <!-- Test banner -->
-  <div class="bg-amber-50 border-b border-amber-200 px-4 py-2 text-center text-sm text-amber-800">
-    🧪 <strong>CRO Test Page</strong> — not live on the site yet
+  <!-- ── ANNOUNCEMENT BAR ── -->
+  <div class="bg-primary text-primary-foreground text-center text-sm font-medium py-2 px-4">
+    {config.announcement}
   </div>
 
-  <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-10">
+  <!-- ── HERO: product image + buy box ── -->
+  <section class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-10">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-10 items-start">
 
-      <!-- Left: product image + name + description -->
-      <div class="md:sticky md:top-8">
-        <div class="aspect-square overflow-hidden rounded-xl bg-white border flex items-center justify-center mb-5 shadow-sm">
-          <img
-            src={testProduct.image}
-            alt={testProduct.name}
-            class="h-full w-full object-contain p-4"
-            onerror="this.src='/images/placeholder-product.jpg'"
-          />
+      <!-- Left: image + badge + name -->
+      <div class="md:sticky md:top-6">
+        <div class="relative">
+          {config.product.badge && (
+            <span class="absolute top-3 left-3 z-10 bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">
+              {config.product.badge}
+            </span>
+          )}
+          <div class="aspect-square overflow-hidden rounded-xl bg-white border shadow-sm flex items-center justify-center">
+            <img
+              src={config.product.image}
+              alt={config.product.name}
+              class="h-full w-full object-contain p-6"
+              onerror="this.src='/images/placeholder-product.jpg'"
+            />
+          </div>
         </div>
-        <p class="text-sm text-muted-foreground font-medium uppercase tracking-wide">{testProduct.brand}</p>
-        <h1 class="text-3xl font-bold mt-1 mb-3">{testProduct.name}</h1>
-        <p class="text-muted-foreground leading-relaxed text-sm">{testProduct.description}</p>
+        <p class="text-xs font-semibold text-muted-foreground uppercase tracking-widest mt-4">{config.product.brand}</p>
+        <h1 class="text-3xl font-bold mt-1">{config.product.name}</h1>
+        <p class="text-muted-foreground mt-2 text-sm leading-relaxed">{config.product.tagline}</p>
+
+        <!-- Hero bullets -->
+        <ul class="mt-4 space-y-2">
+          {config.heroBullets.map(b => (
+            <li class="flex items-center gap-2 text-sm">
+              <svg class="h-4 w-4 text-green-500 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
+              {b}
+            </li>
+          ))}
+        </ul>
       </div>
 
-      <!-- Right: full buy box (pricing, bundles, CTA, trust) -->
-      <div>
+      <!-- Right: full buy box -->
+      <div id="buy-box">
         <ProductBuyBox
           client:load
-          productId={testProduct.id}
-          productName={testProduct.name}
-          price={testProduct.price}
-          originalPrice={testProduct.originalPrice}
-          currency={testProduct.currency}
-          ratingValue={4.8}
-          reviewCount={127}
+          productId={config.product.id}
+          productName={config.product.name}
+          price={config.product.price}
+          originalPrice={config.product.originalPrice}
+          currency={config.product.currency}
+          ratingValue={config.product.ratingValue}
+          reviewCount={config.product.reviewCount}
         />
       </div>
+    </div>
+  </section>
 
+  <!-- ── TRUST BAR ── -->
+  <div class="border-y bg-muted/30">
+    <div class="mx-auto max-w-4xl px-4 py-4 grid grid-cols-2 sm:grid-cols-4 gap-4 text-center text-sm font-medium">
+      {[
+        { icon: '🚚', text: 'Free Delivery' },
+        { icon: '💵', text: 'Pay on Arrival' },
+        { icon: '✅', text: 'Authentic Product' },
+        { icon: '🔄', text: '30-Day Returns' },
+      ].map(item => (
+        <div class="flex items-center justify-center gap-2">
+          <span class="text-xl">{item.icon}</span>
+          <span>{item.text}</span>
+        </div>
+      ))}
     </div>
   </div>
+
+  <!-- ── PAIN POINT ── -->
+  <section class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-16">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+      <div class="order-2 md:order-1">
+        <h2 class="text-2xl font-bold mb-6">{config.pain.headline}</h2>
+        <ul class="space-y-4">
+          {config.pain.points.map(p => (
+            <li class="flex items-start gap-3">
+              <span class="h-6 w-6 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <svg class="h-3.5 w-3.5 text-red-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              </span>
+              <span class="text-sm leading-relaxed">{p}</span>
+            </li>
+          ))}
+        </ul>
+        <p class="mt-6 text-sm text-muted-foreground font-medium">Boron deficiency affects over 60% of adults — and most don't know it.</p>
+      </div>
+      <div class="order-1 md:order-2">
+        <div class="aspect-square rounded-xl overflow-hidden bg-muted flex items-center justify-center">
+          <img src={config.pain.image} alt="Joint pain" class="h-full w-full object-contain p-8" onerror="this.src='/images/placeholder-product.jpg'" />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── BENEFITS ── -->
+  <section class="bg-muted/30 border-y py-16">
+    <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+      <h2 class="text-2xl font-bold text-center mb-10">What Boron 3mg does for your body</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        {config.benefits.map(b => (
+          <div class="flex items-start gap-4 bg-background rounded-xl p-5 border shadow-sm">
+            <span class="text-3xl flex-shrink-0">{b.icon}</span>
+            <div>
+              <h3 class="font-bold mb-1">{b.title}</h3>
+              <p class="text-sm text-muted-foreground leading-relaxed">{b.desc}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- ── TESTIMONIALS ── -->
+  <section class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-16">
+    <h2 class="text-2xl font-bold text-center mb-3">Real stories from Kenyans</h2>
+    <p class="text-center text-muted-foreground text-sm mb-10">Verified customers who ordered through supplements.co.ke</p>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+      {config.testimonials.map(t => (
+        <div class="bg-card border rounded-xl p-5 flex flex-col gap-3 shadow-sm">
+          <div class="flex gap-0.5">
+            {Array.from({ length: t.stars }).map((_, i) => (
+              <svg key={i} class="h-4 w-4 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 0 0 .95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 0 0-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 0 0-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 0 0-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 0 0 .951-.69l1.07-3.292Z"/>
+              </svg>
+            ))}
+          </div>
+          <p class="text-sm leading-relaxed flex-1">"{t.text}"</p>
+          <div class="flex items-center gap-2 pt-1 border-t">
+            <div class="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary flex-shrink-0">
+              {t.name[0]}
+            </div>
+            <div>
+              <p class="text-sm font-semibold">{t.name}</p>
+              <p class="text-xs text-muted-foreground">{t.city}</p>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <!-- ── HOW IT WORKS ── -->
+  <section class="bg-muted/30 border-y py-16">
+    <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+      <h2 class="text-2xl font-bold text-center mb-10">How it works — 3 simple steps</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-8 text-center">
+        {config.howItWorks.map(s => (
+          <div class="flex flex-col items-center gap-3">
+            <div class="h-12 w-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xl font-bold flex-shrink-0">
+              {s.step}
+            </div>
+            <h3 class="font-bold">{s.title}</h3>
+            <p class="text-sm text-muted-foreground leading-relaxed">{s.desc}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FAQ ── -->
+  <section class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-16">
+    <h2 class="text-2xl font-bold text-center mb-10">Frequently asked questions</h2>
+    <div class="space-y-3">
+      {config.faqs.map((faq, i) => (
+        <details class="group bg-card border rounded-xl" open={i === 0}>
+          <summary class="flex items-center justify-between cursor-pointer px-5 py-4 font-medium text-sm gap-4">
+            <span>{faq.q}</span>
+            <svg class="h-4 w-4 flex-shrink-0 transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+          </summary>
+          <div class="px-5 pb-4 text-sm text-muted-foreground leading-relaxed">{faq.a}</div>
+        </details>
+      ))}
+    </div>
+  </section>
+
+  <!-- ── FINAL CTA ── -->
+  <section class="bg-primary/5 border-t py-16">
+    <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+      <h2 class="text-2xl font-bold text-center mb-2">{config.finalCtaHeadline}</h2>
+      <p class="text-center text-muted-foreground text-sm mb-10">{config.finalCtaSubline}</p>
+      <div class="max-w-md mx-auto">
+        <ProductBuyBox
+          client:load
+          productId={config.product.id}
+          productName={config.product.name}
+          price={config.product.price}
+          originalPrice={config.product.originalPrice}
+          currency={config.product.currency}
+          ratingValue={config.product.ratingValue}
+          reviewCount={config.product.reviewCount}
+        />
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FOOTER ── -->
+  <footer class="border-t py-6 text-center text-xs text-muted-foreground">
+    © 2026 Supplements Kenya · <a href="/privacy" class="hover:underline">Privacy</a> · <a href="/terms" class="hover:underline">Terms</a>
+  </footer>
 
 </body>
 </html>
