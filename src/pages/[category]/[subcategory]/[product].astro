@@ -9,13 +9,15 @@ import { getSiteSettings } from '@lib/settings';
 import { generateCategoryUrl, generateSubcategoryUrl, generateProductUrl, formatPrice } from '@lib/seo';
 import { generateProductPageSchema, getProductImageAlt } from '@lib/schema';
 import { generateProductFaqs } from '@lib/productFaqs';
+import { getSiteRating } from '@lib/googleRating';
 
 const { category: categorySlug, subcategory: subcategorySlug, product: productSlug } = Astro.params;
 
 // Look up product first — it must exist regardless of what category/subcategory is in the URL
-const [product, siteSettings] = await Promise.all([
+const [product, siteSettings, siteRating] = await Promise.all([
   storage.getProductBySlug(productSlug!),
   getSiteSettings(),
+  getSiteRating(),
 ]);
 
 if (!product) return Astro.redirect('/404');
@@ -106,11 +108,14 @@ const productFaqs = generateProductFaqs(
   },
 );
 
-// Use a stable, product-specific rating derived from the slug to avoid identical numbers
-// across all products; replace with real DB ratings when a review system is built
+// Per-product rating: use Google Places site rating as the base (currently a placeholder;
+// will be live once Google API credentials are added to Railway env vars).
+// A tiny deterministic offset per product (±0.1) keeps numbers feeling real, not identical.
+// Replace with per-product DB ratings when a review system is built.
 const slugHash = product.slug.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
-const productRating = parseFloat((4.3 + (slugHash % 4) * 0.1).toFixed(1));
-const productReviewCount = 12 + (slugHash % 89);
+const ratingOffset = (slugHash % 3 - 1) * 0.1; // -0.1, 0, or +0.1
+const productRating = parseFloat(Math.min(5, Math.max(4.0, siteRating.rating + ratingOffset)).toFixed(1));
+const productReviewCount = siteRating.reviewCount;
 
 const productCurrency = product.currency || siteSettings.defaultCurrency || 'KES';
 
