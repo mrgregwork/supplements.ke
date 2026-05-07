@@ -145,7 +145,7 @@ const noindex = NOINDEX_SLUGS.includes(category.slug);
   </div>
 
   <AdminToolbar
-    editUrl="/admin/categories"
+    editUrl={`/admin/categories/edit?id=${category.id}&type=category`}
     pageType="Category"
     seoData={{
       entityType: "category",

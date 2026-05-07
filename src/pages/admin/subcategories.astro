@@ -442,6 +442,15 @@ const subcategoriesWithCategory = allSubcategories.map(sub => ({
   cancelBtn.addEventListener('click', closeModal);
   closeModalBtn.addEventListener('click', closeModal);
   modalOverlay.addEventListener('click', closeModal);
+
+  // Auto-open edit modal when arriving via ?edit=ID (from Edit Subcategory toolbar button)
+  const editId = new URLSearchParams(window.location.search).get('edit');
+  if (editId) {
+    const btn = document.querySelector<HTMLButtonElement>(`.edit-btn[data-id="${editId}"]`);
+    if (btn) btn.click();
+    // Clean up URL without page reload
+    history.replaceState(null, '', window.location.pathname);
+  }
   
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && !formModal.classList.contains('translate-x-full')) {
