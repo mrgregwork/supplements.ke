@@ -746,19 +746,13 @@ const subcategoriesWithCategory = allSubcategories.map(sub => ({
       clearTimeout(timeout);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-      const data: { static: any[]; results: any[] } = await res.json();
+      const data: { results: any[] } = await res.json();
       let html = '';
 
-      // Matching static/common pages
-      if (data.static.length) {
-        const heading = query.length >= 2 ? 'Pages' : 'Common Pages';
-        html += `<div class="px-3 pt-2 pb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">${heading}</div>`;
-        html += data.static.map((p: any) => resultBtn({ label: p.label, sublabel: p.url, url: p.url, type: 'page' })).join('');
-      }
-
-      // DB results (categories, subcategories, products)
       if (data.results.length) {
-        if (html) html += `<div class="border-t my-0.5"></div>`;
+        if (!query) {
+          html += `<div class="px-3 pt-2 pb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Common Pages</div>`;
+        }
         html += data.results.map((r: any) => resultBtn(r)).join('');
       }
 
