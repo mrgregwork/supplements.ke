@@ -35,7 +35,7 @@ export const POST: APIRoute = async ({ request }) => {
       { key: 'targetRegion', value: targetRegion, description: 'Target region/location for SEO' },
       { key: 'siteName', value: body.siteName || '', description: 'Site name' },
       { key: 'siteDescription', value: body.siteDescription || '', description: 'Site description' },
-      { key: 'defaultCurrency', value: body.defaultCurrency || 'USD', description: 'Default currency' },
+      { key: 'defaultCurrency', value: body.defaultCurrency || 'KES', description: 'Default currency' },
       { key: 'exchangeRate', value: body.exchangeRate || '', description: 'Manual exchange rate override' },
       { key: 'exchangeRateMarkup', value: body.exchangeRateMarkup || '1.05', description: 'Exchange rate markup multiplier' },
       { key: 'shippingCostUSD', value: body.shippingCostUSD || '25', description: 'Shipping cost in USD' },

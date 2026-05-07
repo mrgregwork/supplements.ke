@@ -9,7 +9,7 @@ const productSchema = z.object({
   longDescription: z.string().nullable().optional(),
   price: z.number().positive(),
   originalPrice: z.number().positive().nullable().optional(),
-  currency: z.string().default("USD"),
+  currency: z.string().default("KES"),
   images: z.array(z.string()).default([]),
   brand: z.string().nullable().optional(),
   sku: z.string().nullable().optional(),

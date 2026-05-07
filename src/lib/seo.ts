@@ -66,7 +66,7 @@ export function generateBrandUrl(brandSlug: string): string {
   return `/brand/${brandSlug}/`;
 }
 
-export function formatPrice(price: number, currency: string = 'USD'): string {
+export function formatPrice(price: number, currency: string = 'KES'): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency,

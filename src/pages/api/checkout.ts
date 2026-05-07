@@ -84,7 +84,7 @@ export const POST: APIRoute = async ({ request }) => {
         tax,
         shipping,
         total,
-        currency: "USD",
+        currency: "KES",
         shippingAddress,
         notes: notes || null,
       })

@@ -26,7 +26,7 @@ export default function CartView({ initialItems, initialSubtotal }: CartViewProp
   const [loading, setLoading] = useState<string | null>(null);
 
   const subtotal = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
-  const currency = items[0]?.product.currency || 'USD';
+  const currency = items[0]?.product.currency || 'KES';
 
   const updateQuantity = async (itemId: string, newQuantity: number) => {
     if (newQuantity < 0) return;

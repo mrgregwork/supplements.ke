@@ -4428,3 +4428,27 @@ Starting Astro development server...
 [2m02:54:20[22m [34m[200][39m /herbal-supplements/plant-based/ [2m3070ms[22m
 [2m02:54:27[22m [34m[200][39m /herbal-supplements/plant-based/standardized-european-bilberry-extract/ [2m504ms[22m
 [2m02:57:08[22m [34m[200][39m /herbal-supplements/plant-based/ [2m2971ms[22m
+[2m04:26:52[22m [34m[200][39m /health-goals/kidney-support/ [2m3817ms[22m
+[2m05:44:30[22m Configuration file updated. Restarting...
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+[2m05:44:31[22m [34m[@astrojs/node][39m Enabling sessions with filesystem storage
+[2m05:44:34[22m [34m[vite][39m Re-optimizing dependencies because vite config has changed
+[2m05:44:39[22m [34m[content][39m Syncing content
+[2m05:44:39[22m [34m[content][39m Synced content
+[2m05:44:39[22m [34m[types][39m Generated [2m7.18s[22m
+[2m05:44:39[22m [34m[vite][39m Re-optimizing dependencies because vite config has changed
+[2m13:03:08[22m [34m[200][39m / [2m10670ms[22m
+[2m13:15:07[22m [34m[200][39m /herbal-supplements/plant-based/ [2m3887ms[22m
+[2m13:15:11[22m [34m[200][39m / [2m7354ms[22m
+[2m13:15:34[22m [34m[200][39m /minerals/iron/ [2m3209ms[22m
+[2m13:49:52[22m [34m[200][39m /health-goals/kidney-support/ [2m4844ms[22m
+[2m13:50:32[22m [34m[200][39m /minerals/iron/ [2m3923ms[22m
+[2m14:48:49[22m [34m[watch][39m src/layouts/BaseLayout.astro
+[2m14:48:49[22m [34m[watch][39m src/layouts/BaseLayout.astro
+[2m14:48:54[22m [34m[watch][39m src/layouts/BaseLayout.astro
+[2m14:48:55[22m [34m[watch][39m src/layouts/BaseLayout.astro
+[2m14:48:57[22m [34m[200][39m /health-goals/kidney-support/ [2m6507ms[22m
+[2m14:49:02[22m [34m[200][39m /health-goals/kidney-support/ [2m6374ms[22m
+[2m14:51:46[22m [34m[watch][39m src/layouts/BaseLayout.astro
+[2m14:51:46[22m [34m[watch][39m src/layouts/BaseLayout.astro
+[2m14:51:55[22m [34m[200][39m /health-goals/kidney-support/ [2m7557ms[22m

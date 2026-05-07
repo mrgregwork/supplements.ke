@@ -45,7 +45,7 @@ const productsCollection = defineCollection({
     longDescription: z.string().optional(),
     price: z.number(),
     originalPrice: z.number().optional(),
-    currency: z.string().default('USD'),
+    currency: z.string().default('KES'),
     images: z.array(z.string()),
     brand: z.string(),
     sku: z.string(),

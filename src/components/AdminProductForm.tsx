@@ -73,7 +73,7 @@ export default function AdminProductForm({ product, isNew }: AdminProductFormPro
     longDescription: product?.longDescription || "",
     price: product?.price?.toString() || "",
     originalPrice: product?.originalPrice?.toString() || "",
-    currency: product?.currency || "USD",
+    currency: product?.currency || "KES",
     brand: product?.brand || "",
     sku: product?.sku || "",
     categoryId: product?.categoryId || "",
@@ -372,8 +372,8 @@ export default function AdminProductForm({ product, isNew }: AdminProductFormPro
             <label className={labelCls} htmlFor="currency">Currency</label>
             <select id="currency" value={formData.currency} onChange={(e) => updateField("currency", e.target.value)}
               className={inputCls} data-testid="select-currency">
-              <option value="USD">USD</option>
               <option value="KES">KES</option>
+              <option value="USD">USD</option>
               <option value="EUR">EUR</option>
               <option value="GBP">GBP</option>
             </select>
