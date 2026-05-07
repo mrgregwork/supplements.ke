@@ -204,6 +204,13 @@ const subcategoriesWithCategory = allSubcategories.map(sub => ({
           <button type="button" data-sub-cmd="insertUnorderedList" class="sub-tb-btn px-2 py-1 hover:bg-muted rounded text-sm" title="Bullets">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
           </button>
+          <div class="w-px bg-border mx-1 h-5 self-center"></div>
+          <button type="button" class="sub-link-btn px-2 py-1 hover:bg-muted rounded text-sm" title="Insert Link (Ctrl+K)" data-editor="desc">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          </button>
+          <button type="button" class="sub-unlink-btn px-2 py-1 hover:bg-muted rounded text-sm" title="Remove Link" data-editor="desc">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.84 12.25l1.72-1.71h-.02a5.004 5.004 0 0 0-.12-7.07 5.006 5.006 0 0 0-6.95 0l-1.72 1.71"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.17 11.75l-1.71 1.71a5.004 5.004 0 0 0 .12 7.07 5.006 5.006 0 0 0 6.95 0l1.71-1.71"/><line x1="8" y1="2" x2="22" y2="16" stroke-width="2"/></svg>
+          </button>
         </div>
         <div id="sub-desc-visual" contenteditable="true"
           class="min-h-[120px] border rounded-b-lg p-3 bg-background focus:outline-none focus:ring-2 focus:ring-primary prose prose-sm max-w-none dark:prose-invert text-sm"
@@ -234,6 +241,13 @@ const subcategoriesWithCategory = allSubcategories.map(sub => ({
           <div class="w-px bg-border mx-1 h-5 self-center"></div>
           <button type="button" data-sub-ld-cmd="insertUnorderedList" class="sub-ld-btn px-2 py-1 hover:bg-muted rounded text-sm" title="Bullets">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+          </button>
+          <div class="w-px bg-border mx-1 h-5 self-center"></div>
+          <button type="button" class="sub-link-btn px-2 py-1 hover:bg-muted rounded text-sm" title="Insert Link (Ctrl+K)" data-editor="ld">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          </button>
+          <button type="button" class="sub-unlink-btn px-2 py-1 hover:bg-muted rounded text-sm" title="Remove Link" data-editor="ld">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.84 12.25l1.72-1.71h-.02a5.004 5.004 0 0 0-.12-7.07 5.006 5.006 0 0 0-6.95 0l-1.72 1.71"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.17 11.75l-1.71 1.71a5.004 5.004 0 0 0 .12 7.07 5.006 5.006 0 0 0 6.95 0l1.71-1.71"/><line x1="8" y1="2" x2="22" y2="16" stroke-width="2"/></svg>
           </button>
         </div>
         <div id="sub-ld-visual" contenteditable="true"
@@ -349,6 +363,49 @@ const subcategoriesWithCategory = allSubcategories.map(sub => ({
     </form>
   </div>
 </BaseLayout>
+
+<!-- Link Picker Modal -->
+<div id="link-picker-modal" class="fixed inset-0 z-[200] hidden flex items-start justify-center pt-24">
+  <div id="link-picker-backdrop" class="absolute inset-0 bg-black/40"></div>
+  <div class="relative bg-popover border rounded-xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
+    <!-- Header -->
+    <div class="flex items-center gap-2 px-4 py-3 border-b bg-muted/30">
+      <svg class="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+      </svg>
+      <span class="text-sm font-semibold">Insert Link</span>
+      <button type="button" id="link-picker-cancel-x" class="ml-auto text-muted-foreground hover:text-foreground transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+    <!-- Search input -->
+    <div class="p-3 border-b">
+      <input
+        id="link-picker-input"
+        type="text"
+        placeholder="Search pages or paste a URL (https://… or /path/)"
+        class="w-full px-3 py-2 text-sm bg-background border rounded-md outline-none focus:ring-2 focus:ring-primary/40"
+        autocomplete="off"
+        spellcheck="false"
+      />
+    </div>
+    <!-- Results list -->
+    <div id="link-picker-results" class="max-h-64 overflow-y-auto divide-y text-sm"></div>
+    <!-- Footer -->
+    <div class="flex items-center justify-between px-4 py-3 border-t bg-muted/20">
+      <label class="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer select-none">
+        <input type="checkbox" id="link-open-new-tab" class="rounded" />
+        Open in new tab
+      </label>
+      <div class="flex gap-2">
+        <button type="button" id="link-picker-cancel" class="px-3 py-1.5 text-sm border rounded-md hover:bg-accent transition-colors">Cancel</button>
+        <button type="button" id="link-picker-insert" disabled class="px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-md hover:opacity-90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">Insert Link</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
   const formModal = document.getElementById('form-modal') as HTMLDivElement;
@@ -571,4 +628,211 @@ const subcategoriesWithCategory = allSubcategories.map(sub => ({
   subSeoDesc?.addEventListener('input',  updateSeoPreview);
   subSlug?.addEventListener('input',     updateSeoPreview);
   subName?.addEventListener('input',     updateSeoPreview);
+
+  // ── Link picker (WordPress-style) ────────────────────────────────────────
+  const linkModal     = document.getElementById('link-picker-modal')!;
+  const linkBackdrop  = document.getElementById('link-picker-backdrop')!;
+  const linkInput     = document.getElementById('link-picker-input') as HTMLInputElement;
+  const linkResults   = document.getElementById('link-picker-results')!;
+  const linkInsertBtn = document.getElementById('link-picker-insert') as HTMLButtonElement;
+  const linkCancelBtn = document.getElementById('link-picker-cancel') as HTMLButtonElement;
+  const linkNewTab    = document.getElementById('link-open-new-tab') as HTMLInputElement;
+
+  let savedRange: Range | null = null;
+  let activeEditorEl: HTMLElement | null = null;
+  let selectedLinkUrl = '';
+  let linkDebounce: ReturnType<typeof setTimeout>;
+
+  const COMMON_PAGES = [
+    { name: 'Home', url: '/' },
+    { name: 'All Supplements', url: '/all-supplements/' },
+    { name: 'Vitamins & Minerals', url: '/vitamins/' },
+    { name: 'Protein', url: '/protein/' },
+    { name: 'Collagen', url: '/collagen/' },
+    { name: 'Weight Management', url: '/weight-management/' },
+    { name: "Women's Health", url: '/womens-health/' },
+    { name: "Men's Health", url: '/mens-health/' },
+    { name: 'Specialty Supplements', url: '/specialty-supplements/' },
+    { name: 'Herbal & Natural', url: '/herbal-supplements/' },
+  ];
+
+  function openLinkPicker(editorEl: HTMLElement) {
+    // Save the current selection before modal takes focus
+    const sel = window.getSelection();
+    savedRange = (sel && sel.rangeCount > 0) ? sel.getRangeAt(0).cloneRange() : null;
+    activeEditorEl = editorEl;
+
+    // If cursor is inside an <a>, pre-fill with that href
+    const anchor = sel?.anchorNode?.parentElement?.closest('a');
+    if (anchor) {
+      linkInput.value = anchor.getAttribute('href') || '';
+      selectedLinkUrl = linkInput.value;
+    } else {
+      linkInput.value = '';
+      selectedLinkUrl = '';
+    }
+
+    linkModal.classList.remove('hidden');
+    renderLinkResults('');
+    setTimeout(() => linkInput.focus(), 50);
+  }
+
+  function closeLinkPicker() {
+    linkModal.classList.add('hidden');
+    linkInput.value = '';
+    selectedLinkUrl = '';
+    savedRange = null;
+    activeEditorEl = null;
+  }
+
+  function renderLinkResults(query: string) {
+    const isUrl = /^https?:\/\/|^\//.test(query);
+    let html = '';
+
+    if (isUrl || query === '') {
+      // Show common internal pages
+      html += `<div class="px-3 pt-2 pb-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Common Pages</div>`;
+      html += COMMON_PAGES.map(p => `
+        <button type="button" class="link-result-item w-full flex items-center gap-3 px-3 py-2 hover:bg-accent text-left transition-colors" data-url="${p.url}">
+          <svg class="w-4 h-4 text-muted-foreground shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          <div>
+            <div class="text-sm font-medium">${p.name}</div>
+            <div class="text-xs text-muted-foreground">${p.url}</div>
+          </div>
+        </button>`).join('');
+    }
+
+    if (isUrl) {
+      // Show "use this URL" option at top
+      html = `
+        <button type="button" class="link-result-item w-full flex items-center gap-3 px-3 py-2 hover:bg-accent text-left border-b transition-colors" data-url="${query}">
+          <svg class="w-4 h-4 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          <div>
+            <div class="text-sm font-medium text-primary">Use this URL</div>
+            <div class="text-xs text-muted-foreground truncate max-w-[300px]">${query}</div>
+          </div>
+        </button>` + html;
+      // Auto-select for insert button
+      selectedLinkUrl = query;
+      linkInsertBtn.disabled = false;
+    } else if (query.length >= 2) {
+      html = `<div class="px-3 py-2 text-xs text-muted-foreground">Searching…</div>`;
+    }
+
+    linkResults.innerHTML = html;
+    bindResultClicks();
+  }
+
+  async function searchAndRender(query: string) {
+    if (query.length < 2) { renderLinkResults(''); return; }
+    const isUrl = /^https?:\/\/|^\//.test(query);
+    if (isUrl) { renderLinkResults(query); return; }
+
+    linkResults.innerHTML = `<div class="px-3 py-2 text-xs text-muted-foreground">Searching…</div>`;
+    try {
+      const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+      const data: any[] = await res.json();
+      if (!data.length) {
+        linkResults.innerHTML = `<div class="px-3 py-3 text-sm text-muted-foreground text-center">No results for "${query}"</div>`;
+        return;
+      }
+      linkResults.innerHTML = data.map(item => {
+        const url = `/${item.categorySlug}/${item.subcategorySlug}/${item.slug}/`;
+        return `
+          <button type="button" class="link-result-item w-full flex items-center gap-3 px-3 py-2 hover:bg-accent text-left border-b last:border-0 transition-colors" data-url="${url}">
+            <svg class="w-4 h-4 text-muted-foreground shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+            <div class="min-w-0">
+              <div class="text-sm font-medium truncate">${item.name}</div>
+              <div class="text-xs text-muted-foreground truncate">${url}</div>
+            </div>
+          </button>`;
+      }).join('');
+      bindResultClicks();
+    } catch {
+      linkResults.innerHTML = `<div class="px-3 py-2 text-xs text-muted-foreground">Search failed</div>`;
+    }
+  }
+
+  function bindResultClicks() {
+    linkResults.querySelectorAll<HTMLButtonElement>('.link-result-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        selectedLinkUrl = btn.dataset.url!;
+        linkInput.value = selectedLinkUrl;
+        linkInsertBtn.disabled = false;
+        // Highlight selected
+        linkResults.querySelectorAll('.link-result-item').forEach(b => b.classList.remove('bg-accent'));
+        btn.classList.add('bg-accent');
+      });
+    });
+  }
+
+  function insertLink() {
+    const url = selectedLinkUrl || linkInput.value.trim();
+    if (!url || !savedRange || !activeEditorEl) return;
+    activeEditorEl.focus();
+    const sel = window.getSelection()!;
+    sel.removeAllRanges();
+    sel.addRange(savedRange);
+    document.execCommand('createLink', false, url);
+    // Set target="_blank" on new link if checkbox checked
+    if (linkNewTab.checked) {
+      activeEditorEl.querySelectorAll(`a[href="${url}"]`).forEach(a => {
+        (a as HTMLAnchorElement).target = '_blank';
+        (a as HTMLAnchorElement).rel = 'noopener noreferrer';
+      });
+    }
+    closeLinkPicker();
+  }
+
+  // Open link picker from toolbar buttons
+  document.querySelectorAll<HTMLButtonElement>('.sub-link-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const editorId = btn.dataset.editor === 'ld' ? 'sub-ld-visual' : 'sub-desc-visual';
+      const editorEl = document.getElementById(editorId)!;
+      openLinkPicker(editorEl);
+    });
+  });
+
+  // Unlink buttons
+  document.querySelectorAll<HTMLButtonElement>('.sub-unlink-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const editorId = btn.dataset.editor === 'ld' ? 'sub-ld-visual' : 'sub-desc-visual';
+      document.getElementById(editorId)?.focus();
+      document.execCommand('unlink', false, undefined);
+    });
+  });
+
+  // Ctrl+K shortcut in editors
+  ['sub-desc-visual', 'sub-ld-visual'].forEach(id => {
+    document.getElementById(id)?.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (e.key === 'k' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        const editorEl = document.getElementById(id)!;
+        openLinkPicker(editorEl);
+      }
+    });
+  });
+
+  // Search as you type
+  linkInput.addEventListener('input', () => {
+    selectedLinkUrl = '';
+    linkInsertBtn.disabled = true;
+    clearTimeout(linkDebounce);
+    const q = linkInput.value.trim();
+    const isUrl = /^https?:\/\/|^\//.test(q);
+    if (isUrl) { selectedLinkUrl = q; linkInsertBtn.disabled = false; renderLinkResults(q); return; }
+    if (!q) { renderLinkResults(''); return; }
+    linkDebounce = setTimeout(() => searchAndRender(q), 200);
+  });
+
+  // Enter in input = insert if URL selected
+  linkInput.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.key === 'Enter') { e.preventDefault(); if (selectedLinkUrl) insertLink(); }
+    if (e.key === 'Escape') closeLinkPicker();
+  });
+
+  linkInsertBtn.addEventListener('click', insertLink);
+  linkCancelBtn.addEventListener('click', closeLinkPicker);
+  linkBackdrop.addEventListener('click', closeLinkPicker);
+  document.getElementById('link-picker-cancel-x')?.addEventListener('click', closeLinkPicker);
 </script>
