@@ -4,7 +4,9 @@ import { eq, and, gt, or, desc } from "drizzle-orm";
 import { randomBytes } from "crypto";
 
 export function generateOtpCode(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  const bytes = randomBytes(3);
+  const num = ((bytes[0] << 16) | (bytes[1] << 8) | bytes[2]) % 900000;
+  return String(100000 + num).padStart(6, '0');
 }
 
 export function generateSessionToken(): string {

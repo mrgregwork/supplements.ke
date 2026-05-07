@@ -1,7 +1,18 @@
 import type { APIRoute } from "astro";
 import { storage } from "@lib/storage";
+import { getAdminSessionToken, verifyAdminSession } from "@lib/admin";
+
+const JSON_HEADERS = { "Content-Type": "application/json" };
+
+function unauthorized() {
+  return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: JSON_HEADERS });
+}
 
 export const GET: APIRoute = async ({ request }) => {
+  const sessionToken = getAdminSessionToken(request);
+  const sessionData = await verifyAdminSession(sessionToken);
+  if (!import.meta.env.DEV && !sessionData) return unauthorized();
+
   try {
     const settings = await storage.getSiteSettings();
     
@@ -24,6 +35,10 @@ export const GET: APIRoute = async ({ request }) => {
 };
 
 export const POST: APIRoute = async ({ request }) => {
+  const sessionToken = getAdminSessionToken(request);
+  const sessionData = await verifyAdminSession(sessionToken);
+  if (!import.meta.env.DEV && !sessionData) return unauthorized();
+
   try {
     const body = await request.json();
     
