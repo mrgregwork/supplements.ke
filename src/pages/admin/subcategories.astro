@@ -443,15 +443,6 @@ const subcategoriesWithCategory = allSubcategories.map(sub => ({
   closeModalBtn.addEventListener('click', closeModal);
   modalOverlay.addEventListener('click', closeModal);
 
-  // Auto-open edit modal when arriving via ?edit=ID (from Edit Subcategory toolbar button)
-  const editId = new URLSearchParams(window.location.search).get('edit');
-  if (editId) {
-    const btn = document.querySelector<HTMLButtonElement>(`.edit-btn[data-id="${editId}"]`);
-    if (btn) btn.click();
-    // Clean up URL without page reload
-    history.replaceState(null, '', window.location.pathname);
-  }
-  
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && !formModal.classList.contains('translate-x-full')) {
       closeModal();
@@ -472,18 +463,37 @@ const subcategoriesWithCategory = allSubcategories.map(sub => ({
     slugManuallyEdited = true;
   });
   
+  // Fetch with automatic retry (handles Neon cold-start timeouts)
+  async function fetchWithRetry(url: string, retries = 2): Promise<any> {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+      } catch (err) {
+        if (attempt < retries) {
+          await new Promise(r => setTimeout(r, 1500 * (attempt + 1))); // 1.5s, 3s
+        } else {
+          throw err;
+        }
+      }
+    }
+  }
+
   document.querySelectorAll('.edit-btn').forEach(btn => {
     btn.addEventListener('click', async (e) => {
-      const id = (e.target as HTMLButtonElement).dataset.id;
+      const id = (e.currentTarget as HTMLButtonElement).dataset.id;
+      const clickedBtn = e.currentTarget as HTMLButtonElement;
+      const originalText = clickedBtn.textContent ?? 'Edit';
+      clickedBtn.textContent = 'Loading…';
+      clickedBtn.style.pointerEvents = 'none';
       try {
-        const res = await fetch(`/api/admin/subcategories/${id}`);
-        const sub = await res.json();
-        
+        const sub = await fetchWithRetry(`/api/admin/subcategories/${id}`);
+
         (document.getElementById('form-id') as HTMLInputElement).value = sub.id;
         (document.getElementById('form-categoryId') as HTMLSelectElement).value = sub.categoryId;
         (document.getElementById('form-name') as HTMLInputElement).value = sub.name;
         (document.getElementById('form-slug') as HTMLInputElement).value = sub.slug;
-        // Rich editors
         const subDescVis = document.getElementById('sub-desc-visual') as HTMLDivElement;
         const subDescCode = document.getElementById('sub-desc-code') as HTMLTextAreaElement;
         if (subDescVis) { subDescVis.innerHTML = sub.description || ''; if (subDescCode) subDescCode.value = sub.description || ''; }
@@ -501,10 +511,21 @@ const subcategoriesWithCategory = allSubcategories.map(sub => ({
         openModal(true);
       } catch (err) {
         console.error('Failed to load subcategory:', err);
-        alert('Failed to load subcategory');
+        alert('Failed to load subcategory — the database may be waking up, please try again in a moment.');
+      } finally {
+        clickedBtn.textContent = originalText;
+        clickedBtn.style.pointerEvents = '';
       }
     });
   });
+
+  // Auto-open edit modal when arriving via ?edit=ID — MUST be after handlers are wired above
+  const editId = new URLSearchParams(window.location.search).get('edit');
+  if (editId) {
+    history.replaceState(null, '', window.location.pathname);
+    const btn = document.querySelector<HTMLButtonElement>(`.edit-btn[data-id="${editId}"]`);
+    if (btn) btn.click();
+  }
   
   document.querySelectorAll('.delete-btn').forEach(btn => {
     btn.addEventListener('click', async (e) => {
