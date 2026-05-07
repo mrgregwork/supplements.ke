@@ -257,7 +257,7 @@ const subcategoriesWithCategory = allSubcategories.map(sub => ({
           class="hidden w-full min-h-[150px] border rounded-lg p-3 bg-background font-mono text-xs focus:outline-none focus:ring-2 focus:ring-primary"
           placeholder="Enter HTML..."
         ></textarea>
-        <p class="text-xs text-muted-foreground mt-1">Expandable section at the bottom of the subcategory page. Add keyword-rich content here for SEO.</p>
+        <p class="text-xs text-muted-foreground mt-1">Always visible below the product grid. Add keyword-rich headings and paragraphs here for SEO.</p>
       </div>
       
       <div>
@@ -729,8 +729,12 @@ const subcategoriesWithCategory = allSubcategories.map(sub => ({
     if (isUrl) { renderLinkResults(query); return; }
 
     linkResults.innerHTML = `<div class="px-3 py-2 text-xs text-muted-foreground">Searching…</div>`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
     try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+      const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`, { signal: controller.signal });
+      clearTimeout(timeout);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data: any[] = await res.json();
       if (!data.length) {
         linkResults.innerHTML = `<div class="px-3 py-3 text-sm text-muted-foreground text-center">No results for "${query}"</div>`;
@@ -748,8 +752,10 @@ const subcategoriesWithCategory = allSubcategories.map(sub => ({
           </button>`;
       }).join('');
       bindResultClicks();
-    } catch {
-      linkResults.innerHTML = `<div class="px-3 py-2 text-xs text-muted-foreground">Search failed</div>`;
+    } catch (err: any) {
+      clearTimeout(timeout);
+      const msg = err?.name === 'AbortError' ? 'Search timed out — try again' : 'Search unavailable';
+      linkResults.innerHTML = `<div class="px-3 py-2 text-xs text-muted-foreground">${msg}</div>`;
     }
   }
 
@@ -783,6 +789,13 @@ const subcategoriesWithCategory = allSubcategories.map(sub => ({
     }
     closeLinkPicker();
   }
+
+  // Prevent focus theft on all toolbar buttons so selection stays intact
+  document.querySelectorAll<HTMLButtonElement>('.sub-link-btn, .sub-unlink-btn').forEach(btn => {
+    btn.addEventListener('mousedown', (e) => {
+      e.preventDefault(); // Keep focus (and text selection) in the editor
+    });
+  });
 
   // Open link picker from toolbar buttons
   document.querySelectorAll<HTMLButtonElement>('.sub-link-btn').forEach(btn => {
