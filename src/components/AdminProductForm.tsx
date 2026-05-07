@@ -1,5 +1,157 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import ProductImageUploader from "./ProductImageUploader";
+
+const TYPE_BADGE: Record<string, string> = {
+  product:     'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+  category:    'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
+  subcategory: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
+  page:        'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+};
+
+interface LinkResult { label: string; sublabel: string; url: string; type: string; }
+
+function RichTextEditor({ value, onChange }: { value: string; onChange: (html: string) => void }) {
+  const editorRef = useRef<HTMLDivElement>(null);
+  const [showPicker, setShowPicker] = useState(false);
+  const [linkQuery, setLinkQuery] = useState('');
+  const [linkResults, setLinkResults] = useState<LinkResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const savedRange = useRef<Range | null>(null);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const directUrlRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editorRef.current) editorRef.current.innerHTML = value || '';
+    document.execCommand('defaultParagraphSeparator', false, 'p');
+  }, []); // init once on mount
+
+  const exec = useCallback((cmd: string, val?: string) => {
+    editorRef.current?.focus();
+    document.execCommand(cmd, false, val);
+  }, []);
+
+  const handleInput = () => {
+    if (editorRef.current) onChange(editorRef.current.innerHTML);
+  };
+
+  const openPicker = () => {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) savedRange.current = sel.getRangeAt(0).cloneRange();
+    setShowPicker(true);
+    setLinkQuery('');
+    setLinkResults([]);
+  };
+
+  const closePicker = () => setShowPicker(false);
+
+  const handleLinkSearch = (q: string) => {
+    setLinkQuery(q);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    if (q.length < 2) { setLinkResults([]); return; }
+    setSearching(true);
+    searchTimer.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/admin/link-search?q=${encodeURIComponent(q)}`);
+        const data = await res.json();
+        setLinkResults(data.results || []);
+      } catch { setLinkResults([]); }
+      finally { setSearching(false); }
+    }, 300);
+  };
+
+  const insertLink = (url: string, label: string) => {
+    editorRef.current?.focus();
+    if (savedRange.current) {
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(savedRange.current);
+    }
+    const selectedText = window.getSelection()?.toString() || label;
+    document.execCommand('insertHTML', false,
+      `<a href="${url}" title="${label.replace(/"/g, '&quot;')}">${selectedText || label}</a>`);
+    handleInput();
+    closePicker();
+  };
+
+  const btnCls = "px-2.5 py-1.5 text-sm rounded hover:bg-muted transition-colors";
+
+  return (
+    <div className="border rounded-lg overflow-hidden bg-background">
+      {/* Toolbar */}
+      <div className="flex flex-wrap gap-1 p-2 border-b bg-muted/30">
+        <button type="button" title="Bold"   onMouseDown={(e) => { e.preventDefault(); exec('bold'); }}   className={`${btnCls} font-bold`}>B</button>
+        <button type="button" title="Italic" onMouseDown={(e) => { e.preventDefault(); exec('italic'); }} className={`${btnCls} italic`}>I</button>
+        <div className="w-px bg-border mx-1 self-stretch" />
+        <button type="button" title="Heading 2" onMouseDown={(e) => { e.preventDefault(); exec('formatBlock', 'h2'); }} className={`${btnCls} font-semibold`}>H2</button>
+        <button type="button" title="Heading 3" onMouseDown={(e) => { e.preventDefault(); exec('formatBlock', 'h3'); }} className={`${btnCls} font-semibold`}>H3</button>
+        <div className="w-px bg-border mx-1 self-stretch" />
+        <button type="button" title="Bullet list"   onMouseDown={(e) => { e.preventDefault(); exec('insertUnorderedList'); }} className={btnCls}>• List</button>
+        <button type="button" title="Numbered list" onMouseDown={(e) => { e.preventDefault(); exec('insertOrderedList');   }} className={btnCls}>1. List</button>
+        <div className="w-px bg-border mx-1 self-stretch" />
+        <button type="button" title="Insert link" onMouseDown={(e) => { e.preventDefault(); openPicker(); }}
+          className={`${btnCls} flex items-center gap-1`}>
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+          </svg>
+          Link
+        </button>
+      </div>
+
+      {/* Editable area */}
+      <div
+        ref={editorRef}
+        contentEditable
+        suppressContentEditableWarning
+        onInput={handleInput}
+        className="min-h-[200px] p-4 outline-none prose prose-sm max-w-none dark:prose-invert focus:ring-2 focus:ring-inset focus:ring-primary"
+        data-testid="input-long-description"
+      />
+
+      {/* Link picker modal */}
+      {showPicker && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={(e) => { if (e.target === e.currentTarget) closePicker(); }}>
+          <div className="bg-background border rounded-xl shadow-xl w-full max-w-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold">Insert Link</h3>
+              <button type="button" onClick={closePicker} className="text-muted-foreground hover:text-foreground text-2xl leading-none w-8 h-8 flex items-center justify-center rounded hover:bg-muted">×</button>
+            </div>
+            <input autoFocus type="text" placeholder="Search pages, categories, products..."
+              value={linkQuery} onChange={(e) => handleLinkSearch(e.target.value)}
+              className="w-full px-4 py-3 rounded-lg border bg-background focus:outline-none focus:ring-2 focus:ring-primary text-sm mb-3" />
+            <div className="max-h-60 overflow-y-auto space-y-1">
+              {searching && <p className="text-sm text-muted-foreground text-center py-4">Searching…</p>}
+              {!searching && linkQuery.length >= 2 && linkResults.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">No results found</p>
+              )}
+              {linkResults.map((r, i) => (
+                <button key={i} type="button" onClick={() => insertLink(r.url, r.label)}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted text-left transition-colors">
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${TYPE_BADGE[r.type] ?? TYPE_BADGE.page}`}>{r.type}</span>
+                  <span className="flex-1 min-w-0">
+                    <span className="text-sm font-medium block truncate">{r.label}</span>
+                    <span className="text-xs text-muted-foreground truncate block">{r.sublabel}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+            <div className="mt-4 pt-4 border-t">
+              <p className="text-xs text-muted-foreground mb-2">Or enter a URL directly:</p>
+              <div className="flex gap-2">
+                <input ref={directUrlRef} type="url" placeholder="https://…"
+                  className="flex-1 px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                <button type="button" onClick={() => { if (directUrlRef.current?.value) insertLink(directUrlRef.current.value, directUrlRef.current.value); }}
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition">
+                  Insert
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface Product {
   id: string;
@@ -348,9 +500,11 @@ export default function AdminProductForm({ product, isNew }: AdminProductFormPro
             className={inputCls + " resize-none"} rows={3} required data-testid="input-description" />
         </div>
         <div>
-          <label className={labelCls} htmlFor="longDescription">Long Description</label>
-          <textarea id="longDescription" value={formData.longDescription} onChange={(e) => updateField("longDescription", e.target.value)}
-            className={inputCls + " resize-none"} rows={5} data-testid="input-long-description" />
+          <label className={labelCls}>Long Description <span className="text-muted-foreground text-xs font-normal">(rich content — supports headings, lists, links)</span></label>
+          <RichTextEditor
+            value={formData.longDescription}
+            onChange={(html) => updateField("longDescription", html)}
+          />
         </div>
       </div>
 
