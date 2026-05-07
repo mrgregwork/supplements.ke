@@ -155,16 +155,25 @@ const pageTitle = enableRegionalSeo
       <div class="lg:sticky lg:top-24">
         <div class="aspect-square overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-50 via-white to-stone-50 border border-border/50 flex items-center justify-center shadow-sm">
           <img
+            id="main-product-image"
             src={images[0] || '/images/placeholder-product.jpg'}
             alt={productAltText}
-            class="h-full w-full object-contain p-4"
+            class="h-full w-full object-contain p-4 transition-opacity duration-200"
             data-testid="img-product-main"
           />
         </div>
         {images.length > 1 && (
-          <div class="grid grid-cols-4 gap-3 mt-4">
+          <div class="grid grid-cols-4 gap-3 mt-4" id="thumbnail-strip">
             {images.slice(0, 4).map((img, i) => (
-              <button class="aspect-square overflow-hidden rounded-xl bg-gradient-to-br from-emerald-50 via-white to-stone-50 border border-border/50 hover:border-primary hover:shadow-md transition-all">
+              <button
+                class:list={[
+                  "thumbnail-btn aspect-square overflow-hidden rounded-xl bg-gradient-to-br from-emerald-50 via-white to-stone-50 border-2 hover:border-primary hover:shadow-md transition-all",
+                  i === 0 ? "border-primary shadow-sm" : "border-border/50"
+                ]}
+                data-src={img}
+                data-alt={getProductImageAlt(product.name, i + 1, images.length, product.brand ?? '')}
+                aria-label={`View image ${i + 1}`}
+              >
                 <img
                   src={img}
                   alt={getProductImageAlt(product.name, i + 1, images.length, product.brand ?? '')}
@@ -351,6 +360,34 @@ const pageTitle = enableRegionalSeo
 
         tabContents.forEach(content => content.classList.add('hidden'));
         document.getElementById(`tab-${tabId}`)?.classList.remove('hidden');
+      });
+    });
+
+    // ── Image gallery swap ─────────────────────────────────────────────────
+    const mainImg    = document.getElementById('main-product-image') as HTMLImageElement | null;
+    const thumbBtns  = document.querySelectorAll<HTMLButtonElement>('.thumbnail-btn');
+
+    thumbBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const src = btn.dataset.src;
+        const alt = btn.dataset.alt;
+        if (!src || !mainImg) return;
+
+        // Fade out → swap src → fade in
+        mainImg.style.opacity = '0';
+        setTimeout(() => {
+          mainImg.src = src;
+          if (alt) mainImg.alt = alt;
+          mainImg.style.opacity = '1';
+        }, 150);
+
+        // Update active border on thumbnails
+        thumbBtns.forEach(b => {
+          b.classList.remove('border-primary', 'shadow-sm');
+          b.classList.add('border-border/50');
+        });
+        btn.classList.add('border-primary', 'shadow-sm');
+        btn.classList.remove('border-border/50');
       });
     });
   });
