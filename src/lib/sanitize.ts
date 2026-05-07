@@ -3,7 +3,7 @@
  * Whitelists safe HTML tags and attributes to prevent XSS.
  */
 
-const ALLOWED_TAGS = new Set(['p', 'br', 'b', 'strong', 'i', 'em', 'u', 'h2', 'h3', 'h4', 'ul', 'ol', 'li', 'a', 'img']);
+const ALLOWED_TAGS = new Set(['p', 'br', 'b', 'strong', 'i', 'em', 'u', 'h2', 'h3', 'h4', 'ul', 'ol', 'li', 'a', 'img', 'div', 'span']);
 const ALLOWED_ATTRS: Record<string, Set<string>> = {
   'a': new Set(['href', 'title', 'target', 'rel']),
   'img': new Set(['src', 'alt', 'class', 'width', 'height'])

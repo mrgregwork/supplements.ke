@@ -352,9 +352,10 @@ const subcategoriesWithCategory = allSubcategories.map(sub => ({
         >
           Cancel
         </button>
-        <button 
+        <button
           type="submit"
-          class="flex-1 px-4 py-3 min-h-[48px] bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition"
+          id="form-submit-btn"
+          class="flex-1 px-4 py-3 min-h-[48px] bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition disabled:opacity-60 disabled:cursor-not-allowed"
           data-testid="button-submit"
         >
           Save
@@ -518,7 +519,12 @@ const subcategoriesWithCategory = allSubcategories.map(sub => ({
   
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    
+
+    const submitBtn = document.getElementById('form-submit-btn') as HTMLButtonElement;
+    if (submitBtn.disabled) return; // prevent double-submit
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Saving…';
+
     const id = (document.getElementById('form-id') as HTMLInputElement).value;
     const subDescVis = document.getElementById('sub-desc-visual') as HTMLDivElement;
     const subDescCode = document.getElementById('sub-desc-code') as HTMLTextAreaElement;
@@ -561,15 +567,22 @@ const subcategoriesWithCategory = allSubcategories.map(sub => ({
           const result = await res.json();
           errMsg = result.error || errMsg;
         } catch { /* response was not JSON (e.g. 504 gateway timeout) */ }
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Save';
         alert(errMsg);
       }
     } catch (err: any) {
       console.error('Save failed:', err);
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Save';
       alert(err?.message ? `Save failed: ${err.message}` : 'Save failed — please try again');
     }
   });
 
   // ── Rich editor wiring for description + longDescription ──────────────────
+  // Tell Chrome/Edge to use <p> on Enter, not <div>
+  document.execCommand('defaultParagraphSeparator', false, 'p');
+
   function wireEditor(
     modeVisualId: string, modeCodeId: string,
     toolbarId: string, visualId: string, codeId: string,
