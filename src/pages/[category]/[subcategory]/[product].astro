@@ -126,18 +126,18 @@ const structuredData = generateProductPageSchema(
   productFaqs
 );
 
-// Three title variants — chosen deterministically by slug hash so each product
-// always gets the same variant on every request (consistent for Google crawlers)
-// but the variants are spread across the catalog to break any detectable pattern.
+// If admin has manually set a seoTitle, use it verbatim — no template wrapping.
+// Only apply rotation template when no custom title has been set.
+const hasCustomTitle = !!product.seoTitle?.trim();
 const titleBase = product.name;
 const regionalTitleVariants = [
   `${titleBase} in ${targetRegion} | Same-Day Delivery in Nairobi`,
   `${titleBase} in ${targetRegion} | Price in ${targetRegion} | Order on WhatsApp`,
   `${titleBase} in ${targetRegion} | Shop in Nairobi`,
 ];
-const pageTitle = enableRegionalSeo
-  ? regionalTitleVariants[slugHash % 3]
-  : (product.seoTitle ?? product.name);
+const pageTitle = hasCustomTitle
+  ? product.seoTitle!.trim()
+  : (enableRegionalSeo ? regionalTitleVariants[slugHash % 3] : product.name);
 ---
 
 <BaseLayout

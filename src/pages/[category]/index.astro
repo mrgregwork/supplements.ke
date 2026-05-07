@@ -59,7 +59,7 @@ const structuredData = {
   ]
 };
 
-// Deterministic meta title rotation — different search angle from H1
+// If admin has set a custom seoTitle, use it verbatim — never wrap it in a template
 function slugHash(slug: string): number {
   let h = 5381;
   for (let i = 0; i < slug.length; i++) {
@@ -67,15 +67,18 @@ function slugHash(slug: string): number {
   }
   return Math.abs(h);
 }
-const catName = category.seoTitle || category.name;
+const hasCustomTitle = !!category.seoTitle?.trim();
+const baseName = category.name;
 const titleVariant = slugHash(category.slug) % 3;
-const pageTitle = siteSettings.enableRegionalSeo && siteSettings.targetRegion
-  ? [
-      `Buy ${catName} in Kenya | Order on WhatsApp`,
-      `${catName} | Same-Day Delivery in Nairobi`,
-      `Shop ${catName} Online in Kenya | Supplements Kenya`,
-    ][titleVariant]
-  : catName;
+const pageTitle = hasCustomTitle
+  ? category.seoTitle!.trim()
+  : (siteSettings.enableRegionalSeo && siteSettings.targetRegion
+      ? [
+          `Buy ${baseName} in Kenya | Order on WhatsApp`,
+          `${baseName} | Same-Day Delivery in Nairobi`,
+          `Shop ${baseName} Online in Kenya | Supplements Kenya`,
+        ][titleVariant]
+      : baseName);
 
 // Form and lifestyle filter pages should not be indexed by search engines
 const NOINDEX_SLUGS = ['supplement-forms', 'lifestyle-supplements'];

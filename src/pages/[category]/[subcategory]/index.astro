@@ -66,7 +66,8 @@ const structuredData = {
   ]
 };
 
-// Deterministic meta title rotation — different search angle from H1
+// If admin has set a custom seoTitle, use it verbatim — never wrap it in a template
+// Only apply rotation template when falling back to the raw subcategory name
 function slugHash(slug: string): number {
   let h = 5381;
   for (let i = 0; i < slug.length; i++) {
@@ -74,15 +75,18 @@ function slugHash(slug: string): number {
   }
   return Math.abs(h);
 }
-const subName = subcategory.seoTitle || subcategory.name;
+const hasCustomTitle = !!subcategory.seoTitle?.trim();
+const baseName = subcategory.name;
 const titleVariant = slugHash(subcategory.slug) % 3;
-const pageTitle = siteSettings.enableRegionalSeo && siteSettings.targetRegion
-  ? [
-      `Buy ${subName} in Kenya | Order on WhatsApp`,
-      `${subName} | Same-Day Delivery in Nairobi`,
-      `Shop ${subName} Online in Kenya | Supplements Kenya`,
-    ][titleVariant]
-  : subName;
+const pageTitle = hasCustomTitle
+  ? subcategory.seoTitle!.trim()
+  : (siteSettings.enableRegionalSeo && siteSettings.targetRegion
+      ? [
+          `Buy ${baseName} in Kenya | Order on WhatsApp`,
+          `${baseName} | Same-Day Delivery in Nairobi`,
+          `Shop ${baseName} Online in Kenya | Supplements Kenya`,
+        ][titleVariant]
+      : baseName);
 ---
 
 <BaseLayout 
