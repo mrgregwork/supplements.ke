@@ -647,26 +647,35 @@ const subcategoriesWithCategory = allSubcategories.map(sub => ({
   let selectedLinkUrl = '';
   let linkDebounce: ReturnType<typeof setTimeout>;
 
-  const COMMON_PAGES = [
-    { name: 'Home', url: '/' },
-    { name: 'All Supplements', url: '/all-supplements/' },
-    { name: 'Vitamins & Minerals', url: '/vitamins/' },
-    { name: 'Protein', url: '/protein/' },
-    { name: 'Collagen', url: '/collagen/' },
-    { name: 'Weight Management', url: '/weight-management/' },
-    { name: "Women's Health", url: '/womens-health/' },
-    { name: "Men's Health", url: '/mens-health/' },
-    { name: 'Specialty Supplements', url: '/specialty-supplements/' },
-    { name: 'Herbal & Natural', url: '/herbal-supplements/' },
-  ];
+  // Type badge colours
+  const TYPE_BADGE: Record<string, string> = {
+    category:    'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+    subcategory: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
+    product:     'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
+    page:        'bg-muted text-muted-foreground',
+  };
+
+  function resultBtn(item: { label: string; sublabel: string; url: string; type: string }) {
+    const badge = TYPE_BADGE[item.type] ?? TYPE_BADGE.page;
+    const typeLabel = item.type.charAt(0).toUpperCase() + item.type.slice(1);
+    return `
+      <button type="button" class="link-result-item w-full flex items-center gap-3 px-3 py-2 hover:bg-accent text-left border-b last:border-0 transition-colors" data-url="${item.url}">
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-medium truncate">${item.label}</span>
+            <span class="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded ${badge}">${typeLabel}</span>
+          </div>
+          <div class="text-xs text-muted-foreground truncate">${item.sublabel}</div>
+        </div>
+      </button>`;
+  }
 
   function openLinkPicker(editorEl: HTMLElement) {
-    // Save the current selection before modal takes focus
     const sel = window.getSelection();
     savedRange = (sel && sel.rangeCount > 0) ? sel.getRangeAt(0).cloneRange() : null;
     activeEditorEl = editorEl;
 
-    // If cursor is inside an <a>, pre-fill with that href
+    // If cursor is already inside an <a>, pre-fill with its href
     const anchor = sel?.anchorNode?.parentElement?.closest('a');
     if (anchor) {
       linkInput.value = anchor.getAttribute('href') || '';
@@ -677,7 +686,7 @@ const subcategoriesWithCategory = allSubcategories.map(sub => ({
     }
 
     linkModal.classList.remove('hidden');
-    renderLinkResults('');
+    searchAndRender('');            // load common pages immediately
     setTimeout(() => linkInput.focus(), 50);
   }
 
@@ -689,72 +698,62 @@ const subcategoriesWithCategory = allSubcategories.map(sub => ({
     activeEditorEl = null;
   }
 
-  function renderLinkResults(query: string) {
-    const isUrl = /^https?:\/\/|^\//.test(query);
-    let html = '';
+  async function searchAndRender(query: string) {
+    const isUrl = /^https?:\/\//.test(query);
 
-    if (isUrl || query === '') {
-      // Show common internal pages
-      html += `<div class="px-3 pt-2 pb-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Common Pages</div>`;
-      html += COMMON_PAGES.map(p => `
-        <button type="button" class="link-result-item w-full flex items-center gap-3 px-3 py-2 hover:bg-accent text-left transition-colors" data-url="${p.url}">
-          <svg class="w-4 h-4 text-muted-foreground shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-          <div>
-            <div class="text-sm font-medium">${p.name}</div>
-            <div class="text-xs text-muted-foreground">${p.url}</div>
-          </div>
-        </button>`).join('');
-    }
-
+    // External URL typed — show "Use this URL" immediately, no DB needed
     if (isUrl) {
-      // Show "use this URL" option at top
-      html = `
-        <button type="button" class="link-result-item w-full flex items-center gap-3 px-3 py-2 hover:bg-accent text-left border-b transition-colors" data-url="${query}">
-          <svg class="w-4 h-4 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-          <div>
-            <div class="text-sm font-medium text-primary">Use this URL</div>
-            <div class="text-xs text-muted-foreground truncate max-w-[300px]">${query}</div>
+      linkResults.innerHTML = `
+        <button type="button" class="link-result-item w-full flex items-center gap-3 px-3 py-2 hover:bg-accent text-left transition-colors" data-url="${query}">
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-medium">Use this URL</span>
+              <span class="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-muted text-muted-foreground">External</span>
+            </div>
+            <div class="text-xs text-muted-foreground truncate">${query}</div>
           </div>
-        </button>` + html;
-      // Auto-select for insert button
+        </button>`;
       selectedLinkUrl = query;
       linkInsertBtn.disabled = false;
-    } else if (query.length >= 2) {
-      html = `<div class="px-3 py-2 text-xs text-muted-foreground">Searching…</div>`;
+      bindResultClicks();
+      return;
     }
 
-    linkResults.innerHTML = html;
-    bindResultClicks();
-  }
+    if (query.length > 0 && query.length < 2) return; // wait for 2+ chars
 
-  async function searchAndRender(query: string) {
-    if (query.length < 2) { renderLinkResults(''); return; }
-    const isUrl = /^https?:\/\/|^\//.test(query);
-    if (isUrl) { renderLinkResults(query); return; }
+    if (query.length >= 2) {
+      linkResults.innerHTML = `<div class="px-3 py-2 text-xs text-muted-foreground">Searching…</div>`;
+    }
 
-    linkResults.innerHTML = `<div class="px-3 py-2 text-xs text-muted-foreground">Searching…</div>`;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
     try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`, { signal: controller.signal });
+      const qs = query.length >= 2 ? `?q=${encodeURIComponent(query)}` : '';
+      const res = await fetch(`/api/admin/link-search${qs}`, { signal: controller.signal });
       clearTimeout(timeout);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data: any[] = await res.json();
-      if (!data.length) {
-        linkResults.innerHTML = `<div class="px-3 py-3 text-sm text-muted-foreground text-center">No results for "${query}"</div>`;
-        return;
+
+      const data: { static: any[]; results: any[] } = await res.json();
+      let html = '';
+
+      // Matching static/common pages
+      if (data.static.length) {
+        const heading = query.length >= 2 ? 'Pages' : 'Common Pages';
+        html += `<div class="px-3 pt-2 pb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">${heading}</div>`;
+        html += data.static.map((p: any) => resultBtn({ label: p.label, sublabel: p.url, url: p.url, type: 'page' })).join('');
       }
-      linkResults.innerHTML = data.map(item => {
-        const url = `/${item.categorySlug}/${item.subcategorySlug}/${item.slug}/`;
-        return `
-          <button type="button" class="link-result-item w-full flex items-center gap-3 px-3 py-2 hover:bg-accent text-left border-b last:border-0 transition-colors" data-url="${url}">
-            <svg class="w-4 h-4 text-muted-foreground shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-            <div class="min-w-0">
-              <div class="text-sm font-medium truncate">${item.name}</div>
-              <div class="text-xs text-muted-foreground truncate">${url}</div>
-            </div>
-          </button>`;
-      }).join('');
+
+      // DB results (categories, subcategories, products)
+      if (data.results.length) {
+        if (html) html += `<div class="border-t my-0.5"></div>`;
+        html += data.results.map((r: any) => resultBtn(r)).join('');
+      }
+
+      if (!html) {
+        html = `<div class="px-3 py-3 text-sm text-muted-foreground text-center">No results for "${query}"</div>`;
+      }
+
+      linkResults.innerHTML = html;
       bindResultClicks();
     } catch (err: any) {
       clearTimeout(timeout);
@@ -836,10 +835,10 @@ const subcategoriesWithCategory = allSubcategories.map(sub => ({
     linkInsertBtn.disabled = true;
     clearTimeout(linkDebounce);
     const q = linkInput.value.trim();
-    const isUrl = /^https?:\/\/|^\//.test(q);
-    if (isUrl) { selectedLinkUrl = q; linkInsertBtn.disabled = false; renderLinkResults(q); return; }
-    if (!q) { renderLinkResults(''); return; }
-    linkDebounce = setTimeout(() => searchAndRender(q), 200);
+    // Debounce DB searches; external URLs and empty query are instant
+    const isExternal = /^https?:\/\//.test(q);
+    const delay = (isExternal || !q) ? 0 : 250;
+    linkDebounce = setTimeout(() => searchAndRender(q), delay);
   });
 
   // Enter in input = insert if URL selected
