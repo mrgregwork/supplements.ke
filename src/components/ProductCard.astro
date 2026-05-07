@@ -64,10 +64,11 @@ const reviewCount = product.reviewCount || Math.floor(Math.random() * 50) + 5;
     <!-- Image -->
     <div class="aspect-square overflow-hidden bg-white relative flex items-center justify-center">
       <img
-        src={product.images[0] || '/images/placeholder-product.jpg'}
+        src={product.images[0] || '/images/placeholder-product.svg'}
         alt={productAltText}
         class="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
         loading="lazy"
+        onerror="this.onerror=null;this.src='/images/placeholder-product.svg'"
       />
       
       <!-- Badges -->

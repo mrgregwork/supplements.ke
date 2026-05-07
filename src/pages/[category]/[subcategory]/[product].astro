@@ -156,9 +156,10 @@ const pageTitle = enableRegionalSeo
         <div class="aspect-square overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-50 via-white to-stone-50 border border-border/50 flex items-center justify-center shadow-sm">
           <img
             id="main-product-image"
-            src={images[0] || '/images/placeholder-product.jpg'}
+            src={images[0] || '/images/placeholder-product.svg'}
             alt={productAltText}
             class="h-full w-full object-contain p-4 transition-opacity duration-200"
+            onerror="this.onerror=null;this.src='/images/placeholder-product.svg'"
             data-testid="img-product-main"
           />
         </div>

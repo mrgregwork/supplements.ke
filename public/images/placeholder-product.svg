@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" fill="none">
+  <rect width="400" height="400" fill="#f4f6f4"/>
+  <!-- Bottle body -->
+  <rect x="155" y="160" width="90" height="140" rx="12" fill="#d1e8d4" stroke="#a8d5ae" stroke-width="2"/>
+  <!-- Bottle neck -->
+  <rect x="172" y="130" width="56" height="36" rx="6" fill="#d1e8d4" stroke="#a8d5ae" stroke-width="2"/>
+  <!-- Cap -->
+  <rect x="165" y="112" width="70" height="24" rx="8" fill="#4a9e5c" stroke="#3d8a4f" stroke-width="1.5"/>
+  <!-- Label -->
+  <rect x="163" y="175" width="74" height="80" rx="6" fill="white" fill-opacity="0.85"/>
+  <!-- Label lines -->
+  <rect x="172" y="185" width="56" height="5" rx="2.5" fill="#a8d5ae"/>
+  <rect x="176" y="196" width="48" height="4" rx="2" fill="#c8e6cb"/>
+  <rect x="176" y="205" width="48" height="4" rx="2" fill="#c8e6cb"/>
+  <rect x="176" y="214" width="36" height="4" rx="2" fill="#c8e6cb"/>
+  <!-- Plus icon on cap -->
+  <rect x="193" y="119" width="14" height="3" rx="1.5" fill="white"/>
+  <rect x="198.5" y="113.5" width="3" height="14" rx="1.5" fill="white"/>
+  <!-- Shine -->
+  <rect x="162" y="168" width="8" height="60" rx="4" fill="white" fill-opacity="0.35"/>
+</svg>
