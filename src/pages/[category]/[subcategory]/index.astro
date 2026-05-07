@@ -66,9 +66,23 @@ const structuredData = {
   ]
 };
 
+// Deterministic meta title rotation — different search angle from H1
+function slugHash(slug: string): number {
+  let h = 5381;
+  for (let i = 0; i < slug.length; i++) {
+    h = ((h << 5) + h) ^ slug.charCodeAt(i);
+  }
+  return Math.abs(h);
+}
+const subName = subcategory.seoTitle || subcategory.name;
+const titleVariant = slugHash(subcategory.slug) % 3;
 const pageTitle = siteSettings.enableRegionalSeo && siteSettings.targetRegion
-  ? `${subcategory.seoTitle || subcategory.name} - Price In ${siteSettings.targetRegion}`
-  : (subcategory.seoTitle || subcategory.name);
+  ? [
+      `Buy ${subName} in Kenya | Order on WhatsApp`,
+      `${subName} | Same-Day Delivery in Nairobi`,
+      `Shop ${subName} Online in Kenya | Supplements Kenya`,
+    ][titleVariant]
+  : subName;
 ---
 
 <BaseLayout 

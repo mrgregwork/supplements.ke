@@ -59,9 +59,23 @@ const structuredData = {
   ]
 };
 
+// Deterministic meta title rotation — different search angle from H1
+function slugHash(slug: string): number {
+  let h = 5381;
+  for (let i = 0; i < slug.length; i++) {
+    h = ((h << 5) + h) ^ slug.charCodeAt(i);
+  }
+  return Math.abs(h);
+}
+const catName = category.seoTitle || category.name;
+const titleVariant = slugHash(category.slug) % 3;
 const pageTitle = siteSettings.enableRegionalSeo && siteSettings.targetRegion
-  ? `${category.seoTitle || category.name} - Price In ${siteSettings.targetRegion}`
-  : (category.seoTitle || category.name);
+  ? [
+      `Buy ${catName} in Kenya | Order on WhatsApp`,
+      `${catName} | Same-Day Delivery in Nairobi`,
+      `Shop ${catName} Online in Kenya | Supplements Kenya`,
+    ][titleVariant]
+  : catName;
 
 // Form and lifestyle filter pages should not be indexed by search engines
 const NOINDEX_SLUGS = ['supplement-forms', 'lifestyle-supplements'];
