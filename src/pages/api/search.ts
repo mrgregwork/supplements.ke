@@ -14,6 +14,7 @@ export const GET: APIRoute = async ({ url }) => {
   }
 
   const term = `%${q}%`;
+  const startTerm = `${q}%`;
 
   const rows = await db
     .select({
@@ -26,13 +27,23 @@ export const GET: APIRoute = async ({ url }) => {
     })
     .from(products)
     .where(
-      or(
-        ilike(products.name, term),
-        ilike(products.brand, term)
+      and(
+        eq(products.status, 'active'),
+        or(
+          ilike(products.name, term),
+          ilike(products.brand, term),
+          ilike(products.description, term)
+        )
       )
     )
     .orderBy(sql`
-      CASE WHEN lower(${products.name}) LIKE lower(${q + '%'}) THEN 0 ELSE 1 END,
+      CASE
+        WHEN lower(${products.name}) = lower(${q}) THEN 0
+        WHEN lower(${products.name}) LIKE lower(${startTerm}) THEN 1
+        WHEN lower(${products.name}) LIKE lower(${term}) THEN 2
+        WHEN lower(${products.brand}) LIKE lower(${startTerm}) THEN 3
+        ELSE 4
+      END,
       ${products.name}
     `)
     .limit(8);

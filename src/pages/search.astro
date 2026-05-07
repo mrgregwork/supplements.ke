@@ -1,0 +1,150 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import ProductCard from '@components/ProductCard.astro';
+import { db } from '../../server/db';
+import { products } from '@shared/schema';
+import { eq, ilike, or, and, sql } from 'drizzle-orm';
+
+const q = (Astro.url.searchParams.get('q') ?? '').trim();
+
+let results: any[] = [];
+let searchError = false;
+
+if (q.length >= 2) {
+  try {
+    const term = `%${q}%`;
+    const startTerm = `${q}%`;
+
+    results = await db
+      .select()
+      .from(products)
+      .where(
+        and(
+          eq(products.status, 'active'),
+          or(
+            ilike(products.name, term),
+            ilike(products.brand, term),
+            ilike(products.description, term),
+            sql`${products.attributes}::text ILIKE ${term}`
+          )
+        )
+      )
+      .orderBy(
+        // Exact name match first, then starts-with, then contains
+        sql`
+          CASE
+            WHEN lower(${products.name}) = lower(${q}) THEN 0
+            WHEN lower(${products.name}) LIKE lower(${startTerm}) THEN 1
+            WHEN lower(${products.name}) LIKE lower(${term}) THEN 2
+            WHEN lower(${products.brand}) LIKE lower(${startTerm}) THEN 3
+            WHEN lower(${products.brand}) LIKE lower(${term}) THEN 4
+            ELSE 5
+          END
+        `,
+        products.name
+      )
+      .limit(60);
+  } catch (e) {
+    console.error('Search error:', e);
+    searchError = true;
+  }
+}
+
+const productData = results.map(p => ({
+  ...p,
+  images: p.images || [],
+  attributes: p.attributes || [],
+}));
+
+const pageTitle = q ? `Search results for "${q}" in Kenya` : 'Search Supplements in Kenya';
+const metaDesc = q
+  ? `Found ${results.length} supplement${results.length !== 1 ? 's' : ''} matching "${q}" in Kenya. Shop online with same-day delivery in Nairobi.`
+  : 'Search our full range of supplements, vitamins, minerals and protein powders available in Kenya.';
+---
+
+<BaseLayout title={pageTitle} description={metaDesc} noindex={true}>
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- Search header -->
+    <div class="mb-8">
+      <h1 class="text-2xl sm:text-3xl font-bold">
+        {q
+          ? results.length > 0
+            ? `${results.length} result${results.length !== 1 ? 's' : ''} for "${q}"`
+            : `No results for "${q}"`
+          : 'Search Supplements'}
+      </h1>
+      {q && results.length > 0 && (
+        <p class="mt-1 text-sm text-muted-foreground">
+          Showing the most relevant matches — sorted by relevance
+        </p>
+      )}
+    </div>
+
+    <!-- Search box (for refining) -->
+    <form action="/search" method="get" class="mb-8 max-w-xl">
+      <div class="relative">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="m21 21-4.3-4.3"/>
+        </svg>
+        <input
+          type="search"
+          name="q"
+          value={q}
+          placeholder="Search supplements, vitamins, brands…"
+          autocomplete="off"
+          autofocus
+          class="w-full pl-10 pr-28 py-3 text-sm border-2 rounded-lg bg-background focus:outline-none focus:border-primary transition-colors"
+        />
+        <button
+          type="submit"
+          class="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-1.5 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 transition-colors"
+        >
+          Search
+        </button>
+      </div>
+    </form>
+
+    {searchError && (
+      <div class="py-12 text-center text-muted-foreground">
+        <p>Something went wrong. Please try again.</p>
+      </div>
+    )}
+
+    {!searchError && q.length >= 2 && results.length === 0 && (
+      <div class="py-16 text-center">
+        <svg class="mx-auto mb-4 h-12 w-12 text-muted-foreground/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="m21 21-4.3-4.3"/>
+        </svg>
+        <h2 class="text-lg font-semibold mb-2">No supplements found for "{q}"</h2>
+        <p class="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
+          Try a different name, brand, or browse by category below.
+        </p>
+        <div class="flex flex-wrap items-center justify-center gap-3">
+          <a href="/vitamins/" class="inline-flex items-center px-4 py-2 border rounded-md text-sm hover:bg-accent transition-colors">Vitamins</a>
+          <a href="/protein/" class="inline-flex items-center px-4 py-2 border rounded-md text-sm hover:bg-accent transition-colors">Protein</a>
+          <a href="/collagen/" class="inline-flex items-center px-4 py-2 border rounded-md text-sm hover:bg-accent transition-colors">Collagen</a>
+          <a href="/specialty-supplements/" class="inline-flex items-center px-4 py-2 border rounded-md text-sm hover:bg-accent transition-colors">Specialty</a>
+          <a href="/minerals/" class="inline-flex items-center px-4 py-2 border rounded-md text-sm hover:bg-accent transition-colors">Minerals</a>
+        </div>
+      </div>
+    )}
+
+    {!searchError && q.length < 2 && (
+      <div class="py-12 text-center text-muted-foreground">
+        <p class="text-sm">Type at least 2 characters to search.</p>
+      </div>
+    )}
+
+    {!searchError && results.length > 0 && (
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        {productData.map(product => (
+          <ProductCard product={product} />
+        ))}
+      </div>
+    )}
+
+  </div>
+</BaseLayout>

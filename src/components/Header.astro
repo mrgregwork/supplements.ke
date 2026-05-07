@@ -565,7 +565,7 @@ const currentPath = Astro.url.pathname;
         if (activeIdx >= 0 && items[activeIdx]) {
           (items[activeIdx] as HTMLAnchorElement).click();
         } else if (input.value.trim()) {
-          window.location.href = `/all-supplements/?search=${encodeURIComponent(input.value.trim())}`;
+          window.location.href = `/search?q=${encodeURIComponent(input.value.trim())}`;
         }
       } else if (e.key === 'Escape') {
         hide();
