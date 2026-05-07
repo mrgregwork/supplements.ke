@@ -229,7 +229,7 @@ export class DatabaseStorage implements IStorage {
 
   // Products
   async getProducts(): Promise<Product[]> {
-    return db.select().from(products).orderBy(desc(products.createdAt));
+    return db.select().from(products).where(eq(products.status, 'active')).orderBy(desc(products.createdAt));
   }
 
   async getProduct(id: string): Promise<Product | undefined> {
@@ -245,24 +245,32 @@ export class DatabaseStorage implements IStorage {
   async getProductsByCategory(categoryId: string): Promise<Product[]> {
     // Include products whose primary category matches OR which list this id in additional_category_ids
     return db.select().from(products).where(
-      or(
-        eq(products.categoryId, categoryId),
-        sql`${products.additionalCategoryIds} @> ${JSON.stringify([categoryId])}::jsonb`
+      and(
+        eq(products.status, 'active'),
+        or(
+          eq(products.categoryId, categoryId),
+          sql`${products.additionalCategoryIds} @> ${JSON.stringify([categoryId])}::jsonb`
+        )
       )
     ).orderBy(desc(products.createdAt));
   }
 
   async getProductsBySubcategory(subcategoryId: string): Promise<Product[]> {
     return db.select().from(products).where(
-      or(
-        eq(products.subcategoryId, subcategoryId),
-        sql`${products.additionalSubcategoryIds} @> ${JSON.stringify([subcategoryId])}::jsonb`
+      and(
+        eq(products.status, 'active'),
+        or(
+          eq(products.subcategoryId, subcategoryId),
+          sql`${products.additionalSubcategoryIds} @> ${JSON.stringify([subcategoryId])}::jsonb`
+        )
       )
     ).orderBy(desc(products.createdAt));
   }
 
   async getProductsByBrand(brand: string): Promise<Product[]> {
-    return db.select().from(products).where(ilike(products.brand, brand)).orderBy(asc(products.name));
+    return db.select().from(products).where(
+      and(eq(products.status, 'active'), ilike(products.brand, brand))
+    ).orderBy(asc(products.name));
   }
 
   async getProductsByBrandSlug(slug: string): Promise<Product[]> {
@@ -270,7 +278,10 @@ export class DatabaseStorage implements IStorage {
     // so "doctors-best" matches "Doctor's Best", "natures-way" matches "Nature's Way", etc.
     const normalized = slug.replace(/-/g, ' ');
     const result = await db.select().from(products).where(
-      sql`regexp_replace(regexp_replace(lower(${products.brand}), '-', ' ', 'g'), '[^a-z0-9 ]', '', 'g') ilike ${normalized}`
+      and(
+        eq(products.status, 'active'),
+        sql`regexp_replace(regexp_replace(lower(${products.brand}), '-', ' ', 'g'), '[^a-z0-9 ]', '', 'g') ilike ${normalized}`
+      )
     ).orderBy(asc(products.name));
     return result;
   }
