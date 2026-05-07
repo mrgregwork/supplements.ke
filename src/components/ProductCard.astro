@@ -1,6 +1,5 @@
 ---
-import siteSettings from '@config/siteSettings.json';
-import { getRegionalAltText, generateProductUrl, formatPrice } from '@lib/seo';
+import { generateProductUrl, formatPrice } from '@lib/seo';
 import { getProductImageAlt } from '@lib/schema';
 import DualPrice from '@components/DualPrice.astro';
 
@@ -57,9 +56,7 @@ const reviewCount = product.reviewCount || Math.floor(Math.random() * 50) + 5;
   <a 
     href={productUrl} 
     class="block"
-    title={siteSettings.enableRegionalSeo 
-      ? `${product.name} Price In ${siteSettings.targetRegion}`
-      : product.name}
+    title={product.name}
   >
     <!-- Image -->
     <div class="aspect-square overflow-hidden bg-white relative flex items-center justify-center">

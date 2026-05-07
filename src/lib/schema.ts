@@ -647,5 +647,5 @@ export function getProductImageAlt(
 }
 
 export function getCategoryImageAlt(categoryName: string): string {
-  return getSchemaAltText(categoryName, 'Supplements Category', 'Shop Now');
+  return categoryName;
 }

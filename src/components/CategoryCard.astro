@@ -1,6 +1,5 @@
 ---
-import siteSettings from '@config/siteSettings.json';
-import { getRegionalAnchorText, generateCategoryUrl } from '@lib/seo';
+import { generateCategoryUrl } from '@lib/seo';
 import { getCategoryImageAlt } from '@lib/schema';
 
 interface Props {
@@ -23,9 +22,7 @@ const categoryAltText = getCategoryImageAlt(category.name);
   <a 
     href={categoryUrl} 
     class="group flex flex-col items-center gap-3 min-w-[100px]"
-    title={siteSettings.enableRegionalSeo 
-      ? `${category.name} Price In ${siteSettings.targetRegion}`
-      : category.name}
+    title={category.name}
     data-testid={`card-category-${category.slug}`}
   >
     <div class="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden bg-muted/30 border-2 border-transparent group-hover:border-primary transition-all duration-300 shadow-md group-hover:shadow-lg">
@@ -45,9 +42,7 @@ const categoryAltText = getCategoryImageAlt(category.name);
   <a 
     href={categoryUrl} 
     class="group relative block overflow-hidden rounded-lg bg-card border border-card-border hover:shadow-lg hover:border-primary/30 transition-all duration-300"
-    title={siteSettings.enableRegionalSeo 
-      ? `${category.name} Price In ${siteSettings.targetRegion}`
-      : category.name}
+    title={category.name}
     data-testid={`card-category-${category.slug}`}
   >
     <div class="aspect-[4/3] overflow-hidden bg-muted/30">
