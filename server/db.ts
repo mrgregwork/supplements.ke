@@ -12,5 +12,11 @@ if (!dbUrl) {
   );
 }
 
-export const pool = new Pool({ connectionString: dbUrl });
+export const pool = new Pool({
+  connectionString: dbUrl,
+  max: 3,                        // keep connection count low (Neon free tier)
+  connectionTimeoutMillis: 15000, // 15s to establish connection (covers Neon cold-start)
+  idleTimeoutMillis: 30000,       // close idle connections after 30s
+  keepAlive: true,               // send TCP keepalives to detect dropped connections
+});
 export const db = drizzle(pool, { schema });

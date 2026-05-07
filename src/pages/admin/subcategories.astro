@@ -546,22 +546,26 @@ const subcategoriesWithCategory = allSubcategories.map(sub => ({
     try {
       const url = id ? `/api/admin/subcategories/${id}` : '/api/admin/subcategories';
       const method = id ? 'PUT' : 'POST';
-      
+
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-      
+
       if (res.ok) {
         window.location.reload();
       } else {
-        const result = await res.json();
-        alert(result.error || 'Failed to save subcategory');
+        let errMsg = `Save failed (HTTP ${res.status})`;
+        try {
+          const result = await res.json();
+          errMsg = result.error || errMsg;
+        } catch { /* response was not JSON (e.g. 504 gateway timeout) */ }
+        alert(errMsg);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Save failed:', err);
-      alert('Failed to save subcategory');
+      alert(err?.message ? `Save failed: ${err.message}` : 'Save failed — please try again');
     }
   });
 

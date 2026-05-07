@@ -118,7 +118,8 @@ export function sanitizeHTML(html: string | null | undefined): string | null {
 
 function escapeHtml(text: string): string {
   return text
-    .replace(/&/g, '&amp;')
+    // Don't double-encode existing HTML entities (e.g. &nbsp; &amp; &#160; etc.)
+    .replace(/&(?![a-zA-Z]{2,8};|#\d{1,6};|#x[\da-fA-F]{1,6};)/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
