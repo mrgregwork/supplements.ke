@@ -13,13 +13,13 @@ const { category: categorySlug, subcategory: subcategorySlug } = Astro.params;
 const category = await storage.getCategoryBySlug(categorySlug!);
 
 if (!category || !category.isActive) {
-  return Astro.redirect('/404');
+  return new Response(null, { status: 404 });
 }
 
 const subcategory = await storage.getSubcategoryBySlug(category.id, subcategorySlug!);
 
 if (!subcategory || !subcategory.isActive) {
-  return Astro.redirect('/404');
+  return new Response(null, { status: 404 });
 }
 
 const products = await storage.getProductsBySubcategory(subcategory.id);

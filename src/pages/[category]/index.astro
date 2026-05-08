@@ -14,7 +14,7 @@ const { category: categorySlug } = Astro.params;
 const category = await storage.getCategoryBySlug(categorySlug!);
 
 if (!category || !category.isActive) {
-  return Astro.redirect('/404');
+  return new Response(null, { status: 404 });
 }
 
 const subcategories = await storage.getSubcategoriesByCategoryId(category.id);

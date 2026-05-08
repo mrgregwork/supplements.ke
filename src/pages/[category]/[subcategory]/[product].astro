@@ -20,7 +20,7 @@ const [product, siteSettings, siteRating] = await Promise.all([
   getSiteRating(),
 ]);
 
-if (!product) return Astro.redirect('/404');
+if (!product) return new Response(null, { status: 404 });
 
 // Fetch related products: same subcategory first, fall back to same brand
 // Using getProductsBySubcategory (proven method) rather than getRelatedProducts
