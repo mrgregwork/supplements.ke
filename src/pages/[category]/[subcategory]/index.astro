@@ -23,8 +23,6 @@ if (!subcategory || !subcategory.isActive) {
 }
 
 const products = await storage.getProductsBySubcategory(subcategory.id);
-const allSubcategories = await storage.getSubcategoriesByCategoryId(category.id);
-const siblingSubcategories = allSubcategories.filter(s => s.id !== subcategory.id && s.isActive).slice(0, 3);
 const siteSettings = await getSiteSettings();
 
 const breadcrumbItems = [
@@ -123,33 +121,6 @@ const pageTitle = hasCustomTitle
       </div>
     )}
 
-    {siblingSubcategories.length > 0 && (
-      <div class="mt-8 pt-8 border-t">
-        <h2 class="text-lg font-semibold mb-4">Related Categories</h2>
-        <div class="flex flex-wrap gap-3">
-          {siblingSubcategories.map((sub) => (
-            <a 
-              href={generateSubcategoryUrl(categorySlug!, sub.slug)}
-              title={siteSettings.enableRegionalSeo && siteSettings.targetRegion 
-                ? `View ${sub.name} in ${siteSettings.targetRegion}` 
-                : `View ${sub.name}`}
-              class="inline-flex items-center px-4 py-2 min-h-[44px] bg-card border border-card-border rounded-md text-sm font-medium hover:bg-accent transition-colors"
-            >
-              {sub.name}
-            </a>
-          ))}
-        </div>
-        <p class="mt-4 text-sm text-muted-foreground">
-          <a 
-            href={generateCategoryUrl(categorySlug!)} 
-            class="text-primary hover:underline"
-            title={`Back to ${category.name}`}
-          >
-            ← Back to {category.name}
-          </a>
-        </p>
-      </div>
-    )}
   </div>
   
   <AdminToolbar
