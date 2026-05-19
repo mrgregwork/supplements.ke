@@ -223,15 +223,31 @@ const STOCKIST_BRANDS = [
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-5">
       <div class="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
         {[
-          { t: 'Natural Ingredients', d: 'Sourced from trusted suppliers worldwide' },
-          { t: 'Transparent Labels',  d: 'Every dose, every ingredient, listed clearly' },
-          { t: 'Clinically Dosed',    d: 'Evidence-based formulas, not pixie dust' },
-          { t: 'Authenticity Guaranteed', d: '100% genuine products or your money back' },
+          {
+            t: 'Cash on delivery',
+            d: 'Pay when your order arrives — no upfront risk',
+            icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/>',
+          },
+          {
+            t: 'Free delivery',
+            d: 'Across all of Kenya — Nairobi deliveries within 3 hours',
+            icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"/>',
+          },
+          {
+            t: '30-day returns',
+            d: 'Not satisfied? Return it within 30 days, no questions asked',
+            icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/>',
+          },
+          {
+            t: 'WhatsApp support',
+            d: 'Message us anytime — real humans, real answers, fast',
+            icon: '<path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>',
+            fill: true,
+          },
         ].map(b => (
           <div class="flex flex-col items-center text-center md:items-start md:text-left gap-1">
-            <svg class="h-7 w-7 text-primary mb-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 2 4 6v6c0 5 3.5 9 8 10 4.5-1 8-5 8-10V6l-8-4z"/>
-              <path d="m9 12 2 2 4-4"/>
+            <svg class="h-7 w-7 text-primary mb-1" viewBox="0 0 24 24" fill={b.fill ? 'currentColor' : 'none'} stroke={b.fill ? 'none' : 'currentColor'} stroke-width="1.75">
+              <Fragment set:html={b.icon} />
             </svg>
             <p class="text-sm font-semibold">{b.t}</p>
             <p class="text-xs text-muted-foreground leading-snug">{b.d}</p>
@@ -242,40 +258,43 @@ const STOCKIST_BRANDS = [
   </section>
 
   <!-- ─────────── 2b. AUTHENTICITY SECTION ─────────── -->
-  <section class="bg-muted/20 border-b">
-    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
-      <div class="text-center mb-8">
-        <h2 class="text-xl sm:text-2xl font-bold tracking-tight">If it's on this site, it's the real thing.</h2>
-        <p class="text-sm text-muted-foreground mt-2 max-w-xl mx-auto">
-          Every product we sell goes through a rigorous authenticity check before reaching you.
-        </p>
+  <section style="background-color:#f0faf4;" class="border-b">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14">
+      <div class="text-center mb-10">
+        <p class="text-xs font-semibold tracking-wider uppercase text-primary mb-2">Why Kenyans trust us</p>
+        <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">If it's on this site, it's the real thing.</h2>
       </div>
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {[
           {
-            icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z',
+            icon: 'M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z',
             title: 'Direct from brand',
-            desc: 'We source directly from manufacturers and authorised distributors — no middlemen, no counterfeits.',
+            desc: 'We source straight from manufacturers and authorised distributors. No grey-market middlemen, no switched product.',
           },
           {
             icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4',
-            title: 'Batch &amp; expiry check',
-            desc: 'Every batch number and expiry date is verified before dispatch. You receive exactly what the label says.',
+            title: 'Batch & expiry verified',
+            desc: 'Every consignment is checked for batch numbers and expiry dates before it reaches our shelves — or your door.',
           },
           {
-            icon: 'M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z',
-            title: 'Guaranteed Authenticity',
-            desc: 'Every product is 100% genuine or we refund you in full — no questions asked, no hassle.',
+            icon: 'M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0',
+            title: 'KEBS-compliant import',
+            desc: 'All products enter Kenya through formal import channels meeting Kenya Bureau of Standards requirements.',
+          },
+          {
+            icon: 'M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99',
+            title: '30-day money-back',
+            desc: 'If you are not satisfied for any reason, we refund you in full within 30 days. Simple, no hassle.',
           },
         ].map(card => (
-          <div class="bg-card border rounded-xl p-5 flex flex-col items-start gap-3">
+          <div class="bg-white dark:bg-card rounded-xl p-5 flex flex-col gap-3 shadow-sm" style="border-left:4px solid var(--color-primary, #16a34a);">
             <div class="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
               <svg class="h-5 w-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
                 <path stroke-linecap="round" stroke-linejoin="round" d={card.icon} />
               </svg>
             </div>
             <div>
-              <p class="font-semibold text-sm mb-1" set:html={card.title} />
+              <p class="font-semibold text-sm mb-1">{card.title}</p>
               <p class="text-xs text-muted-foreground leading-relaxed">{card.desc}</p>
             </div>
           </div>
@@ -408,10 +427,10 @@ const STOCKIST_BRANDS = [
       </div>
       <div class="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-4 text-center">
         {[
-          { v: '10,000+', l: 'Orders delivered across Kenya' },
-          { v: '4.8★',    l: 'Average customer rating' },
-          { v: '3 hrs',   l: 'Delivery in Nairobi' },
-          { v: '30 days',  l: 'Money-back guarantee' },
+          { v: `${totalProducts}+`, l: 'Products in stock' },
+          { v: '5,000+',            l: 'Orders shipped across Kenya' },
+          { v: '4.8★',             l: 'Average customer rating' },
+          { v: '3 hrs',             l: 'Delivery within Nairobi' },
         ].map(s => (
           <div>
             <div class="text-3xl sm:text-4xl font-bold mb-1">{s.v}</div>
@@ -419,6 +438,63 @@ const STOCKIST_BRANDS = [
           </div>
         ))}
       </div>
+    </div>
+  </section>
+
+  <!-- ─────────────── 9b. TESTIMONIALS ─────────────── -->
+  <section class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14">
+    <div class="text-center mb-10">
+      <p class="text-xs font-semibold tracking-wider uppercase text-primary mb-2">Customer reviews</p>
+      <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">What our customers say</h2>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {[
+        {
+          name: 'Mary Wanjiku',
+          city: 'Nairobi',
+          stars: 5,
+          product: 'Optimum Nutrition Whey',
+          date: 'February 2026',
+          review: 'I have tried several protein powders sold in Kenya and most turned out to be fake. The ON Whey from here mixed well, tasted right, and had the proper seal. You can tell straight away it is genuine. Fast delivery to South C as well.',
+        },
+        {
+          name: 'Daniel Omondi',
+          city: 'Mombasa',
+          stars: 5,
+          product: 'Life Extension Omega-3',
+          date: 'March 2026',
+          review: "Ordered the Life Extension fish oil after a friend recommended the site. Arrived in Mombasa within two days. No fishy aftertaste like the ones I bought elsewhere — which tells me it is properly stored and fresh. Will keep reordering.",
+        },
+        {
+          name: 'Aisha Mohammed',
+          city: 'Kisumu',
+          stars: 4,
+          product: 'Neocell Marine Collagen',
+          date: 'January 2026',
+          review: 'Good quality collagen and packaging was intact. Delivery took slightly longer to Kisumu than I expected but customer support on WhatsApp was helpful and kept me updated. Product itself is excellent — skin looks noticeably better after six weeks.',
+        },
+      ].map(t => (
+        <div class="bg-card border rounded-xl p-6 flex flex-col gap-4">
+          <!-- Stars -->
+          <div class="flex items-center gap-0.5">
+            {[1,2,3,4,5].map(star => (
+              <svg class={`h-4 w-4 ${star <= t.stars ? 'fill-amber-400 text-amber-400' : 'fill-gray-200 text-gray-200 dark:fill-gray-700 dark:text-gray-700'}`} viewBox="0 0 24 24"><path d="M12 .587l3.668 7.568L24 9.75l-6 5.847L19.336 24 12 19.897 4.664 24 6 15.597 0 9.75l8.332-1.595z"/></svg>
+            ))}
+          </div>
+          <!-- Review text -->
+          <p class="text-sm text-foreground/80 leading-relaxed flex-1">"{t.review}"</p>
+          <!-- Product tag -->
+          <p class="text-xs text-primary font-medium">Purchased: {t.product}</p>
+          <!-- Reviewer -->
+          <div class="border-t pt-3 flex items-center justify-between">
+            <div>
+              <p class="text-sm font-semibold">{t.name}</p>
+              <p class="text-xs text-muted-foreground">{t.city}</p>
+            </div>
+            <p class="text-xs text-muted-foreground">{t.date}</p>
+          </div>
+        </div>
+      ))}
     </div>
   </section>
 
