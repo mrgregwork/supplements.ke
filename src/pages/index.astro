@@ -79,7 +79,6 @@ const STOCKIST_BRANDS = [
   'NeoCell',
   'Optimum Nutrition',
   'Nature Made',
-  'NOW Foods',
 ];
 ---
 
@@ -144,7 +143,7 @@ const STOCKIST_BRANDS = [
         </span>
         <span class="flex items-center gap-1.5">
           <svg class="h-3.5 w-3.5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="16" height="13" x="6" y="4" rx="2"/><path d="M6 8H4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h2"/><path d="M18 8h2a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/></svg>
-          3–7 day Kenya delivery
+          3-hr delivery in Nairobi
         </span>
       </div>
     </div>
@@ -182,7 +181,7 @@ const STOCKIST_BRANDS = [
           Every product we sell goes through a rigorous authenticity check before reaching you.
         </p>
       </div>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-5">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
         {[
           {
             icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z',
@@ -195,14 +194,9 @@ const STOCKIST_BRANDS = [
             desc: 'Every batch number and expiry date is verified before dispatch. You receive exactly what the label says.',
           },
           {
-            icon: 'M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3',
-            title: 'KEBS-compliant imports',
-            desc: 'All imports comply with Kenya Bureau of Standards guidelines for health products.',
-          },
-          {
-            icon: 'M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z',
-            title: '30-day refund',
-            desc: 'Not satisfied? We will refund your order in full within 30 days — no questions asked.',
+            icon: 'M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z',
+            title: 'Guaranteed Authenticity',
+            desc: 'Every product is 100% genuine or we refund you in full — no questions asked, no hassle.',
           },
         ].map(card => (
           <div class="bg-card border rounded-xl p-5 flex flex-col items-start gap-3">
@@ -336,82 +330,6 @@ const STOCKIST_BRANDS = [
     </div>
   </section>
 
-  <!-- ─────────────── 8. CUSTOMER REVIEWS ─────────────── -->
-  <section class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14">
-    <div class="flex items-end justify-between mb-6">
-      <div>
-        <p class="text-xs font-semibold tracking-wider uppercase text-primary mb-1">From real customers</p>
-        <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">What customers are saying</h2>
-      </div>
-      <div class="hidden sm:flex items-center gap-1">
-        {[1,2,3,4,5].map(() => (
-          <svg class="h-5 w-5 fill-amber-400 text-amber-400" viewBox="0 0 24 24"><path d="M12 .587l3.668 7.568L24 9.75l-6 5.847L19.336 24 12 19.897 4.664 24 6 15.597 0 9.75l8.332-1.595z"/></svg>
-        ))}
-        <span class="ml-2 text-sm font-medium">4.8 · 1,200+ verified orders</span>
-      </div>
-    </div>
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-      {([
-        {
-          initials: 'MK', name: 'Mary K.', city: 'Nairobi',
-          stars: 5, date: 'March 2025',
-          headline: 'Genuine products, fast delivery',
-          body: 'Ordered three times now. Always authentic and always on time. The whey protein is exactly what was on the label.',
-          product: 'Whey Protein Isolate',
-        },
-        {
-          initials: 'DO', name: 'Daniel O.', city: 'Mombasa',
-          stars: 5, date: 'January 2025',
-          headline: 'My go-to supplement store',
-          body: 'Prices are honest, the team helped me build a routine that works, and delivery to Mombasa was quicker than I expected.',
-          product: 'Daily Multivitamin',
-        },
-        {
-          initials: 'AM', name: 'Aisha M.', city: 'Nairobi',
-          stars: 4, date: 'February 2025',
-          headline: 'Real collagen, finally',
-          body: 'Marine collagen with no sugar and no fillers. My skin and nails noticeably improved in 8 weeks. Deducting one star only because I wish they stocked larger sizes.',
-          product: 'Marine Collagen Peptides',
-        },
-        {
-          initials: 'JN', name: 'James N.', city: 'Kisumu',
-          stars: 5, date: 'April 2025',
-          headline: 'M-Pesa checkout is seamless',
-          body: 'Paid via M-Pesa and my order was confirmed within minutes. Supplements arrived well-packed with batch numbers intact. Will order again.',
-          product: 'Vital Proteins Collagen',
-        },
-      ] as Array<{initials:string;name:string;city:string;stars:number;date:string;headline:string;body:string;product:string}>).map(r => (
-        <article class="bg-card border rounded-2xl p-5 hover:shadow-md transition-shadow flex flex-col">
-          <div class="flex items-center gap-1 mb-3">
-            {Array.from({length: 5}).map((_, i) => (
-              <svg class={`h-4 w-4 ${i < r.stars ? 'fill-amber-400 text-amber-400' : 'fill-muted text-muted-foreground/30'}`} viewBox="0 0 24 24"><path d="M12 .587l3.668 7.568L24 9.75l-6 5.847L19.336 24 12 19.897 4.664 24 6 15.597 0 9.75l8.332-1.595z"/></svg>
-            ))}
-          </div>
-          <h3 class="font-semibold text-sm mb-2">{r.headline}</h3>
-          <p class="text-xs text-muted-foreground mb-4 flex-1 leading-relaxed">{r.body}</p>
-          <footer class="pt-3 border-t border-border/50">
-            <div class="flex items-center gap-2.5 mb-1">
-              <div class="h-7 w-7 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[10px] font-bold shrink-0">
-                {r.initials}
-              </div>
-              <div>
-                <div class="flex items-center gap-1.5">
-                  <span class="text-xs font-semibold">{r.name}</span>
-                  <span class="inline-flex items-center gap-0.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-[10px] font-semibold px-1.5 py-0.5 rounded">
-                    <svg class="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m20 6-11 11-5-5"/></svg>
-                    Verified
-                  </span>
-                </div>
-                <div class="text-[10px] text-muted-foreground">{r.city} · {r.date}</div>
-              </div>
-            </div>
-            <p class="text-[10px] text-muted-foreground mt-1 truncate">Purchased: {r.product}</p>
-          </footer>
-        </article>
-      ))}
-    </div>
-  </section>
-
   <!-- ─────────────── 9. STATS ROW ─────────────── -->
   <section class="bg-primary text-primary-foreground">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14">
@@ -423,7 +341,7 @@ const STOCKIST_BRANDS = [
         {[
           { v: '10,000+', l: 'Orders delivered across Kenya' },
           { v: '4.8★',    l: 'Average customer rating' },
-          { v: '3–7 days', l: 'Nationwide delivery' },
+          { v: '3 hrs',   l: 'Delivery in Nairobi' },
           { v: '30 days',  l: 'Money-back guarantee' },
         ].map(s => (
           <div>
