@@ -97,39 +97,44 @@ const STOCKIST_BRANDS = [
         <!-- ── Left 70%: Hero content ── -->
         <div class="text-center lg:text-left">
 
-          <!-- ── Review social proof bar ── -->
-          <div class="inline-flex items-center gap-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-700 rounded-2xl px-4 py-3 mb-5 shadow-sm w-full sm:w-auto">
-            <!-- Avatar stack -->
-            <div class="flex -space-x-2 shrink-0">
-              {[
-                { i: 'MK', c: 'bg-emerald-500' },
-                { i: 'DO', c: 'bg-blue-500' },
-                { i: 'AM', c: 'bg-rose-500' },
-                { i: 'JN', c: 'bg-violet-500' },
-              ].map(a => (
-                <div class={`h-8 w-8 rounded-full ${a.c} text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-amber-50 dark:ring-amber-950/40`}>
-                  {a.i}
-                </div>
-              ))}
-            </div>
-            <div class="text-left">
-              <div class="flex items-center gap-1.5">
-                <div class="flex items-center gap-0.5">
-                  {[1,2,3,4,5].map(() => (
-                    <svg class="h-4 w-4 fill-amber-400 text-amber-400" viewBox="0 0 24 24"><path d="M12 .587l3.668 7.568L24 9.75l-6 5.847L19.336 24 12 19.897 4.664 24 6 15.597 0 9.75l8.332-1.595z"/></svg>
-                  ))}
-                </div>
-                <span class="text-sm font-bold text-amber-800 dark:text-amber-300">4.8</span>
+          <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight leading-[1.1] mb-5" data-testid="text-hero-title">
+            {hero.title || (<>Hold your supplements to a <span class="text-primary">higher standard</span>.</>)}
+          </h1>
+
+          <!-- ── Review trust bar — under H1 ── -->
+          <div class="flex flex-col sm:flex-row items-center lg:items-start gap-4 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-950/50 dark:to-yellow-950/30 border-2 border-amber-200 dark:border-amber-600 rounded-2xl px-5 py-4 mb-5 shadow-md w-full">
+            <!-- Stars + score -->
+            <div class="flex flex-col items-center justify-center shrink-0">
+              <div class="flex items-center gap-1 mb-1">
+                {[1,2,3,4,5].map(() => (
+                  <svg class="h-6 w-6 fill-amber-400 text-amber-400" viewBox="0 0 24 24"><path d="M12 .587l3.668 7.568L24 9.75l-6 5.847L19.336 24 12 19.897 4.664 24 6 15.597 0 9.75l8.332-1.595z"/></svg>
+                ))}
               </div>
-              <p class="text-xs text-amber-700 dark:text-amber-400 font-medium leading-tight">
-                Trusted by 1,200+ verified customers in Kenya
-              </p>
+              <span class="text-2xl font-black text-amber-700 dark:text-amber-300 leading-none">4.8 / 5</span>
+            </div>
+            <!-- Divider -->
+            <div class="hidden sm:block w-px bg-amber-300 dark:bg-amber-600 self-stretch"></div>
+            <!-- Avatar + text -->
+            <div class="flex items-center gap-3 text-left">
+              <div class="flex -space-x-2.5 shrink-0">
+                {[
+                  { i: 'MK', c: 'bg-emerald-500' },
+                  { i: 'DO', c: 'bg-blue-500' },
+                  { i: 'AM', c: 'bg-rose-500' },
+                  { i: 'JN', c: 'bg-violet-500' },
+                ].map(a => (
+                  <div class={`h-9 w-9 rounded-full ${a.c} text-white text-[11px] font-bold flex items-center justify-center ring-2 ring-amber-50 dark:ring-amber-950/50`}>
+                    {a.i}
+                  </div>
+                ))}
+              </div>
+              <div>
+                <p class="text-base font-bold text-foreground leading-tight">1,200+ verified reviews</p>
+                <p class="text-sm text-amber-700 dark:text-amber-400 font-medium">Trusted by customers across Kenya</p>
+              </div>
             </div>
           </div>
 
-          <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight leading-[1.1] mb-3" data-testid="text-hero-title">
-            {hero.title || (<>Hold your supplements to a <span class="text-primary">higher standard</span>.</>)}
-          </h1>
           <p class="text-sm sm:text-base text-muted-foreground max-w-xl mb-5 mx-auto lg:mx-0">
             {hero.description || 'Clean ingredients. Honest labels. Clinically meaningful doses. Delivered across Kenya.'}
           </p>
@@ -191,11 +196,11 @@ const STOCKIST_BRANDS = [
           </div>
           <div class="bg-card border-2 border-primary/20 rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-shadow">
             <!-- Product image -->
-            <a href="/collagen/collagen-peptides/vital-proteins-collagen-peptides-680g/" class="block overflow-hidden bg-[#b8e8f5]">
+            <a href="/collagen/collagen-peptides/vital-proteins-collagen-peptides-680g/" class="block overflow-hidden bg-[#45c5e8]" style="aspect-ratio:4/3;">
               <img
                 src="/images/vital-proteins-hero.jpg"
                 alt="Vital Proteins Collagen Peptides 680g"
-                class="w-full h-52 sm:h-60 lg:h-56 object-cover object-center hover:scale-105 transition-transform duration-500"
+                class="w-full h-full object-contain hover:scale-105 transition-transform duration-500"
                 loading="eager"
               />
             </a>
