@@ -85,8 +85,18 @@ const canonical = canonicalUrl || Astro.url.href;
   </head>
   <body class="min-h-screen bg-background text-foreground font-sans antialiased">
     <!-- Announcement bar -->
-    <div class="announcement-bar">
-      🚚 Free delivery across Kenya &nbsp;·&nbsp; Pay cash on delivery &nbsp;·&nbsp; 30-day money-back guarantee
+    <div class="bg-primary text-primary-foreground text-xs py-2 px-4">
+      <div class="mx-auto max-w-7xl flex flex-wrap items-center justify-between gap-y-1 gap-x-3">
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <span class="flex items-center gap-1">🚚 Free delivery across Kenya</span>
+          <span class="hidden sm:flex items-center gap-1">💳 M-Pesa &amp; Cash on Delivery</span>
+          <span class="hidden md:flex items-center gap-1">✓ 30-day money-back guarantee</span>
+          <span class="hidden lg:flex items-center gap-1">🛡️ 100% authentic or full refund</span>
+        </div>
+        <a href="tel:+254724410910" class="font-semibold hover:underline whitespace-nowrap flex items-center gap-1">
+          📞 +254-724-410-910
+        </a>
+      </div>
     </div>
     <Header />
     <main>

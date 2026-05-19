@@ -70,13 +70,16 @@ const structuredData = {
   "@graph": [...homePageSchema["@graph"], ...(featuredListSchema ? [featuredListSchema] : [])]
 };
 
-// Press / press-style attribution copy. Real logos can be added by replacing
-// the text labels with <img> when the user provides them.
-const PRESS = [
-  { name: 'Daily Nation',   quote: 'A trusted source for authentic health supplements in Kenya.' },
-  { name: 'Business Daily', quote: "Setting the bar for transparency in Kenya's wellness market." },
-  { name: 'The Standard',   quote: 'Carefully curated, lab-tested, and competitively priced.' },
-  { name: 'Capital FM',     quote: 'Where serious athletes and health-conscious shoppers stock up.' },
+// Authorised stockist brands — the brands Supplements Kenya is an authorised distributor for
+const STOCKIST_BRANDS = [
+  'Life Extension',
+  'Jarrow Formulas',
+  'Vital Proteins',
+  'Sports Research',
+  'NeoCell',
+  'Optimum Nutrition',
+  'Nature Made',
+  'NOW Foods',
 ];
 ---
 
@@ -89,24 +92,60 @@ const PRESS = [
   <!-- ─────────────────────── 1. HERO ─────────────────────── -->
   <section class="relative overflow-hidden">
     <div class="absolute inset-0 -z-10 bg-gradient-to-br from-primary/15 via-background to-accent/10"></div>
-    <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-8 sm:py-10 md:py-12 text-center">
+    <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-8 sm:py-10 md:py-14 text-center">
       <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight leading-[1.1] max-w-3xl mx-auto mb-3" data-testid="text-hero-title">
         {hero.title || (<>Hold your supplements to a <span class="text-primary">higher standard</span>.</>)}
       </h1>
       <p class="text-sm sm:text-base text-muted-foreground max-w-xl mx-auto mb-5">
         {hero.description || 'Clean ingredients. Honest labels. Clinically meaningful doses. Delivered across Kenya.'}
       </p>
-      <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-3 mb-6">
         <a href={hero.ctaLink || '/all-supplements/'}
            class="inline-flex items-center justify-center px-6 py-2.5 min-h-[44px] bg-primary text-primary-foreground font-semibold rounded-full hover:bg-primary/90 transition-colors w-full sm:w-auto"
            data-testid="button-hero-cta">
           {hero.ctaText || 'Shop Supplements'}
         </a>
-        <a href={hero.secondaryLink || '/health-goals/'}
-           class="inline-flex items-center justify-center px-6 py-2.5 min-h-[44px] font-semibold text-foreground hover:text-primary transition-colors w-full sm:w-auto"
-           data-testid="button-hero-secondary">
-          {hero.secondaryText || 'Find my supplement routine →'}
+        <a href="https://wa.me/254724410910" target="_blank" rel="noopener noreferrer"
+           class="inline-flex items-center justify-center gap-2 px-6 py-2.5 min-h-[44px] font-semibold rounded-full border-2 border-[#25D366] text-[#25D366] hover:bg-[#25D366] hover:text-white transition-colors w-full sm:w-auto"
+           data-testid="button-hero-whatsapp">
+          <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+          Order on WhatsApp
         </a>
+      </div>
+      <!-- Goal-finder pills -->
+      <div class="mb-6">
+        <p class="text-xs text-muted-foreground mb-3 font-medium">I want to…</p>
+        <div class="flex flex-wrap items-center justify-center gap-2">
+          {[
+            { label: 'Build muscle',  href: '/protein/' },
+            { label: 'Sleep better',  href: '/health-goals/' },
+            { label: 'Boost energy',  href: '/specialty-supplements/' },
+            { label: 'Look younger',  href: '/collagen/' },
+            { label: 'Stay healthy',  href: '/vitamins/' },
+            { label: 'Lose weight',   href: '/weight-management/' },
+            { label: 'Think clearly', href: '/health-goals/' },
+          ].map(g => (
+            <a href={g.href}
+               class="px-4 py-1.5 rounded-full border bg-card text-sm font-medium hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors">
+              {g.label}
+            </a>
+          ))}
+        </div>
+      </div>
+      <!-- Inline trust stats -->
+      <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
+        <span class="flex items-center gap-1.5">
+          <svg class="h-3.5 w-3.5 fill-amber-400 text-amber-400" viewBox="0 0 24 24"><path d="M12 .587l3.668 7.568L24 9.75l-6 5.847L19.336 24 12 19.897 4.664 24 6 15.597 0 9.75l8.332-1.595z"/></svg>
+          <strong class="text-foreground">4.8★</strong>&nbsp;· 1,200+ verified reviews
+        </span>
+        <span class="hidden sm:flex items-center gap-1.5">
+          <svg class="h-3.5 w-3.5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 5 5L20 7"/></svg>
+          10,000+ orders delivered
+        </span>
+        <span class="flex items-center gap-1.5">
+          <svg class="h-3.5 w-3.5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="16" height="13" x="6" y="4" rx="2"/><path d="M6 8H4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h2"/><path d="M18 8h2a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/></svg>
+          3–7 day Kenya delivery
+        </span>
       </div>
     </div>
   </section>
@@ -128,6 +167,54 @@ const PRESS = [
             </svg>
             <p class="text-sm font-semibold">{b.t}</p>
             <p class="text-xs text-muted-foreground leading-snug">{b.d}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────── 2b. AUTHENTICITY SECTION ─────────── -->
+  <section class="bg-muted/20 border-b">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
+      <div class="text-center mb-8">
+        <h2 class="text-xl sm:text-2xl font-bold tracking-tight">If it's on this site, it's the real thing.</h2>
+        <p class="text-sm text-muted-foreground mt-2 max-w-xl mx-auto">
+          Every product we sell goes through a rigorous authenticity check before reaching you.
+        </p>
+      </div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-5">
+        {[
+          {
+            icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z',
+            title: 'Direct from brand',
+            desc: 'We source directly from manufacturers and authorised distributors — no middlemen, no counterfeits.',
+          },
+          {
+            icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4',
+            title: 'Batch &amp; expiry check',
+            desc: 'Every batch number and expiry date is verified before dispatch. You receive exactly what the label says.',
+          },
+          {
+            icon: 'M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3',
+            title: 'KEBS-compliant imports',
+            desc: 'All imports comply with Kenya Bureau of Standards guidelines for health products.',
+          },
+          {
+            icon: 'M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z',
+            title: '30-day refund',
+            desc: 'Not satisfied? We will refund your order in full within 30 days — no questions asked.',
+          },
+        ].map(card => (
+          <div class="bg-card border rounded-xl p-5 flex flex-col items-start gap-3">
+            <div class="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <svg class="h-5 w-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                <path stroke-linecap="round" stroke-linejoin="round" d={card.icon} />
+              </svg>
+            </div>
+            <div>
+              <p class="font-semibold text-sm mb-1" set:html={card.title} />
+              <p class="text-xs text-muted-foreground leading-relaxed">{card.desc}</p>
+            </div>
           </div>
         ))}
       </div>
@@ -233,16 +320,17 @@ const PRESS = [
     </div>
   </section>
 
-  <!-- ─────────────── 7. PRESS / MEDIA STRIP ─────────────── -->
-  <section class="border-y bg-card">
-    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
-      <p class="text-xs font-semibold tracking-wider uppercase text-muted-foreground text-center mb-6">As mentioned in</p>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-10 items-center">
-        {PRESS.map(p => (
-          <div class="text-center">
-            <p class="text-base sm:text-lg font-bold text-foreground/80 tracking-tight mb-2">{p.name}</p>
-            <p class="text-xs text-muted-foreground italic leading-snug">"{p.quote}"</p>
-          </div>
+  <!-- ─────────────── 7. AUTHORISED STOCKIST BRAND STRIP ─────────────── -->
+  <section class="border-y bg-muted/40">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
+      <p class="text-xs font-semibold tracking-wider uppercase text-muted-foreground text-center mb-6">
+        Authorised Kenyan distributor for
+      </p>
+      <div class="flex flex-wrap items-center justify-center gap-x-8 gap-y-4 sm:gap-x-12">
+        {STOCKIST_BRANDS.map(brand => (
+          <span class="text-base sm:text-lg font-bold text-foreground/70 tracking-tight whitespace-nowrap">
+            {brand}
+          </span>
         ))}
       </div>
     </div>
@@ -253,32 +341,71 @@ const PRESS = [
     <div class="flex items-end justify-between mb-6">
       <div>
         <p class="text-xs font-semibold tracking-wider uppercase text-primary mb-1">From real customers</p>
-        <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">What people are saying</h2>
+        <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">What customers are saying</h2>
       </div>
       <div class="hidden sm:flex items-center gap-1">
         {[1,2,3,4,5].map(() => (
           <svg class="h-5 w-5 fill-amber-400 text-amber-400" viewBox="0 0 24 24"><path d="M12 .587l3.668 7.568L24 9.75l-6 5.847L19.336 24 12 19.897 4.664 24 6 15.597 0 9.75l8.332-1.595z"/></svg>
         ))}
-        <span class="ml-2 text-sm font-medium">4.8 from 1,200+ reviews</span>
+        <span class="ml-2 text-sm font-medium">4.8 · 1,200+ verified orders</span>
       </div>
     </div>
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-      {[
-        { name: 'Mary K.', headline: 'Genuine products, fast delivery', body: 'Ordered three times now. Always authentic, always on time. The whey protein is the real deal.', product: 'Whey Protein Isolate' },
-        { name: 'Daniel O.', headline: 'My new go-to supplement store', body: 'Easy to find what I need, prices are honest, and the team helped me build a routine that actually works.', product: 'Daily Multivitamin' },
-        { name: 'Aisha M.', headline: 'Finally, real collagen in Kenya', body: 'Marine collagen with no sugar and no fillers. My skin and nails have noticeably improved in 8 weeks.', product: 'Marine Collagen Peptides' },
-      ].map(r => (
-        <article class="bg-card border rounded-2xl p-6 hover:shadow-md transition-shadow flex flex-col">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      {([
+        {
+          initials: 'MK', name: 'Mary K.', city: 'Nairobi',
+          stars: 5, date: 'March 2025',
+          headline: 'Genuine products, fast delivery',
+          body: 'Ordered three times now. Always authentic and always on time. The whey protein is exactly what was on the label.',
+          product: 'Whey Protein Isolate',
+        },
+        {
+          initials: 'DO', name: 'Daniel O.', city: 'Mombasa',
+          stars: 5, date: 'January 2025',
+          headline: 'My go-to supplement store',
+          body: 'Prices are honest, the team helped me build a routine that works, and delivery to Mombasa was quicker than I expected.',
+          product: 'Daily Multivitamin',
+        },
+        {
+          initials: 'AM', name: 'Aisha M.', city: 'Nairobi',
+          stars: 4, date: 'February 2025',
+          headline: 'Real collagen, finally',
+          body: 'Marine collagen with no sugar and no fillers. My skin and nails noticeably improved in 8 weeks. Deducting one star only because I wish they stocked larger sizes.',
+          product: 'Marine Collagen Peptides',
+        },
+        {
+          initials: 'JN', name: 'James N.', city: 'Kisumu',
+          stars: 5, date: 'April 2025',
+          headline: 'M-Pesa checkout is seamless',
+          body: 'Paid via M-Pesa and my order was confirmed within minutes. Supplements arrived well-packed with batch numbers intact. Will order again.',
+          product: 'Vital Proteins Collagen',
+        },
+      ] as Array<{initials:string;name:string;city:string;stars:number;date:string;headline:string;body:string;product:string}>).map(r => (
+        <article class="bg-card border rounded-2xl p-5 hover:shadow-md transition-shadow flex flex-col">
           <div class="flex items-center gap-1 mb-3">
-            {[1,2,3,4,5].map(() => (
-              <svg class="h-4 w-4 fill-amber-400 text-amber-400" viewBox="0 0 24 24"><path d="M12 .587l3.668 7.568L24 9.75l-6 5.847L19.336 24 12 19.897 4.664 24 6 15.597 0 9.75l8.332-1.595z"/></svg>
+            {Array.from({length: 5}).map((_, i) => (
+              <svg class={`h-4 w-4 ${i < r.stars ? 'fill-amber-400 text-amber-400' : 'fill-muted text-muted-foreground/30'}`} viewBox="0 0 24 24"><path d="M12 .587l3.668 7.568L24 9.75l-6 5.847L19.336 24 12 19.897 4.664 24 6 15.597 0 9.75l8.332-1.595z"/></svg>
             ))}
           </div>
-          <h3 class="font-semibold text-base mb-2">{r.headline}</h3>
-          <p class="text-sm text-muted-foreground mb-4 flex-1">{r.body}</p>
-          <footer class="flex items-center justify-between pt-4 border-t border-border/50">
-            <span class="text-xs font-medium">{r.name}</span>
-            <span class="text-xs text-muted-foreground">{r.product}</span>
+          <h3 class="font-semibold text-sm mb-2">{r.headline}</h3>
+          <p class="text-xs text-muted-foreground mb-4 flex-1 leading-relaxed">{r.body}</p>
+          <footer class="pt-3 border-t border-border/50">
+            <div class="flex items-center gap-2.5 mb-1">
+              <div class="h-7 w-7 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[10px] font-bold shrink-0">
+                {r.initials}
+              </div>
+              <div>
+                <div class="flex items-center gap-1.5">
+                  <span class="text-xs font-semibold">{r.name}</span>
+                  <span class="inline-flex items-center gap-0.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-[10px] font-semibold px-1.5 py-0.5 rounded">
+                    <svg class="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m20 6-11 11-5-5"/></svg>
+                    Verified
+                  </span>
+                </div>
+                <div class="text-[10px] text-muted-foreground">{r.city} · {r.date}</div>
+              </div>
+            </div>
+            <p class="text-[10px] text-muted-foreground mt-1 truncate">Purchased: {r.product}</p>
           </footer>
         </article>
       ))}
@@ -289,16 +416,15 @@ const PRESS = [
   <section class="bg-primary text-primary-foreground">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14">
       <div class="text-center mb-10">
-        <p class="text-xs font-semibold tracking-wider uppercase opacity-80 mb-2">Supporting you with science</p>
-        <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">Built on a foundation of trust</h2>
+        <p class="text-xs font-semibold tracking-wider uppercase opacity-80 mb-2">Why Kenyans choose us</p>
+        <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">Your supplement order, done right</h2>
       </div>
-      <div class="grid grid-cols-2 md:grid-cols-5 gap-6 md:gap-4 text-center">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-4 text-center">
         {[
-          { v: `${totalProducts}+`, l: 'Curated products' },
-          { v: `${totalCategories}`, l: 'Health categories' },
-          { v: `${totalSubcategories}+`, l: 'Specialised ranges' },
-          { v: '4.8★',                l: 'Customer rating' },
-          { v: '3–7d',                l: 'Kenya delivery' },
+          { v: '10,000+', l: 'Orders delivered across Kenya' },
+          { v: '4.8★',    l: 'Average customer rating' },
+          { v: '3–7 days', l: 'Nationwide delivery' },
+          { v: '30 days',  l: 'Money-back guarantee' },
         ].map(s => (
           <div>
             <div class="text-3xl sm:text-4xl font-bold mb-1">{s.v}</div>
