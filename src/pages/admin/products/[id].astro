@@ -31,10 +31,20 @@ const isNew = id === "new";
     <AdminSidebar adminEmail={adminEmail} currentPage="products" />
     
     <main class="flex-1 px-4 py-6 md:p-8 w-full overflow-x-hidden">
-      <div class="mb-6">
+      <div class="mb-6 flex items-center gap-4 flex-wrap">
         <a href="/admin/products" class="text-primary hover:underline text-base min-h-[48px] inline-flex items-center px-2 -mx-2 rounded-lg hover:bg-primary/10 transition-colors" data-testid="link-back-products">
           ← Back to Products
         </a>
+        {!isNew && product && (
+          <a
+            href={`/${product.categorySlug}/${product.subcategorySlug}/${product.slug}/`}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+          >
+            Preview &rarr;
+          </a>
+        )}
       </div>
       
       <h2 class="text-2xl font-bold mb-6">

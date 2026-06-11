@@ -444,6 +444,48 @@ export const cartItemsRelations = relations(cartItems, ({ one }) => ({
 }));
 
 // ============================================
+// BLOG POSTS
+// ============================================
+export const blogPosts = pgTable("blog_posts", {
+  id: text("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  slug: text("slug").notNull().unique(),
+  excerpt: text("excerpt"),
+  content: text("content"),
+  seoTitle: text("seo_title"),
+  seoDescription: text("seo_description"),
+  featuredImage: text("featured_image"),
+  status: text("status").notNull().default("draft"),
+  publishedAt: timestamp("published_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertBlogPostSchema = createInsertSchema(blogPosts).omit({ id: true, createdAt: true, updatedAt: true });
+export type BlogPost = typeof blogPosts.$inferSelect;
+export type InsertBlogPost = typeof blogPosts.$inferInsert;
+
+// ============================================
+// CONTENT PAGES
+// ============================================
+export const contentPages = pgTable("content_pages", {
+  id: text("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  slug: text("slug").notNull().unique(),
+  content: text("content"),
+  seoTitle: text("seo_title"),
+  seoDescription: text("seo_description"),
+  featuredImage: text("featured_image"),
+  status: text("status").notNull().default("draft"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertContentPageSchema = createInsertSchema(contentPages).omit({ id: true, createdAt: true, updatedAt: true });
+export type ContentPage = typeof contentPages.$inferSelect;
+export type InsertContentPage = typeof contentPages.$inferInsert;
+
+// ============================================
 // LEGACY (keep for compatibility)
 // ============================================
 export const users = pgTable("users", {

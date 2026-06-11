@@ -1,8 +1,9 @@
-import { 
-  users, customers, otpCodes, sessions, adminUsers, 
+import {
+  users, customers, otpCodes, sessions, adminUsers,
   products, cartItems, orders, orderItems,
   categories, subcategories, attributeDefinitions, siteSettings,
   navigationItems, homepageContent,
+  blogPosts, contentPages,
   type User, type InsertUser,
   type Customer, type InsertCustomer,
   type OtpCode, type InsertOtpCode,
@@ -18,6 +19,8 @@ import {
   type SiteSetting, type InsertSiteSetting,
   type NavigationItem, type InsertNavigationItem,
   type HomepageContent, type InsertHomepageContent,
+  type BlogPost, type InsertBlogPost,
+  type ContentPage, type InsertContentPage,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gt, or, desc, asc, ilike, sql } from "drizzle-orm";
@@ -125,6 +128,22 @@ export interface IStorage {
   getHomepageContent(): Promise<HomepageContent[]>;
   getHomepageSection(section: string): Promise<HomepageContent | undefined>;
   setHomepageSection(section: string, content: Record<string, any>, isActive?: boolean): Promise<HomepageContent>;
+
+  // Blog Posts
+  getBlogPosts(): Promise<BlogPost[]>;
+  getBlogPost(id: string): Promise<BlogPost | undefined>;
+  getBlogPostBySlug(slug: string): Promise<BlogPost | undefined>;
+  createBlogPost(data: InsertBlogPost): Promise<BlogPost>;
+  updateBlogPost(id: string, data: Partial<InsertBlogPost>): Promise<BlogPost | undefined>;
+  deleteBlogPost(id: string): Promise<void>;
+
+  // Content Pages
+  getContentPages(): Promise<ContentPage[]>;
+  getContentPage(id: string): Promise<ContentPage | undefined>;
+  getContentPageBySlug(slug: string): Promise<ContentPage | undefined>;
+  createContentPage(data: InsertContentPage): Promise<ContentPage>;
+  updateContentPage(id: string, data: Partial<InsertContentPage>): Promise<ContentPage | undefined>;
+  deleteContentPage(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -621,6 +640,64 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return created;
     }
+  }
+
+  // Blog Posts
+  async getBlogPosts(): Promise<BlogPost[]> {
+    return db.select().from(blogPosts).orderBy(desc(blogPosts.createdAt));
+  }
+
+  async getBlogPost(id: string): Promise<BlogPost | undefined> {
+    const [post] = await db.select().from(blogPosts).where(eq(blogPosts.id, id));
+    return post || undefined;
+  }
+
+  async getBlogPostBySlug(slug: string): Promise<BlogPost | undefined> {
+    const [post] = await db.select().from(blogPosts).where(eq(blogPosts.slug, slug));
+    return post || undefined;
+  }
+
+  async createBlogPost(data: InsertBlogPost): Promise<BlogPost> {
+    const [post] = await db.insert(blogPosts).values(data as any).returning();
+    return post;
+  }
+
+  async updateBlogPost(id: string, data: Partial<InsertBlogPost>): Promise<BlogPost | undefined> {
+    const [post] = await db.update(blogPosts).set({ ...data, updatedAt: new Date() } as any).where(eq(blogPosts.id, id)).returning();
+    return post || undefined;
+  }
+
+  async deleteBlogPost(id: string): Promise<void> {
+    await db.delete(blogPosts).where(eq(blogPosts.id, id));
+  }
+
+  // Content Pages
+  async getContentPages(): Promise<ContentPage[]> {
+    return db.select().from(contentPages).orderBy(desc(contentPages.createdAt));
+  }
+
+  async getContentPage(id: string): Promise<ContentPage | undefined> {
+    const [page] = await db.select().from(contentPages).where(eq(contentPages.id, id));
+    return page || undefined;
+  }
+
+  async getContentPageBySlug(slug: string): Promise<ContentPage | undefined> {
+    const [page] = await db.select().from(contentPages).where(eq(contentPages.slug, slug));
+    return page || undefined;
+  }
+
+  async createContentPage(data: InsertContentPage): Promise<ContentPage> {
+    const [page] = await db.insert(contentPages).values(data as any).returning();
+    return page;
+  }
+
+  async updateContentPage(id: string, data: Partial<InsertContentPage>): Promise<ContentPage | undefined> {
+    const [page] = await db.update(contentPages).set({ ...data, updatedAt: new Date() } as any).where(eq(contentPages.id, id)).returning();
+    return page || undefined;
+  }
+
+  async deleteContentPage(id: string): Promise<void> {
+    await db.delete(contentPages).where(eq(contentPages.id, id));
   }
 }
 

@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { db } from '../../../../server/db';
-import { products, categories, subcategories } from '@shared/schema';
+import { products, categories, subcategories, blogPosts, contentPages } from '@shared/schema';
 import { ilike, or, eq, and } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 
@@ -36,7 +36,7 @@ export const GET: APIRoute = async ({ url }) => {
   const startTerm = `${q}%`;
 
   try {
-    const [productRows, categoryRows, subcategoryRows] = await Promise.all([
+    const [productRows, categoryRows, subcategoryRows, blogRows, pageRows] = await Promise.all([
 
       // Products — name or brand match
       db
@@ -81,9 +81,23 @@ export const GET: APIRoute = async ({ url }) => {
         .innerJoin(categories, eq(subcategories.categoryId, categories.id))
         .where(and(eq(subcategories.isActive, true), ilike(subcategories.name, term)))
         .limit(8),
+
+      // Blog posts
+      db
+        .select({ title: blogPosts.title, slug: blogPosts.slug })
+        .from(blogPosts)
+        .where(and(eq(blogPosts.status, 'published'), ilike(blogPosts.title, term)))
+        .limit(5),
+
+      // Content pages
+      db
+        .select({ title: contentPages.title, slug: contentPages.slug })
+        .from(contentPages)
+        .where(and(eq(contentPages.status, 'published'), ilike(contentPages.title, term)))
+        .limit(5),
     ]);
 
-    // Build unified result list: categories first, then subcategories, then products
+    // Build unified result list
     const results: { label: string; sublabel: string; url: string; type: string }[] = [];
 
     for (const cat of categoryRows) {
@@ -99,6 +113,16 @@ export const GET: APIRoute = async ({ url }) => {
       const pageUrl = `/${p.categorySlug}/${p.subcategorySlug}/${p.slug}/`;
       const sublabel = p.brand ? `${p.brand} · ${pageUrl}` : pageUrl;
       results.push({ label: p.name, sublabel, url: pageUrl, type: 'product' });
+    }
+
+    for (const b of blogRows) {
+      const pageUrl = `/blog/${b.slug}/`;
+      results.push({ label: b.title, sublabel: pageUrl, url: pageUrl, type: 'blog' });
+    }
+
+    for (const pg of pageRows) {
+      const pageUrl = `/pages/${pg.slug}/`;
+      results.push({ label: pg.title, sublabel: pageUrl, url: pageUrl, type: 'page' });
     }
 
     // Also include any static pages whose label/url contains the query

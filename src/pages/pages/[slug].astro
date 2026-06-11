@@ -1,0 +1,42 @@
+---
+import BaseLayout from "@layouts/BaseLayout.astro";
+import { storage } from "@lib/storage";
+
+const { slug } = Astro.params;
+const page = await storage.getContentPageBySlug(slug!);
+
+if (!page || page.status !== "published") {
+  return Astro.redirect("/");
+}
+
+const seoTitle = page.seoTitle || page.title;
+const seoDescription = page.seoDescription || `${page.title} — Supplements Kenya`;
+---
+
+<BaseLayout
+  title={seoTitle}
+  description={seoDescription}
+  image={page.featuredImage || undefined}
+>
+  <article class="max-w-3xl mx-auto px-4 py-12 md:py-16">
+    <header class="mb-8">
+      <h1 class="text-3xl md:text-4xl font-bold leading-tight">{page.title}</h1>
+    </header>
+
+    {page.featuredImage && (
+      <img
+        src={page.featuredImage}
+        alt={page.title}
+        class="w-full rounded-xl mb-8 object-cover max-h-96"
+        loading="lazy"
+      />
+    )}
+
+    {page.content && (
+      <div
+        class="prose prose-sm md:prose max-w-none dark:prose-invert"
+        set:html={page.content}
+      />
+    )}
+  </article>
+</BaseLayout>
