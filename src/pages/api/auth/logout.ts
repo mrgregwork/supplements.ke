@@ -1,28 +1,24 @@
 import type { APIRoute } from "astro";
 import { getSessionByToken, deleteSession } from "@lib/auth";
 
-export const POST: APIRoute = async ({ request, cookies }) => {
-  try {
-    const token = cookies.get("session")?.value;
-    
-    if (token) {
+async function clearSession(cookies: Parameters<APIRoute>[0]["cookies"]) {
+  const token = cookies.get("session")?.value;
+  if (token) {
+    try {
       const session = await getSessionByToken(token);
-      if (session) {
-        await deleteSession(session.id);
-      }
-    }
-    
-    cookies.delete("session", { path: "/" });
-    
-    return new Response(
-      JSON.stringify({ success: true }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
-    );
-  } catch (error) {
-    console.error("Logout error:", error);
-    return new Response(
-      JSON.stringify({ error: "Failed to logout" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
+      if (session) await deleteSession(session.id);
+    } catch {}
   }
+  cookies.delete("session", { path: "/" });
+}
+
+export const POST: APIRoute = async ({ cookies }) => {
+  await clearSession(cookies);
+  return new Response(null, { status: 302, headers: { Location: "/" } });
+};
+
+// Handle direct browser navigation to this URL
+export const GET: APIRoute = async ({ cookies }) => {
+  await clearSession(cookies);
+  return new Response(null, { status: 302, headers: { Location: "/" } });
 };
