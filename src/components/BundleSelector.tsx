@@ -28,7 +28,7 @@ function fmt(n: number, currency = 'KES') {
 const TIERS = [
   { qty: 1, label: '1 Bottle',  discountPct: 0,  badge: null,           badgeColour: '' },
   { qty: 2, label: '2 Bottles', discountPct: 10, badge: 'Most Popular', badgeColour: 'bg-primary text-primary-foreground' },
-  { qty: 5, label: '5 Bottles', discountPct: 20, badge: 'Best Value',   badgeColour: 'bg-green-600 text-white' },
+  { qty: 5, label: '5 Bottles', discountPct: 15, badge: 'Best Value',   badgeColour: 'bg-green-600 text-white' },
 ];
 
 export default function BundleSelector({ productId, productName, price, originalPrice, currency = 'KES' }: Props) {

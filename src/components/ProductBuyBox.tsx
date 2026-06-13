@@ -57,7 +57,7 @@ export default function ProductBuyBox({
   const TIERS_EFFECTIVE = [
     { qty: 1, label: '1 Bottle',  discount: discounts?.[0] ?? 0,  badge: null,           badgeClass: '' },
     { qty: 2, label: '2 Bottles', discount: discounts?.[1] ?? 10, badge: 'Most Popular', badgeClass: '' },
-    { qty: 5, label: '5 Bottles', discount: discounts?.[2] ?? 20, badge: 'Best Value',   badgeClass: '' },
+    { qty: 5, label: '5 Bottles', discount: discounts?.[2] ?? 15, badge: 'Best Value',   badgeClass: '' },
   ];
 
   const [qty, setQty]         = useState(2);
