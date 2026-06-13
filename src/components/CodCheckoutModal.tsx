@@ -23,7 +23,7 @@ interface Props {
 const TIERS = [
   { qty: 1, label: '1 Bottle',  discount: 0,  badge: null,           badgeClass: '' },
   { qty: 2, label: '2 Bottles', discount: 10, badge: 'Most Popular', badgeClass: 'bg-primary text-primary-foreground' },
-  { qty: 3, label: '3 Bottles', discount: 20, badge: 'Best Value',   badgeClass: 'bg-green-600 text-white' },
+  { qty: 5, label: '5 Bottles', discount: 20, badge: 'Best Value',   badgeClass: 'bg-green-600 text-white' },
 ];
 
 const KENYA_CITIES = [

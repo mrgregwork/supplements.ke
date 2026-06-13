@@ -57,7 +57,7 @@ export default function ProductBuyBox({
   const TIERS_EFFECTIVE = [
     { qty: 1, label: '1 Bottle',  discount: discounts?.[0] ?? 0,  badge: null,           badgeClass: '' },
     { qty: 2, label: '2 Bottles', discount: discounts?.[1] ?? 10, badge: 'Most Popular', badgeClass: '' },
-    { qty: 3, label: '3 Bottles', discount: discounts?.[2] ?? 20, badge: 'Best Value',   badgeClass: '' },
+    { qty: 5, label: '5 Bottles', discount: discounts?.[2] ?? 20, badge: 'Best Value',   badgeClass: '' },
   ];
 
   const [qty, setQty]         = useState(2);
@@ -136,7 +136,7 @@ export default function ProductBuyBox({
                   </span>
                 )}
                 {/* Best Value ribbon */}
-                {t.qty === 3 && (
+                {t.qty === 5 && (
                   <span className={`absolute -top-2.5 left-4 text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full
                     ${active ? 'bg-amber-500 text-white' : 'bg-amber-400 text-white'}`}>
                     Best Value
@@ -154,7 +154,7 @@ export default function ProductBuyBox({
                         </svg>
                       )}
                     </span>
-                    <div className={isMid || t.qty === 3 ? 'mt-1' : ''}>
+                    <div className={isMid || t.qty === 5 ? 'mt-1' : ''}>
                       <span className={`font-bold text-sm ${active ? 'text-primary' : 'text-foreground'}`}>{t.label}</span>
                       {t.qty > 1 && (
                         <p className="text-xs text-muted-foreground mt-0.5">{fmt(tPerUnit, currency)} per bottle</p>
