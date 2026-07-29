@@ -5,14 +5,13 @@
  * Everything visible immediately — no hidden pricing behind clicks.
  *
  * Layout (top → bottom):
- *  1. Star rating + review count (social proof)
- *  2. Price with anchor (original crossed out)
- *  3. Bundle selector (visible, selectable)
- *  4. Savings summary strip
- *  5. Stock / urgency signal
- *  6. CTA button → opens DeliveryModal
- *  7. Trust badges
- *  8. Guarantee
+ *  1. Price with anchor (original crossed out)
+ *  2. Bundle selector (visible, selectable)
+ *  3. Savings summary strip
+ *  4. Stock / urgency signal
+ *  5. CTA button → opens DeliveryModal
+ *  6. Trust badges
+ *  7. Guarantee
  */
 
 import { useState } from 'react';
@@ -26,33 +25,15 @@ interface Props {
   currency?: string;
   /** Override default discounts per product: e.g. [0, 15, 25] for 1/2/3 bottles */
   discounts?: [number, number, number];
-  ratingValue?: number;
-  reviewCount?: number;
 }
 
 function fmt(n: number, cur = 'KES') {
   return `${cur} ${n.toLocaleString('en-KE', { maximumFractionDigits: 0 })}`;
 }
 
-function Stars({ value }: { value: number }) {
-  return (
-    <span className="flex items-center gap-0.5">
-      {[1,2,3,4,5].map(i => {
-        const full  = i <= Math.floor(value);
-        const half  = !full && i <= Math.ceil(value) && value % 1 >= 0.5;
-        return (
-          <svg key={i} className={`h-4 w-4 ${full || half ? 'text-amber-400' : 'text-stone-200'}`} viewBox="0 0 20 20" fill="currentColor">
-            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 0 0 .95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 0 0-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 0 0-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 0 0-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 0 0 .951-.69l1.07-3.292Z"/>
-          </svg>
-        );
-      })}
-    </span>
-  );
-}
-
 export default function ProductBuyBox({
   productId, productName, price, originalPrice, currency = 'KES',
-  ratingValue = 4.8, reviewCount = 127, discounts,
+  discounts,
 }: Props) {
   const TIERS_EFFECTIVE = [
     { qty: 1, label: '1 Bottle',  discount: discounts?.[0] ?? 0,  badge: null,           badgeClass: '' },
@@ -75,22 +56,7 @@ export default function ProductBuyBox({
     <>
       <div className="space-y-4">
 
-        {/* 1 ── Star rating */}
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200/80 rounded-full px-3 py-1">
-            <Stars value={ratingValue} />
-            <span className="text-sm font-bold text-amber-700">{ratingValue}</span>
-          </div>
-          <span className="text-sm text-muted-foreground">
-            <span className="font-semibold text-foreground">{reviewCount.toLocaleString()}</span> verified reviews
-          </span>
-          <span className="flex items-center gap-1 text-xs text-green-700 font-medium bg-green-50 border border-green-200/60 rounded-full px-2.5 py-0.5">
-            <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6 9 17l-5-5"/></svg>
-            Verified
-          </span>
-        </div>
-
-        {/* 2 ── Price anchor */}
+        {/* 1 ── Price anchor */}
         <div>
           <div className="flex items-baseline gap-3 flex-wrap">
             {singleAnchor && (
@@ -106,7 +72,7 @@ export default function ProductBuyBox({
           <p className="text-xs text-muted-foreground mt-1">per bottle · price increases with demand</p>
         </div>
 
-        {/* 3 ── Bundle selector */}
+        {/* 2 ── Bundle selector */}
         <div className="space-y-2">
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Select your supply</p>
           {TIERS_EFFECTIVE.map(t => {
@@ -181,7 +147,7 @@ export default function ProductBuyBox({
           })}
         </div>
 
-        {/* 4 ── Savings strip */}
+        {/* 3 ── Savings strip */}
         {saving > 0 && (
           <div className="rounded-lg bg-gradient-to-r from-green-600 to-emerald-700 px-4 py-2.5 flex items-center justify-between text-sm shadow-sm">
             <span className="text-white font-semibold">
@@ -191,7 +157,7 @@ export default function ProductBuyBox({
           </div>
         )}
 
-        {/* 5 ── Stock / urgency signal */}
+        {/* 4 ── Stock / urgency signal */}
         <div className="flex items-center gap-4 text-xs">
           <span className="flex items-center gap-1.5 font-medium text-green-700">
             <span className="relative flex h-2 w-2">
@@ -203,7 +169,7 @@ export default function ProductBuyBox({
           <span className="text-muted-foreground">Ships in 1–2 business days · Nairobi same-day available</span>
         </div>
 
-        {/* 6 ── CTA */}
+        {/* 5 ── CTA */}
         <button
           onClick={() => setModal(true)}
           className="btn-cta w-full py-4 text-white font-extrabold rounded-xl text-lg flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98]"
@@ -216,7 +182,7 @@ export default function ProductBuyBox({
         </button>
         <p className="text-center text-xs text-muted-foreground -mt-1">Pay cash on delivery · No upfront payment required</p>
 
-        {/* 7 ── Trust badges */}
+        {/* 6 ── Trust badges */}
         <div className="grid grid-cols-3 gap-2 text-center">
           <div className="flex flex-col items-center gap-1.5 px-2 py-3 bg-card border border-border/60 rounded-xl shadow-sm">
             <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
@@ -244,7 +210,7 @@ export default function ProductBuyBox({
           </div>
         </div>
 
-        {/* 8 ── Guarantee */}
+        {/* 7 ── Guarantee */}
         <div className="flex items-start gap-3 p-4 bg-amber-50/60 border border-amber-200/60 rounded-xl">
           <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
             <svg className="h-6 w-6 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">

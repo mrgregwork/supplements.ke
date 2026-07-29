@@ -16,8 +16,6 @@ interface ProductData {
   attributes?: { name: string; value: string; slug: string }[];
   gtin?: string;
   mpn?: string;
-  reviewCount?: number;
-  ratingValue?: number;
   longDescription?: string;
   tags?: string[];
 }
@@ -39,13 +37,6 @@ interface BreadcrumbItem {
 interface FAQItem {
   question: string;
   answer: string;
-}
-
-interface ReviewItem {
-  author: string;
-  reviewBody: string;
-  ratingValue: number;
-  datePublished: string;
 }
 
 const getSiteUrl = (): string => siteSettings.siteUrl || 'https://supplementskenya.com';
@@ -98,32 +89,6 @@ function extractNutritionFromAttributes(
   if (fat)       nutrition["fatContent"]          = fat;
 
   return nutrition;
-}
-
-// ── Sample review generator (used when no real reviews exist) ─────────────────
-// Returns believable supplement-context reviews for structured data.
-// Replace with real DB reviews once a review system is implemented.
-function generateSampleReviews(productName: string, brand: string): ReviewItem[] {
-  return [
-    {
-      author: 'Sarah M.',
-      reviewBody: `I've been using ${productName} for three months and the results are excellent. Great quality from ${brand || 'this brand'}.`,
-      ratingValue: 5,
-      datePublished: '2025-02-14',
-    },
-    {
-      author: 'James K.',
-      reviewBody: `Good product, fast delivery in Nairobi. ${productName} is exactly as described and very effective.`,
-      ratingValue: 4,
-      datePublished: '2025-01-28',
-    },
-    {
-      author: 'Amina W.',
-      reviewBody: `Authentic ${productName}. I've tried other sellers but this is the best price in Kenya with genuine products.`,
-      ratingValue: 5,
-      datePublished: '2025-03-05',
-    },
-  ];
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -352,38 +317,8 @@ export function generateProductSchema(product: ProductData, pageUrl: string) {
 
   if (product.gtin) schema["gtin13"] = product.gtin;
 
-  // AggregateRating
-  if (product.ratingValue && product.reviewCount) {
-    schema["aggregateRating"] = {
-      "@type": "AggregateRating",
-      "ratingValue": product.ratingValue,
-      "reviewCount": product.reviewCount,
-      "bestRating": 5,
-      "worstRating": 1,
-    };
-  }
-
-  // Individual Review entities
-  const sampleReviews = generateSampleReviews(product.name, product.brand ?? '');
-  schema["review"] = sampleReviews.map(r => ({
-    "@type": "Review",
-    "reviewRating": {
-      "@type": "Rating",
-      "ratingValue": r.ratingValue,
-      "bestRating": 5,
-      "worstRating": 1,
-    },
-    "author": {
-      "@type": "Person",
-      "name": r.author,
-    },
-    "reviewBody": r.reviewBody,
-    "datePublished": r.datePublished,
-    "publisher": {
-      "@type": "Organization",
-      "name": org.name,
-    },
-  }));
+  // No aggregateRating/review here — only added once a real review system exists.
+  // Fabricated ratings/reviews are a Google Merchant Center policy violation.
 
   // NutritionInformation extracted from product attributes
   if (product.attributes && product.attributes.length > 0) {

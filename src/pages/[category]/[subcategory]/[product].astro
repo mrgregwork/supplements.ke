@@ -8,16 +8,13 @@ import { storage } from '@lib/storage';
 import { getSiteSettings } from '@lib/settings';
 import { generateCategoryUrl, generateSubcategoryUrl, generateProductUrl, formatPrice } from '@lib/seo';
 import { generateProductPageSchema, getProductImageAlt } from '@lib/schema';
-import { generateProductFaqs } from '@lib/productFaqs';
-import { getSiteRating } from '@lib/googleRating';
 
 const { category: categorySlug, subcategory: subcategorySlug, product: productSlug } = Astro.params;
 
 // Look up product first — it must exist regardless of what category/subcategory is in the URL
-const [product, siteSettings, siteRating] = await Promise.all([
+const [product, siteSettings] = await Promise.all([
   storage.getProductBySlug(productSlug!),
   getSiteSettings(),
-  getSiteRating(),
 ]);
 
 if (!product) return new Response(null, { status: 404 });
@@ -87,43 +84,13 @@ const targetRegion = siteSettings.targetRegion ?? 'Kenya';
 const enableRegionalSeo = siteSettings.enableRegionalSeo ?? true;
 const returnDays = 30;
 
-const productFaqs = generateProductFaqs(
-  {
-    name:            product.name,
-    slug:            product.slug,
-    brand:           product.brand,
-    price:           product.price,
-    currency:        currency,
-    originalPrice:   product.originalPrice,
-    attributes,
-    categorySlug:    category.slug,
-    subcategorySlug: subcategory?.slug ?? subcategorySlug,
-  },
-  {
-    displayPrice,
-    originalPriceDisplay,
-    discount,
-    returnDays,
-    targetRegion,
-  },
-);
-
-// Per-product rating: use Google Places site rating as the base (currently a placeholder;
-// will be live once Google API credentials are added to Railway env vars).
-// A tiny deterministic offset per product (±0.1) keeps numbers feeling real, not identical.
-// Replace with per-product DB ratings when a review system is built.
 const slugHash = product.slug.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
-const ratingOffset = (slugHash % 3 - 1) * 0.1; // -0.1, 0, or +0.1
-const productRating = parseFloat(Math.min(5, Math.max(4.0, siteRating.rating + ratingOffset)).toFixed(1));
-const productReviewCount = siteRating.reviewCount;
-
 const productCurrency = product.currency || siteSettings.defaultCurrency || 'KES';
 
 const structuredData = generateProductPageSchema(
-  { ...product, images, attributes, currency: productCurrency, ratingValue: productRating, reviewCount: productReviewCount },
+  { ...product, images, attributes, currency: productCurrency },
   breadcrumbItems,
   Astro.url.href,
-  productFaqs
 );
 
 // If admin has manually set a seoTitle, use it verbatim — no template wrapping.
@@ -195,6 +162,9 @@ const pageTitle = hasCustomTitle
           </span>
           <h1 class="text-2xl sm:text-3xl font-extrabold leading-tight mt-1" data-testid="text-product-title">
             {product.name}
+            {product.benefit && (
+              <span class="block text-lg sm:text-xl font-semibold text-primary mt-1">{product.benefit}</span>
+            )}
           </h1>
         </div>
 
@@ -212,8 +182,6 @@ const pageTitle = hasCustomTitle
             price={product.price}
             originalPrice={product.originalPrice ?? undefined}
             currency={currency}
-            ratingValue={productRating}
-            reviewCount={productReviewCount}
           />
         </div>
 
@@ -279,52 +247,27 @@ const pageTitle = hasCustomTitle
       </div>
     </section>
 
-    <!-- FAQ -->
-    <section class="mt-16 pt-8 border-t" data-testid="section-product-faq" itemscope itemtype="https://schema.org/FAQPage">
-      <h2 class="text-xl font-semibold mb-6">Frequently Asked Questions</h2>
-      <div class="space-y-4">
-        {productFaqs.map((faq, index) => (
-          <details class="group bg-muted/30 rounded-lg border" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question" data-testid={`faq-item-${index}`}>
-            <summary class="flex items-center justify-between cursor-pointer px-6 py-4 font-medium">
-              <span itemprop="name">{faq.question}</span>
-              <svg class="h-5 w-5 transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="m6 9 6 6 6-6" />
-              </svg>
-            </summary>
-            <div class="px-6 pb-4 text-muted-foreground" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
-              <p itemprop="text">{faq.answer}</p>
-            </div>
-          </details>
-        ))}
-      </div>
-    </section>
-
     <!-- Related products -->
     {relatedProducts.length > 0 && (
       <section class="mt-16 pt-8 border-t">
         <h2 class="text-xl font-semibold mb-6">You may also like</h2>
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {relatedProducts.map(related => {
-            const rHash = related.slug.split('').reduce((acc: number, c: string) => acc + c.charCodeAt(0), 0);
-            return (
-              <ProductCard product={{
-                name: related.name,
-                slug: related.slug,
-                categorySlug: related.categorySlug ?? category.slug,
-                subcategorySlug: related.subcategorySlug ?? subcategory.slug,
-                description: related.description ?? '',
-                price: related.price,
-                originalPrice: related.originalPrice ?? undefined,
-                currency: related.currency ?? productCurrency,
-                images: Array.isArray(related.images) ? related.images : [],
-                brand: related.brand ?? '',
-                attributes: Array.isArray(related.attributes) ? related.attributes : [],
-                featured: related.featured ?? false,
-                ratingValue: parseFloat((4.3 + (rHash % 4) * 0.1).toFixed(1)),
-                reviewCount: 12 + (rHash % 89),
-              }} />
-            );
-          })}
+          {relatedProducts.map(related => (
+            <ProductCard product={{
+              name: related.name,
+              slug: related.slug,
+              categorySlug: related.categorySlug ?? category.slug,
+              subcategorySlug: related.subcategorySlug ?? subcategory.slug,
+              description: related.description ?? '',
+              price: related.price,
+              originalPrice: related.originalPrice ?? undefined,
+              currency: related.currency ?? productCurrency,
+              images: Array.isArray(related.images) ? related.images : [],
+              brand: related.brand ?? '',
+              attributes: Array.isArray(related.attributes) ? related.attributes : [],
+              featured: related.featured ?? false,
+            }} />
+          ))}
         </div>
       </section>
     )}
