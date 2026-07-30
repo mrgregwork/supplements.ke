@@ -19,6 +19,18 @@ const FORM_TAIL = /\b(powders?|capsules?|tablets?|gummies|gummy|softgels?|bundle
 /** Trailing "s" that is not a plural — Wellness, Focus, Analysis. */
 const NOT_PLURAL = /(ss|us|is)$/i;
 
+/**
+ * Per-collection heading overrides, keyed by slug.
+ *
+ * Deliberately consulted here rather than hardcoded into a page, so that the
+ * hub-and-spoke anchors pointing *at* an overridden collection keep matching
+ * its H1. Setting the H1 on the page alone would silently break that.
+ */
+const HEADING_OVERRIDES: Record<string, string> = {
+  // Browsed by need rather than by ingredient — 89 products across 15 needs.
+  'specialty-supplements': 'Specialty Supplements by Need',
+};
+
 function isPlural(word: string): boolean {
   return /s$/i.test(word) && !NOT_PLURAL.test(word);
 }
@@ -41,11 +53,18 @@ function singularise(word: string): string {
  * "Collagen Powder"     -> "Collagen Powder in Kenya"        (format, not an ingredient)
  * "Best Collagen for Skin" -> "Best Collagen for Skin in Kenya"
  */
-export function collectionHeading(name: string, region: string = DEFAULT_REGION): string {
+export function collectionHeading(
+  name: string,
+  region: string = DEFAULT_REGION,
+  slug?: string
+): string {
   const raw = (name ?? '').trim().replace(/\s+/g, ' ');
   if (!raw) return `Supplements in ${region}`;
 
   const withRegion = (s: string) => `${s} in ${region}`;
+
+  const override = slug ? HEADING_OVERRIDES[slug] : undefined;
+  if (override) return withRegion(override);
 
   // Already contains "supplement(s)" — say it once, with consistent casing.
   if (/\bsupplements?\b/i.test(raw)) {

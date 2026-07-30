@@ -204,7 +204,15 @@ export const subcategories = pgTable("subcategories", {
   name: text("name").notNull(),
   description: text("description"),
   longDescription: text("long_description"),
+  // Card image for "browse by need" hub pages. Whatever is set here wins, so a
+  // manually uploaded photo always overrides a generated one.
   heroImage: text("hero_image"),
+  /** Alt text for heroImage. Falls back to the target page's H1 when empty. */
+  heroImageAlt: text("hero_image_alt"),
+  // One-sentence, pain-to-solution line shown on those cards. Kept separate
+  // from description, which is long-form HTML for the subcategory page itself
+  // and far too long for a card.
+  cardExcerpt: text("card_excerpt"),
   seoTitle: text("seo_title"),
   seoDescription: text("seo_description"),
   sortOrder: integer("sort_order").default(0).notNull(),

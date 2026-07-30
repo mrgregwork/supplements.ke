@@ -262,15 +262,40 @@ const subcategoriesWithCategory = allSubcategories.map(sub => ({
       
       <div>
         <label class="block text-sm font-medium mb-2">Hero Image URL</label>
-        <input 
-          type="text" 
-          name="heroImage" 
+        <input
+          type="text"
+          name="heroImage"
           id="form-heroImage"
           class="w-full px-4 py-3 min-h-[48px] text-base border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:outline-none"
           data-testid="input-heroImage"
         />
+        <p class="text-xs text-muted-foreground mt-1">Shown on "browse by need" cards. Anything set here wins, so paste your own image URL to override a generated one.</p>
       </div>
-      
+
+      <div>
+        <label class="block text-sm font-medium mb-2">Hero Image Alt Text</label>
+        <input
+          type="text"
+          name="heroImageAlt"
+          id="form-heroImageAlt"
+          class="w-full px-4 py-3 min-h-[48px] text-base border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:outline-none"
+          data-testid="input-heroImageAlt"
+        />
+        <p class="text-xs text-muted-foreground mt-1">Leave blank to reuse this subcategory's H1, which already targets its keyword.</p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-2">Card Excerpt</label>
+        <textarea
+          name="cardExcerpt"
+          id="form-cardExcerpt"
+          rows="2"
+          class="w-full px-4 py-3 text-base border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:outline-none"
+          data-testid="input-cardExcerpt"
+        ></textarea>
+        <p class="text-xs text-muted-foreground mt-1">One sentence, naming the problem then the solution. Shown on "browse by need" cards.</p>
+      </div>
+
       <div class="grid grid-cols-2 gap-4">
         <div>
           <label class="block text-sm font-medium mb-2">Sort Order</label>
@@ -501,6 +526,8 @@ const subcategoriesWithCategory = allSubcategories.map(sub => ({
         const subLdCode = document.getElementById('sub-ld-code') as HTMLTextAreaElement;
         if (subLdVis) { subLdVis.innerHTML = sub.longDescription || ''; if (subLdCode) subLdCode.value = sub.longDescription || ''; }
         (document.getElementById('form-heroImage') as HTMLInputElement).value = sub.heroImage || '';
+        (document.getElementById('form-heroImageAlt') as HTMLInputElement).value = sub.heroImageAlt || '';
+        (document.getElementById('form-cardExcerpt') as HTMLTextAreaElement).value = sub.cardExcerpt || '';
         (document.getElementById('form-sortOrder') as HTMLInputElement).value = sub.sortOrder;
         (document.getElementById('form-isActive') as HTMLInputElement).checked = sub.isActive;
         (document.getElementById('form-seoTitle') as HTMLInputElement).value = sub.seoTitle || '';
@@ -573,6 +600,8 @@ const subcategoriesWithCategory = allSubcategories.map(sub => ({
       description: description || null,
       longDescription: longDescription || null,
       heroImage: (document.getElementById('form-heroImage') as HTMLInputElement).value || null,
+      heroImageAlt: (document.getElementById('form-heroImageAlt') as HTMLInputElement).value || null,
+      cardExcerpt: (document.getElementById('form-cardExcerpt') as HTMLTextAreaElement).value || null,
       sortOrder: parseInt((document.getElementById('form-sortOrder') as HTMLInputElement).value) || 0,
       isActive: (document.getElementById('form-isActive') as HTMLInputElement).checked,
       seoTitle: (document.getElementById('form-seoTitle') as HTMLInputElement).value || null,

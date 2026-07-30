@@ -16,6 +16,8 @@ import { collectionHeading } from '@lib/headings';
 interface Link {
   name: string;
   href: string;
+  /** Enables per-collection heading overrides, keeping anchors equal to target H1s. */
+  slug?: string;
 }
 
 interface Props {
@@ -52,7 +54,7 @@ const spokes = pool.length > 0
   ? Array.from({ length: Math.min(count, pool.length) }, (_, i) => pool[(offset + i) % pool.length])
   : [];
 
-const hubHeading = collectionHeading(hub.name, region);
+const hubHeading = collectionHeading(hub.name, region, hub.slug);
 ---
 
 {(spokes.length > 0 || hub.href) && (
@@ -92,7 +94,7 @@ const hubHeading = collectionHeading(hub.name, region);
                   class="text-primary hover:underline"
                   data-testid="link-spoke"
                 >
-                  {collectionHeading(s.name, region)}
+                  {collectionHeading(s.name, region, s.slug)}
                 </a>
               </li>
             ))}
