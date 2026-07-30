@@ -79,12 +79,6 @@ const breadcrumbItems = [
 
 const productAltText = getProductImageAlt(product.name, 0, images.length, product.brand ?? '');
 
-const siteName = siteSettings.siteName ?? 'Supplements Kenya';
-const targetRegion = siteSettings.targetRegion ?? 'Kenya';
-const enableRegionalSeo = siteSettings.enableRegionalSeo ?? true;
-const returnDays = 30;
-
-const slugHash = product.slug.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
 const productCurrency = product.currency || siteSettings.defaultCurrency || 'KES';
 
 const structuredData = generateProductPageSchema(
@@ -93,18 +87,12 @@ const structuredData = generateProductPageSchema(
   Astro.url.href,
 );
 
-// If admin has manually set a seoTitle, use it verbatim — no template wrapping.
-// Only apply rotation template when no custom title has been set.
+// Title format: [product name] | [benefit] | [store name].
+// BaseLayout's titleTemplate appends "| {siteName}", so it is not repeated here.
 const hasCustomTitle = !!product.seoTitle?.trim();
-const titleBase = product.name;
-const regionalTitleVariants = [
-  `${titleBase} in ${targetRegion} | Same-Day Delivery in Nairobi`,
-  `${titleBase} in ${targetRegion} | Price in ${targetRegion} | Order on WhatsApp`,
-  `${titleBase} in ${targetRegion} | Shop in Nairobi`,
-];
 const pageTitle = hasCustomTitle
   ? product.seoTitle!.trim()
-  : (enableRegionalSeo ? regionalTitleVariants[slugHash % 3] : product.name);
+  : [product.name, product.benefit].filter(Boolean).join(' | ');
 ---
 
 <BaseLayout
@@ -116,9 +104,23 @@ const pageTitle = hasCustomTitle
   <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
     <Breadcrumbs items={breadcrumbItems} />
 
-    <div class="grid lg:grid-cols-2 gap-12 items-start">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-12 items-start">
+      <!-- Heading: above the image on mobile, top of the right column on desktop -->
+      <div class="mb-4 lg:mb-3 lg:col-start-2 lg:row-start-1">
+        <span class="inline-flex items-center gap-1 text-xs font-semibold text-primary bg-primary/8 border border-primary/20 rounded-full px-3 py-0.5 mb-2">
+          <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
+          {product.brand}
+        </span>
+        <h1 class="text-2xl sm:text-3xl font-extrabold leading-tight mt-1" data-testid="text-product-title">
+          {product.benefit && (
+            <span class="block text-lg sm:text-xl font-semibold text-primary mb-1">{product.benefit}</span>
+          )}
+          {product.name}
+        </h1>
+      </div>
+
       <!-- Product Images -->
-      <div class="lg:sticky lg:top-24">
+      <div class="mb-8 lg:mb-0 lg:col-start-1 lg:row-start-1 lg:row-span-2 lg:sticky lg:top-24">
         <div class="aspect-square overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-50 via-white to-stone-50 border border-border/50 flex items-center justify-center shadow-sm">
           <img
             id="main-product-image"
@@ -154,20 +156,7 @@ const pageTitle = hasCustomTitle
       </div>
 
       <!-- Product Details -->
-      <div>
-        <div class="mb-3">
-          <span class="inline-flex items-center gap-1 text-xs font-semibold text-primary bg-primary/8 border border-primary/20 rounded-full px-3 py-0.5 mb-2">
-            <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
-            {product.brand}
-          </span>
-          <h1 class="text-2xl sm:text-3xl font-extrabold leading-tight mt-1" data-testid="text-product-title">
-            {product.benefit && (
-              <span class="block text-lg sm:text-xl font-semibold text-primary mb-1">{product.benefit}</span>
-            )}
-            {product.name}
-          </h1>
-        </div>
-
+      <div class="lg:col-start-2 lg:row-start-2">
         <!-- Short Description -->
         <p class="text-muted-foreground mb-5 leading-relaxed" data-testid="text-product-description">
           {product.description}

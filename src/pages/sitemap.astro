@@ -1,0 +1,75 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Breadcrumbs from '@components/Breadcrumbs.astro';
+import { getSitemapSections } from '@lib/sitemap';
+
+const sections = await getSitemapSections();
+const totalLinks = sections.reduce((sum, s) => sum + s.entries.length, 0);
+
+const breadcrumbItems = [{ name: 'Sitemap', href: '/sitemap/' }];
+
+// Product and subcategory lists are long — render them in columns rather than one tall list.
+const isWideList = (title: string) =>
+  title === 'Products' || title === 'Subcategories' || title === 'Brands';
+---
+
+<BaseLayout
+  title="Sitemap"
+  description="Browse every page on Supplements Kenya — all supplement categories, brands, products and articles in one place."
+>
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+    <Breadcrumbs items={breadcrumbItems} />
+
+    <header class="mb-10">
+      <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight">Sitemap</h1>
+      <p class="text-muted-foreground mt-3 max-w-2xl leading-relaxed">
+        Every page on the site, in one place — {totalLinks.toLocaleString()} links across
+        {sections.length} sections. Looking for the machine-readable version?
+        <a href="/sitemap.xml" class="text-primary font-medium hover:underline">View sitemap.xml</a>.
+      </p>
+    </header>
+
+    <!-- Section jump links -->
+    <nav class="flex flex-wrap gap-2 mb-12 pb-8 border-b" aria-label="Sitemap sections">
+      {sections.map(section => (
+        <a
+          href={`#${section.title.toLowerCase().replace(/\s+/g, '-')}`}
+          class="inline-flex items-center gap-1.5 text-sm font-medium border rounded-full px-4 py-1.5 hover:bg-accent hover:border-primary/40 transition-colors"
+        >
+          {section.title}
+          <span class="text-xs text-muted-foreground">{section.entries.length}</span>
+        </a>
+      ))}
+    </nav>
+
+    <div class="space-y-14">
+      {sections.map(section => (
+        <section id={section.title.toLowerCase().replace(/\s+/g, '-')} class="scroll-mt-24">
+          <h2 class="text-xl font-bold mb-1">{section.title}</h2>
+          <p class="text-sm text-muted-foreground mb-5">
+            {section.entries.length.toLocaleString()} {section.entries.length === 1 ? 'page' : 'pages'}
+          </p>
+          <ul
+            class:list={[
+              'gap-x-8 gap-y-2.5',
+              isWideList(section.title)
+                ? 'grid sm:grid-cols-2 lg:grid-cols-3'
+                : 'grid sm:grid-cols-2',
+            ]}
+          >
+            {section.entries.map(entry => (
+              <li class="min-w-0">
+                <a
+                  href={entry.path}
+                  class="text-sm text-foreground/90 hover:text-primary hover:underline break-words"
+                >
+                  {entry.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+    </div>
+  </div>
+</BaseLayout>

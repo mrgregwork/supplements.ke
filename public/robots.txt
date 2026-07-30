@@ -8,4 +8,4 @@ Disallow: /api/
 Disallow: /cart
 Disallow: /checkout
 
-Sitemap: https://supplements.co.ke/sitemap.xml
+Sitemap: https://supplements.ke/sitemap.xml
