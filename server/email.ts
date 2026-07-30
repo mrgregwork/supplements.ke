@@ -1,11 +1,24 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Resend's constructor throws when no API key is present. Building it at module
+// scope meant a missing RESEND_API_KEY made this whole module fail to import,
+// which in turn made every route importing it 404 — taking out OTP login
+// entirely rather than just email delivery. Construct it lazily instead so a
+// missing key surfaces as a handled send failure at the call site.
+let resend: Resend | null = null;
+
+function getResend(): Resend {
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error("RESEND_API_KEY is not set — cannot send email.");
+  }
+  resend ??= new Resend(process.env.RESEND_API_KEY);
+  return resend;
+}
 
 const FROM_ADDRESS = "Supplements Kenya <noreply@supplements.co.ke>";
 
 export async function sendOtpEmail(to: string, code: string): Promise<void> {
-  const { error } = await resend.emails.send({
+  const { error } = await getResend().emails.send({
     from: FROM_ADDRESS,
     to,
     subject: "Your Supplements Kenya Login Code",
