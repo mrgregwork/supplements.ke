@@ -93,12 +93,17 @@ const hasCustomTitle = !!product.seoTitle?.trim();
 const pageTitle = hasCustomTitle
   ? product.seoTitle!.trim()
   : [product.name, product.benefit].filter(Boolean).join(' | ');
+
+// Product pages stay out of the search index until released in small batches.
+// Flip products.indexable to true to opt a product in.
+const noindex = product.indexable !== true;
 ---
 
 <BaseLayout
   title={pageTitle}
   description={product.seoDescription ?? product.description ?? ''}
   type="product"
+  noindex={noindex}
   structuredData={structuredData}
 >
   <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">

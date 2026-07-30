@@ -13,6 +13,7 @@ export const GET: APIRoute = async () => {
   const sections = await getSitemapSections();
 
   const urls = sections
+    .filter(section => section.includeInXml)
     .flatMap(section => section.entries)
     .map(entry => {
       const loc = `${SITE_URL}${entry.path}`;

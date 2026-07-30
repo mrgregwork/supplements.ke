@@ -48,7 +48,7 @@ export const POST: APIRoute = async ({ request }) => {
     // Create order
     const [order] = await db.insert(orders).values({
       orderNumber,
-      email: `cod+${phone.replace(/\D/g, '')}@supplements.co.ke`, // placeholder email for COD
+      email: `cod+${phone.replace(/\D/g, '')}@supplements.ke`, // placeholder email for COD
       phone,
       status: 'pending',
       subtotal,

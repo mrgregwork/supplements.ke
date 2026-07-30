@@ -10,7 +10,7 @@ const breadcrumbItems = [{ name: 'Sitemap', href: '/sitemap/' }];
 
 // Product and subcategory lists are long — render them in columns rather than one tall list.
 const isWideList = (title: string) =>
-  title === 'Products' || title === 'Subcategories' || title === 'Brands';
+  title.startsWith('Products') || title === 'Subcategories' || title === 'Brands';
 ---
 
 <BaseLayout

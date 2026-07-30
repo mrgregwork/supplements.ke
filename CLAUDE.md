@@ -1,18 +1,18 @@
 # Supplements Kenya — Project Brief for Claude
 
 ## What this project is
-E-commerce supplements store at **supplements.co.ke**. Sells health supplements only (no cosmetics/skincare). Built with Astro SSR + Node.js + Neon PostgreSQL + Railway hosting.
+E-commerce supplements store at **supplements.ke**. Sells health supplements only (no cosmetics/skincare). Built with Astro SSR + Node.js + Neon PostgreSQL + Railway hosting.
 
 ## Stack
 - **Frontend/SSR**: Astro 5 (`output: 'server'`, `@astrojs/node` standalone adapter)
 - **Database**: Neon PostgreSQL (project: `weathered-base-05591763`, org: `org-snowy-shadow-41735691`)
 - **Hosting**: Railway (auto-deploys from GitHub on every push)
-- **GitHub**: `mrgregwork/supplementsKenya` (branch: `master`)
-- **Domain**: supplements.co.ke (DNS via Cloudflare → Railway CNAME)
+- **GitHub**: `mrgregwork/supplements.ke` (branch: `master`)
+- **Domain**: supplements.ke (DNS via Cloudflare → Railway CNAME)
 - **Admin panel**: `/admin` (login required)
 
 ## Key files
-- `astro.config.mjs` — Astro config, allowedHosts includes supplements.co.ke and .railway.app
+- `astro.config.mjs` — Astro config, allowedHosts includes supplements.ke and .railway.app
 - `server/index.ts` — Entry point: runs `dist/server/entry.mjs` in prod, falls back to `astro dev`
 - `server/storage.ts` — All DB access via Drizzle ORM + pg pool
 - `server/db.ts` — exports `db` (Drizzle) and `pool` (pg Pool)

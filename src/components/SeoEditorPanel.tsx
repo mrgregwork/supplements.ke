@@ -134,7 +134,7 @@ export default function SeoEditorPanel({
               <p className="text-[15px] text-blue-700 dark:text-blue-400 font-medium leading-tight truncate">
                 {title || "No title"}
               </p>
-              <p className="text-xs text-green-700 dark:text-green-500 mb-1">supplements.co.ke</p>
+              <p className="text-xs text-green-700 dark:text-green-500 mb-1">supplements.ke</p>
               <p className="text-xs text-muted-foreground line-clamp-2">
                 {description || "No description"}
               </p>

@@ -26,6 +26,12 @@ export interface SitemapEntry {
 export interface SitemapSection {
   title: string;
   entries: SitemapEntry[];
+  /**
+   * False for sections whose pages are noindex. They still appear on the
+   * human-readable /sitemap page for shoppers, but are kept out of
+   * sitemap.xml — submitting noindex URLs there trips Search Console errors.
+   */
+  includeInXml: boolean;
 }
 
 export const SITE_URL = (siteSettings.siteUrl || 'https://supplements.ke').replace(/\/$/, '');
@@ -109,8 +115,9 @@ export async function getSitemapSections(): Promise<SitemapSection[]> {
     .sort((a, b) => a.label.localeCompare(b.label));
 
   // ── Products (use the product's own category/subcategory, matching the
-  //    canonical URL the product page itself redirects to) ─────────────────────
-  const productEntries: SitemapEntry[] = activeProducts
+  //    canonical URL the product page itself redirects to).
+  //    Only products flagged indexable are eligible for sitemap.xml. ──────────
+  const buildProductEntries = (list: typeof activeProducts): SitemapEntry[] => list
     .flatMap(p => {
       const category = categoryById.get(p.categoryId ?? '');
       const subcategory = subcategoryById.get(p.subcategoryId ?? '');
@@ -126,6 +133,9 @@ export async function getSitemapSections(): Promise<SitemapSection[]> {
       }];
     })
     .sort((a, b) => a.label.localeCompare(b.label));
+
+  const indexableProductEntries = buildProductEntries(activeProducts.filter(p => p.indexable === true));
+  const noindexProductEntries   = buildProductEntries(activeProducts.filter(p => p.indexable !== true));
 
   // ── Brands (deduped, derived from active products) ──────────────────────────
   const brandMap = new Map<string, string>();
@@ -168,12 +178,13 @@ export async function getSitemapSections(): Promise<SitemapSection[]> {
     .sort((a, b) => a.label.localeCompare(b.label));
 
   return [
-    { title: 'Main Pages',   entries: STATIC_PAGES },
-    { title: 'Categories',   entries: categoryEntries },
-    { title: 'Subcategories', entries: subcategoryEntries },
-    { title: 'Brands',       entries: brandEntries },
-    { title: 'Products',     entries: productEntries },
-    { title: 'Articles',     entries: blogEntries },
-    { title: 'Other Pages',  entries: contentPageEntries },
+    { title: 'Main Pages',    entries: STATIC_PAGES,              includeInXml: true },
+    { title: 'Categories',    entries: categoryEntries,           includeInXml: true },
+    { title: 'Subcategories', entries: subcategoryEntries,        includeInXml: true },
+    { title: 'Brands',        entries: brandEntries,              includeInXml: true },
+    { title: 'Products',      entries: indexableProductEntries,   includeInXml: true },
+    { title: 'Products (not yet indexed)', entries: noindexProductEntries, includeInXml: false },
+    { title: 'Articles',      entries: blogEntries,               includeInXml: true },
+    { title: 'Other Pages',   entries: contentPageEntries,        includeInXml: true },
   ].filter(section => section.entries.length > 0);
 }

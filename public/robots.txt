@@ -7,5 +7,21 @@ Disallow: /account/
 Disallow: /api/
 Disallow: /cart
 Disallow: /checkout
+Disallow: /login
+Disallow: /search
+
+# ── Product pages ────────────────────────────────────────────────────────────
+# Product pages are being released to search in small batches rather than all
+# at once. They are gated with a "noindex" robots meta tag per product
+# (products.indexable in the database), NOT with a Disallow rule here.
+#
+# A Disallow would block crawling, which would stop Google from ever reading
+# that noindex tag — and a blocked URL can still get indexed from inbound
+# links, showing up with no title or description. Keeping product pages
+# crawlable but noindex is what actually keeps them out of the index, and it
+# lets a product be released later simply by flipping its indexable flag.
+#
+# Category, subcategory, brand, blog and static pages are all crawlable and
+# indexable as normal, and are the only URLs listed in sitemap.xml.
 
 Sitemap: https://supplements.ke/sitemap.xml

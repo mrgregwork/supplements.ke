@@ -277,6 +277,10 @@ export const products = pgTable("products", {
   inStock: boolean("in_stock").default(true).notNull(),
   featured: boolean("featured").default(false).notNull(),
   status: text("status").default("active").notNull(),
+  // Search-engine indexing gate. Defaults to false so new products are noindex
+  // until deliberately released — product pages are rolled out to Google in
+  // small batches rather than several hundred at once.
+  indexable: boolean("indexable").default(false).notNull(),
   seoTitle: text("seo_title"),
   seoDescription: text("seo_description"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
