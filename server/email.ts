@@ -15,7 +15,7 @@ function getResend(): Resend {
   return resend;
 }
 
-const FROM_ADDRESS = "Supplements Kenya <noreply@supplements.co.ke>";
+const FROM_ADDRESS = "Supplements Kenya <noreply@supplements.ke>";
 
 export async function sendOtpEmail(to: string, code: string): Promise<void> {
   const { error } = await getResend().emails.send({
