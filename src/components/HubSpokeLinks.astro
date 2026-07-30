@@ -1,0 +1,104 @@
+---
+/**
+ * Hub-and-spoke internal linking block.
+ *
+ * Every product and collection page links back up to its mother hub and across
+ * to three sister spokes. Anchor text is the target page's own H1, produced by
+ * collectionHeading() — the same function those pages use for their heading —
+ * so an anchor can never drift out of sync with the page it points at.
+ *
+ * Sister selection is deterministic (seeded off the current page's slug) rather
+ * than random, so a given page always renders the same links. Random picks would
+ * change the internal link graph on every request.
+ */
+import { collectionHeading } from '@lib/headings';
+
+interface Link {
+  name: string;
+  href: string;
+}
+
+interface Props {
+  /** The mother hub this page belongs to. */
+  hub: Link;
+  /** Candidate sister spokes; three are chosen deterministically. */
+  siblings?: Link[];
+  /** Seed for the deterministic pick — normally the current page's slug. */
+  seed: string;
+  region?: string;
+  /** How many sisters to link. */
+  count?: number;
+}
+
+const { hub, siblings = [], seed, region: regionProp, count = 3 } = Astro.props;
+// Guard against an empty string, not just undefined — a blank region would
+// render "Protein Supplements in " with nothing after "in".
+const region = regionProp?.trim() || 'Kenya';
+
+function seedHash(value: string): number {
+  let h = 5381;
+  for (let i = 0; i < value.length; i++) h = ((h << 5) + h) ^ value.charCodeAt(i);
+  return Math.abs(h);
+}
+
+// Stable order, then rotate by the seed so different pages surface different
+// sisters while each individual page stays consistent build to build.
+const pool = [...siblings]
+  .filter(s => s && s.href && s.href !== Astro.url.pathname)
+  .sort((a, b) => a.href.localeCompare(b.href));
+
+const offset = pool.length > 0 ? seedHash(seed) % pool.length : 0;
+const spokes = pool.length > 0
+  ? Array.from({ length: Math.min(count, pool.length) }, (_, i) => pool[(offset + i) % pool.length])
+  : [];
+
+const hubHeading = collectionHeading(hub.name, region);
+---
+
+{(spokes.length > 0 || hub.href) && (
+  <nav
+    class="mt-16 pt-8 border-t"
+    aria-labelledby="related-collections-heading"
+    data-testid="section-hub-spoke"
+  >
+    <h2 id="related-collections-heading" class="text-xl font-semibold mb-5">
+      Explore more supplements
+    </h2>
+
+    <div class="grid gap-6 sm:grid-cols-2">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+          Browse the full range
+        </p>
+        <a
+          href={hub.href}
+          class="text-primary hover:underline font-medium"
+          data-testid="link-hub"
+        >
+          {hubHeading}
+        </a>
+      </div>
+
+      {spokes.length > 0 && (
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+            Related collections
+          </p>
+          <ul class="space-y-1.5">
+            {spokes.map(s => (
+              <li>
+                <a
+                  href={s.href}
+                  class="text-primary hover:underline"
+                  data-testid="link-spoke"
+                >
+                  {collectionHeading(s.name, region)}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  </nav>
+)}

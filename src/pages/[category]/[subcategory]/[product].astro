@@ -7,6 +7,7 @@ import ProductCard from '@components/ProductCard.astro';
 import { storage } from '@lib/storage';
 import { getSiteSettings } from '@lib/settings';
 import { generateCategoryUrl, generateSubcategoryUrl, generateProductUrl, formatPrice } from '@lib/seo';
+import HubSpokeLinks from '@components/HubSpokeLinks.astro';
 import { generateProductPageSchema, getProductImageAlt } from '@lib/schema';
 
 const { category: categorySlug, subcategory: subcategorySlug, product: productSlug } = Astro.params;
@@ -63,6 +64,19 @@ if (Astro.url.pathname !== canonicalPath) {
 }
 
 if (!subcategory) return Astro.redirect('/404');
+
+// Hub-and-spoke: a product links up to its subcategory hub and across to the
+// sister spokes under the same category.
+const sisterSubcategories = (await storage.getSubcategoriesByCategoryId(category.id))
+  .filter(s => s.isActive && s.id !== subcategory.id)
+  .map(s => ({ name: s.name, href: generateSubcategoryUrl(category.slug, s.slug) }));
+
+if (sisterSubcategories.length < 3) {
+  const sisterHubs = (await storage.getCategories())
+    .filter(c => c.isActive && c.id !== category.id)
+    .map(c => ({ name: c.name, href: generateCategoryUrl(c.slug) }));
+  sisterSubcategories.push(...sisterHubs);
+}
 
 const images = Array.isArray(product.images) ? product.images : [];
 const attributes = Array.isArray(product.attributes) ? product.attributes : [];
@@ -265,6 +279,13 @@ const noindex = product.indexable !== true;
         </div>
       </section>
     )}
+
+    <HubSpokeLinks
+      hub={{ name: subcategory.name, href: generateSubcategoryUrl(category.slug, subcategory.slug) }}
+      siblings={sisterSubcategories}
+      seed={product.slug}
+      region={siteSettings.targetRegion || 'Kenya'}
+    />
   </div>
 
   <AdminToolbar

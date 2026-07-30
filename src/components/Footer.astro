@@ -49,9 +49,9 @@ const footerLinks = {
             class="h-8 w-auto hidden dark:block"
           />
         </a>
-        <p class="text-sm text-muted-foreground mb-4">
-          {siteSettings.siteDescription}
-        </p>
+        <!-- siteDescription is deliberately not repeated here: it already serves
+             as the meta description and WebSite schema, and printing it in the
+             footer duplicated the same block of text on every page. -->
         <!-- Contact details -->
         <ul class="space-y-2 text-sm text-muted-foreground">
           <li>

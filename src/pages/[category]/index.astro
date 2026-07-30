@@ -5,6 +5,8 @@ import ProductGrid from '@components/ProductGrid.astro';
 import SeoContentSection from '@components/SeoContentSection.astro';
 import AdminToolbar from '@components/AdminToolbar.astro';
 import { getRegionalAnchorText, generateCategoryUrl, generateSubcategoryUrl } from '@lib/seo';
+import { collectionHeading } from '@lib/headings';
+import HubSpokeLinks from '@components/HubSpokeLinks.astro';
 import { generateCategoryPageSchema, generateOfferCatalogSchema } from '@lib/schema';
 import { storage } from '@lib/storage';
 import { getSiteSettings } from '@lib/settings';
@@ -20,6 +22,12 @@ if (!category || !category.isActive) {
 const subcategories = await storage.getSubcategoriesByCategoryId(category.id);
 const products = await storage.getProductsByCategory(category.id);
 const siteSettings = await getSiteSettings();
+
+// Hub-and-spoke: a category hub links up to the full catalogue and across to
+// sister category hubs.
+const sisterCategories = (await storage.getCategories())
+  .filter(c => c.isActive && c.id !== category.id)
+  .map(c => ({ name: c.name, href: generateCategoryUrl(c.slug) }));
 
 const breadcrumbItems = [
   { name: category.name, href: generateCategoryUrl(category.slug) },
@@ -97,7 +105,7 @@ const noindex = NOINDEX_SLUGS.includes(category.slug);
     <div class="mb-6">
       <h1 class="text-3xl font-bold" data-testid="text-category-title">
         {siteSettings.enableRegionalSeo && siteSettings.targetRegion
-          ? getRegionalAnchorText(category.name)
+          ? collectionHeading(category.name, siteSettings.targetRegion)
           : category.name}
       </h1>
     </div>
@@ -142,6 +150,13 @@ const noindex = NOINDEX_SLUGS.includes(category.slug);
         <div class="prose prose-neutral dark:prose-invert max-w-3xl" set:html={category.longDescription} />
       </div>
     )}
+
+    <HubSpokeLinks
+      hub={{ name: 'All Supplements', href: '/all-supplements/' }}
+      siblings={sisterCategories}
+      seed={category.slug}
+      region={siteSettings.targetRegion ?? 'Kenya'}
+    />
   </div>
 
   <AdminToolbar
