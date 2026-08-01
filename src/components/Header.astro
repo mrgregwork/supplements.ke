@@ -40,6 +40,47 @@ const vitMinChildren = vitMinItem
 const vitaminsLinks = vitMinChildren.filter(c => c.description === 'Vitamins').map(c => ({ href: c.href, label: c.label }));
 const mineralsLinks = vitMinChildren.filter(c => c.description === 'Minerals').map(c => ({ href: c.href, label: c.label }));
 
+/**
+ * Column grouping for the fallback mega menu, keyed by category slug.
+ * Anything not listed lands in "More".
+ */
+const FALLBACK_GROUPS: { label: string; slugs: string[] }[] = [
+  { label: 'Shop by Goal',   slugs: ['health-goals', 'weight-management', 'womens-health', 'mens-health', 'kids-family'] },
+  { label: 'Core Nutrients', slugs: ['vitamins', 'minerals', 'protein', 'omega-fatty-acids'] },
+  { label: 'Specialty',      slugs: ['specialty-supplements', 'collagen', 'probiotics-gut-health', 'herbal-supplements'] },
+  { label: 'More',           slugs: ['beauty-supplements', 'food-supplements', 'supplement-forms', 'lifestyle-supplements'] },
+];
+
+/**
+ * Built from the live categories rather than a hardcoded list.
+ *
+ * navigation_items is empty on this database, so the previous fallback marked
+ * "All Supplements" as a mega menu while giving it no children — the panel
+ * opened onto an empty box. Deriving it from the categories that actually exist
+ * means the menu works with no navigation rows configured, and stays correct as
+ * categories are added or renamed. Rows in navigation_items still take priority.
+ */
+function buildFallbackMegaChildren(): NavChild[] {
+  const active = allDbCategories.filter(c => c.isActive);
+  const grouped = new Set(FALLBACK_GROUPS.flatMap(g => g.slugs));
+
+  return FALLBACK_GROUPS.flatMap(group => {
+    const slugs = group.label === 'More'
+      ? [...group.slugs, ...active.filter(c => !grouped.has(c.slug)).map(c => c.slug)]
+      : group.slugs;
+
+    return slugs
+      .map(slug => active.find(c => c.slug === slug))
+      .filter((c): c is NonNullable<typeof c> => Boolean(c))
+      .map(c => ({
+        href: `/${c.slug}/`,
+        label: c.name,
+        description: group.label,
+        subs: megaSubsMap.get(`/${c.slug}/`) ?? [],
+      }));
+  });
+}
+
 const navItems: NavItem[] = topLevel.length > 0
   ? topLevel
       .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
@@ -53,7 +94,7 @@ const navItems: NavItem[] = topLevel.length > 0
           .map(c => ({ href: c.href, label: c.label, description: c.description, subs: megaSubsMap.get(c.href) ?? [] })),
       }))
   : [
-      { href: '/all-supplements/', label: 'All Supplements', isMegaMenu: true },
+      { href: '/all-supplements/', label: 'All Supplements', isMegaMenu: true, children: buildFallbackMegaChildren() },
       { href: '/vitamins/', label: 'Vitamins' },
       { href: '/protein/', label: 'Protein' },
       { href: '/collagen/', label: 'Collagen' },
