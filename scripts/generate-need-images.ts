@@ -23,7 +23,8 @@ import "dotenv/config";
 import { db } from "../server/db";
 import { categories, subcategories } from "../shared/schema";
 import { eq } from "drizzle-orm";
-import { mkdirSync, writeFileSync } from "fs";
+import { mkdirSync } from "fs";
+import sharp from "sharp";
 import { collectionHeading } from "../src/lib/headings";
 
 const API_URL = "https://openrouter.ai/api/v1/chat/completions";
@@ -174,13 +175,19 @@ async function main() {
         continue;
       }
 
-      const file = `${OUT_DIR}/${sub.slug}.${image.ext}`;
-      writeFileSync(file, image.buffer);
+      // Models return ~1.4MB PNGs. Cards display around 350px wide, so raw
+      // output would mean ~21MB on a 15-card page; WebP at 1000px cuts that to
+      // well under 1MB with no visible difference at display size.
+      const file = `${OUT_DIR}/${sub.slug}.webp`;
+      await sharp(image.buffer)
+        .resize(1000, 625, { fit: "cover", position: "attention" })
+        .webp({ quality: 82 })
+        .toFile(file);
 
       await db
         .update(subcategories)
         .set({
-          heroImage: `/images/needs/${sub.slug}.${image.ext}`,
+          heroImage: `/images/needs/${sub.slug}.webp`,
           heroImageAlt: sub.heroImageAlt?.trim() || collectionHeading(sub.name, "Kenya", sub.slug),
           updatedAt: new Date(),
         })
