@@ -102,7 +102,18 @@ const noindex = NOINDEX_SLUGS.includes(category.slug);
  * would silently reshape vitamins (70), health-goals (38), collagen (34) and
  * others that were not asked for.
  */
-const NEEDS_HUB_SLUGS = ['specialty-supplements'];
+const NEEDS_HUB_SLUGS = [
+  'specialty-supplements',
+  'health-goals',
+  'womens-health',
+  'mens-health',
+  'vitamins',
+  'minerals',
+  'protein',
+  'collagen',
+  'herbal-supplements',
+  'supplement-forms',
+];
 const isNeedsHub = NEEDS_HUB_SLUGS.includes(category.slug);
 
 // Product counts per need, for the card CTAs. Only queried for needs hubs.

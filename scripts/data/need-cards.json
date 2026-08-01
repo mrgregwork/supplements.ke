@@ -1,0 +1,492 @@
+{
+  "health-goals": {
+    "immunity-support": {
+      "excerpt": "Crowded matatus, shared offices and every change of season test your defences — vitamin C, zinc and elderberry blends help support a resilient immune response.",
+      "scene": "a person walking briskly through a busy morning street looking healthy and unbothered, warm daylight, crowd softly blurred behind",
+      "cast": "person"
+    },
+    "energy-fatigue": {
+      "excerpt": "When the 3pm slump hits harder than the alarm did, B-complex, iron and adaptogens help your body turn food into steady, usable energy.",
+      "scene": "someone mid-stride up a flight of outdoor stairs carrying a laptop bag, bright morning light, energetic posture",
+      "cast": "person"
+    },
+    "brain-memory": {
+      "excerpt": "Names slipping, tabs multiplying, focus fraying by noon — omega-3s, ginkgo and B vitamins help support memory, concentration and clear thinking under pressure.",
+      "scene": "hands writing neatly in a notebook beside an open book and coffee, sunlit desk, quiet focused workspace",
+      "cast": "none"
+    },
+    "stress-anxiety-support": {
+      "excerpt": "Deadlines, traffic and a phone that never stops keep your body in overdrive; ashwagandha, L-theanine and magnesium help maintain a calmer stress response.",
+      "scene": "a person sitting by a window with tea, shoulders relaxed, soft afternoon light, unhurried and peaceful mood",
+      "cast": "person"
+    },
+    "sleep-support": {
+      "excerpt": "If bedtime means scrolling until 1am and dragging yourself up at six, gentle sleep formulas help you wind down and hold a deeper sleep cycle.",
+      "scene": "a dim bedside scene with a warm lamp, folded linen and a closed book, phone face-down, nighttime calm",
+      "cast": "none"
+    },
+    "heart-health": {
+      "excerpt": "Salty takeaways, long sitting hours and family history all add up — omega-3s, CoQ10 and plant sterols help maintain healthy cholesterol and circulation.",
+      "scene": "clean anatomical illustration of a human heart on a soft neutral grey background, gentle studio lighting, medical textbook style",
+      "cast": "none"
+    },
+    "digestive-health": {
+      "excerpt": "Bloating after meals and a gut thrown off by antibiotics or travel — probiotics, enzymes and fibre help support smoother digestion and comfortable regularity.",
+      "scene": "a bowl of plain yoghurt topped with fresh fruit and oats on a wooden table, natural light, fresh and appetising",
+      "cast": "none"
+    },
+    "bone-joint-health": {
+      "excerpt": "Stiff knees on the stairs and aching hands after a long day — calcium, vitamin D3, collagen and glucosamine help maintain strong bones and cushioned joints.",
+      "scene": "close-up of hands gripping a walking stick on a garden path, steady and capable, warm morning light",
+      "cast": "none"
+    },
+    "eye-health": {
+      "excerpt": "Screens all day and glare all afternoon leave eyes dry and tired — lutein, zeaxanthin and vitamin A help protect vision as you age.",
+      "scene": "a person looking out over a wide green valley at golden hour, relaxed expression, clear distant horizon",
+      "cast": "person"
+    },
+    "liver-support": {
+      "excerpt": "Weekend nyama choma, painkillers and processed food give your liver plenty of work; milk thistle and antioxidants help support its natural detox pathways.",
+      "scene": "a still life of fresh beetroot, turmeric root, lemon and dark leafy greens on slate, deep saturated colour",
+      "cast": "none"
+    },
+    "kidney-support": {
+      "excerpt": "Not drinking enough water through a hot, busy day puts pressure on your kidneys — targeted botanicals and minerals help support healthy filtration and fluid balance.",
+      "scene": "a tall glass of water being filled from a jug on a sunlit kitchen counter, condensation on the glass, crisp and refreshing",
+      "cast": "none"
+    }
+  },
+  "womens-health": {
+    "hormonal-balance": {
+      "excerpt": "Unpredictable cycles, breakouts and mood swings that arrive on schedule — myo-inositol, vitex and evening primrose help support balanced hormones month to month.",
+      "scene": "a person stretching by a sunlit window in soft clothing, calm and centred expression, airy bright room",
+      "cast": "person"
+    },
+    "prenatal": {
+      "excerpt": "Growing a baby draws heavily on your reserves — folic acid, iron, iodine and DHA help support healthy development while keeping your own nutrition topped up.",
+      "scene": "hands resting gently on a rounded pregnant belly over a soft knit dress, warm window light, tender and hopeful",
+      "cast": "none"
+    },
+    "multivitamins": {
+      "excerpt": "Skipped breakfasts and rushed lunches leave gaps no diet plan quite closes — a women's daily multivitamin helps cover the nutrients your routine keeps missing.",
+      "scene": "a colourful plate of vegetables, eggs and fruit on a breakfast table, morning sunlight, fresh and abundant",
+      "cast": "none"
+    },
+    "postnatal": {
+      "excerpt": "Broken sleep, breastfeeding and healing all at once — postnatal formulas with iron, choline and omega-3s help support recovery and milk supply.",
+      "scene": "someone cradling a newborn in a softly lit room, gentle smile, quiet domestic warmth",
+      "cast": "person"
+    },
+    "menopause-support": {
+      "excerpt": "Hot flushes at the worst moments, restless nights and shifting moods — black cohosh, red clover and vitamin D help ease the transition comfortably.",
+      "scene": "a person laughing with friends over coffee on a shaded veranda, relaxed and confident, warm afternoon light",
+      "cast": "family"
+    },
+    "iron-support": {
+      "excerpt": "Heavy periods leaving you pale, breathless on the stairs and permanently tired — gentle iron with vitamin C helps rebuild healthy levels without upsetting your stomach.",
+      "scene": "a person dancing freely in a bright living room, arms raised, vivid and full of vitality",
+      "cast": "person"
+    }
+  },
+  "mens-health": {
+    "multivitamins": {
+      "excerpt": "Between early commutes and meals grabbed on the run, a men's daily multivitamin fills the gaps your plate misses and supports steady energy, immunity and long-term wellbeing.",
+      "scene": "a person lacing up trainers on a doorstep at sunrise, quiet city street waking up behind them, purposeful and energetic",
+      "cast": "person"
+    },
+    "performance-supplements": {
+      "excerpt": "When your last few sessions have felt flat, performance formulas with creatine, beta-alanine and electrolytes help support strength, power output and the endurance to finish strong.",
+      "scene": "a person mid-sprint on an outdoor running track, muscles engaged, sweat catching the late afternoon light",
+      "cast": "person"
+    },
+    "testosterone-support": {
+      "excerpt": "Low drive, stubborn midsection weight and afternoon fatigue creep in with the years — ashwagandha, fenugreek and zinc formulas help support healthy testosterone levels and everyday vitality.",
+      "scene": "a person pressing a barbell overhead in a sunlit gym, confident posture, chalk dust hanging in the air",
+      "cast": "person"
+    },
+    "prostate-health": {
+      "excerpt": "If you are up two or three times a night, saw palmetto, zinc and lycopene blends help maintain normal prostate function and comfortable, uninterrupted bladder flow.",
+      "scene": "a person sleeping soundly through the night in a dim bedroom, bedside lamp switched off, glass of water untouched",
+      "cast": "person"
+    },
+    "energy-stamina": {
+      "excerpt": "For the mid-afternoon slump a third cup of coffee never fixes, B vitamins, iron and adaptogens help your body turn food into steady, all-day energy.",
+      "scene": "someone cycling briskly along a tree-lined road in clear morning light, relaxed shoulders, full of momentum",
+      "cast": "person"
+    },
+    "muscle-support": {
+      "excerpt": "Training hard but recovering slowly, or watching tone slip away over time — protein, BCAAs and magnesium help support muscle repair, lean growth and the strength you have earned.",
+      "scene": "a person stretching their arms overhead after a workout in a bright home gym, towel over the shoulder, calm and recovered",
+      "cast": "person"
+    }
+  },
+  "vitamins": {
+    "kids": {
+      "excerpt": "Fussy eaters and back-to-back school terms make balanced meals hard — child-friendly chewables and syrups deliver the nutrients growing bodies need to support immunity, growth and concentration.",
+      "scene": "a child running across a green school field with a backpack bouncing, bright morning light, healthy and full of life",
+      "cast": "person"
+    },
+    "multivitamins": {
+      "excerpt": "Even a good diet leaves gaps on busy weeks; a broad-spectrum daily multivitamin delivers the essential vitamins and minerals that help maintain energy, immunity and overall wellbeing.",
+      "scene": "an overhead spread of colourful whole foods — eggs, spinach, oranges, nuts and fish — arranged on a rustic wooden table",
+      "cast": "none"
+    },
+    "vitamin-b-complex": {
+      "excerpt": "Stress, long working days and poor sleep drain your reserves fast — the full family of B vitamins helps convert food into energy and supports a healthy nervous system.",
+      "scene": "a warm still life of brown rice, eggs, sunflower seeds, avocado and leafy greens on a wooden board",
+      "cast": "none"
+    },
+    "vitamin-c": {
+      "excerpt": "Crowded commutes, shared offices and shifting weather test your defences — vitamin C supports normal immune function and helps your body build the collagen that keeps skin firm.",
+      "scene": "a bright close-up of halved oranges, lemons, guava and red bell pepper glistening with fresh water droplets",
+      "cast": "none"
+    },
+    "vitamin-d": {
+      "excerpt": "Indoor work and long days behind glass mean far less sun than you think — vitamin D helps maintain strong bones, healthy muscles and a well-regulated immune response.",
+      "scene": "a person standing in warm morning sunlight on an open balcony, eyes closed, face tilted toward the light",
+      "cast": "person"
+    },
+    "vitamin-k": {
+      "excerpt": "Quietly overlooked on most labels, vitamin K helps direct calcium into your bones rather than your arteries, supporting bone density and normal, healthy blood clotting.",
+      "scene": "a close-up of kale, broccoli, spring onions and parsley freshly washed on a dark stone surface",
+      "cast": "none"
+    },
+    "vitamin-b12": {
+      "excerpt": "Plant-forward eating and the passing years both reduce how much B12 you absorb — supplementing supports red blood cell formation, nerve health and a lift out of constant tiredness.",
+      "scene": "a quiet still life of eggs, sardines, a jug of milk and cheese on linen cloth, soft window light",
+      "cast": "none"
+    },
+    "womens": {
+      "excerpt": "Monthly cycles, pregnancy planning and a full schedule place real demands on the body — women's formulas with iron, folate and calcium help support energy, hormonal balance and bone strength.",
+      "scene": "a person walking confidently along a sunlit city pavement in the morning, tote bag on the shoulder, relaxed and healthy",
+      "cast": "person"
+    },
+    "mens": {
+      "excerpt": "Long days, hard training and constant stress burn through zinc, magnesium and B vitamins — a men's daily formula helps maintain heart health, muscle function and everyday stamina.",
+      "scene": "a person hiking a hillside trail at sunrise, wide open landscape ahead, strong and steady stride",
+      "cast": "person"
+    },
+    "postnatal": {
+      "excerpt": "The months after birth quietly drain iron, DHA and B vitamins, especially while breastfeeding — postnatal formulas help replenish your stores and support recovery, milk production and mood.",
+      "scene": "a person cradling a newborn against their chest in a softly lit room, tender unhurried morning moment",
+      "cast": "family"
+    },
+    "senior": {
+      "excerpt": "As the decades add up, absorption slows and bones thin — 50+ formulas with B12, vitamin D and calcium help maintain bone strength, memory, eyesight and everyday independence.",
+      "scene": "a person tending a leafy home garden in gentle morning sun, hands in the soil, content and unhurried",
+      "cast": "person"
+    },
+    "immunity": {
+      "excerpt": "When one cough goes round the whole office, vitamin C, vitamin D, zinc and elderberry help support your immune defences through cold seasons, travel and back-to-back deadlines.",
+      "scene": "a person wrapped in a knit blanket beside a window holding a warm mug, healthy and comfortable in soft daylight",
+      "cast": "person"
+    },
+    "energy": {
+      "excerpt": "If mornings start tired and afternoons end flat, energy vitamins with B12, iron and CoQ10 help your cells release the energy locked inside the food you already eat.",
+      "scene": "a person taking the stairs two at a time in a bright stairwell, bag over the shoulder, purposeful motion",
+      "cast": "person"
+    },
+    "skin-hair-nails": {
+      "excerpt": "Breakage, thinning edges and brittle nails show up the moment nutrition slips — biotin, collagen and zinc help maintain strong hair, resilient nails and clear, supple skin.",
+      "scene": "an extreme close-up of glossy healthy hair strands falling across a bare shoulder, glowing skin, soft natural light",
+      "cast": "none"
+    },
+    "bone-health": {
+      "excerpt": "Bone density starts declining quietly from your thirties — calcium, vitamin D, magnesium and vitamin K work together to help maintain skeletal strength and support years of easy movement.",
+      "scene": "a person dancing barefoot on a wooden floor in a sunlit room, light and steady on their feet",
+      "cast": "person"
+    }
+  },
+  "minerals": {
+    "iron": {
+      "excerpt": "That heavy, drained feeling that no amount of sleep fixes often traces back to low iron — supplemental iron supports healthy red blood cells and everyday energy.",
+      "scene": "a close still life of liver, spinach leaves, lentils and beetroot on a dark wooden board, deep red tones",
+      "cast": "none"
+    },
+    "magnesium": {
+      "excerpt": "Between tight deadlines, tense shoulders and night-time leg cramps, magnesium helps relax muscles, supports steady nerve function and helps maintain calmer, deeper rest.",
+      "scene": "hands gently pressing a tight calf muscle after a long day, warm soft evening light on the skin",
+      "cast": "none"
+    },
+    "zinc": {
+      "excerpt": "When every cold going round the office finds you first, zinc supports immune defences, helps wounds heal properly and helps maintain clearer skin.",
+      "scene": "a close still life of pumpkin seeds, cashews, chickpeas and oysters arranged on rough grey stone, natural daylight",
+      "cast": "none"
+    },
+    "calcium": {
+      "excerpt": "Bones quietly lose density from your thirties onward — calcium helps maintain strong bones and teeth and supports normal muscle contraction as you age.",
+      "scene": "a person carrying a laughing child on their shoulders in a sunny park, strong and steady on their feet",
+      "cast": "family"
+    },
+    "potassium": {
+      "excerpt": "Long hot days, heavy sweating and salty street food throw your balance off — potassium supports healthy blood pressure, normal heart rhythm and fewer muscle cramps.",
+      "scene": "a bright still life of ripe bananas, avocado halves, sweet potatoes and white beans on a linen cloth",
+      "cast": "none"
+    },
+    "selenium": {
+      "excerpt": "Pollution, sun and daily stress load your cells with oxidative damage — selenium supports antioxidant defences, healthy thyroid function and normal immune response.",
+      "scene": "a tight overhead still life of brazil nuts, sunflower seeds, brown rice and sardines on dark slate",
+      "cast": "none"
+    },
+    "iodine": {
+      "excerpt": "Sluggish mornings, stubborn weight and feeling cold when nobody else is can point to thyroid strain — iodine supports normal thyroid hormone production and metabolism.",
+      "scene": "a person standing at a sunlit window stretching awake, relaxed shoulders, soft morning light on the face",
+      "cast": "person"
+    },
+    "trace-minerals": {
+      "excerpt": "Modern diets built on refined staples quietly leave gaps — full-spectrum trace minerals help fill the small deficiencies behind low energy, poor recovery and dull skin.",
+      "scene": "coarse unrefined rock salt and mineral crystals in a shallow clay bowl, textured close-up, warm earthy tones",
+      "cast": "none"
+    },
+    "electrolytes": {
+      "excerpt": "Heat, long commutes and hard training drain more than water — electrolyte formulas help replace sodium, potassium and magnesium so you rehydrate properly and stay sharp.",
+      "scene": "a person tipping a water bottle over their head after a run, droplets caught mid-air in bright sunlight",
+      "cast": "person"
+    }
+  },
+  "protein": {
+    "creatine": {
+      "excerpt": "When the last two reps always slip away, creatine supports strength output, faster recovery between sets and steady gains in lean muscle over time.",
+      "scene": "chalked hands gripping a loaded barbell on a gym floor, tense forearms, dramatic side lighting",
+      "cast": "none"
+    },
+    "protein-powder": {
+      "excerpt": "Busy days rarely leave room for a proper protein meal — a quick, easy-mixing scoop helps you hit your daily target and supports muscle repair.",
+      "scene": "someone shaking a bottle in a kitchen before heading out, gym bag on the counter, bright morning light",
+      "cast": "person"
+    },
+    "whey-protein": {
+      "excerpt": "The hour after training is when muscle rebuilds fastest — fast-absorbing whey delivers a complete amino acid profile to support recovery and lean muscle growth.",
+      "scene": "a person sitting on a gym bench catching their breath, towel around the neck, sweat and warm window light",
+      "cast": "person"
+    },
+    "mass-gainers": {
+      "excerpt": "If you eat all day and the scale still refuses to move, calorie-dense gainers supply the extra carbs and protein needed to support steady weight gain.",
+      "scene": "a hearty spread of oats, bananas, peanut butter, whole milk and eggs on a wooden table, abundant and generous",
+      "cast": "none"
+    },
+    "protein-blends": {
+      "excerpt": "One protein source empties fast, another lingers — multi-source blends release amino acids over hours, supporting muscle repair through the whole day and overnight.",
+      "scene": "separate small piles of pea, rice, soy and dairy protein powders side by side on dark stone, soft top light",
+      "cast": "none"
+    },
+    "pre-workout": {
+      "excerpt": "Turning up to train after a nine-hour day is the hardest part — pre-workout formulas support focus, drive and sustained energy from your first set.",
+      "scene": "a person lacing up trainers in a dim gym doorway, light spilling in ahead of them, focused expression",
+      "cast": "person"
+    },
+    "post-workout": {
+      "excerpt": "Soreness that lingers three days later steals your next session — post-workout recovery formulas support muscle repair, replenish glycogen and help you train again sooner.",
+      "scene": "a person lying back on a track after training, arms outstretched, golden late-afternoon light, calm and spent",
+      "cast": "person"
+    },
+    "bcaa-eaa": {
+      "excerpt": "Training fasted or cutting calories puts hard-earned muscle at risk — BCAA and EAA formulas supply the amino acids that help protect lean tissue during tough sessions.",
+      "scene": "a person mid-stride on an outdoor track at sunrise, long shadow across the lanes, strong running form",
+      "cast": "person"
+    },
+    "performance-boosters": {
+      "excerpt": "When your training plateaus and every session feels the same, performance formulas support endurance, power output and the oxygen delivery behind breaking through.",
+      "scene": "a cyclist climbing a steep rural hill road at dawn, low mist over the fields, powerful pedalling posture",
+      "cast": "person"
+    },
+    "energy-boosters": {
+      "excerpt": "For the three o'clock crash and the long matatu ride home, B-vitamin and adaptogen energy formulas support natural stamina without the jittery caffeine spike.",
+      "scene": "a person walking briskly through a busy city street in afternoon light, alert and upbeat, motion in the background",
+      "cast": "person"
+    }
+  },
+  "collagen": {
+    "collagen-capsules": {
+      "excerpt": "When mixing a scoop into your morning tea is one step too many, collagen capsules deliver the same skin, hair and joint support in a swallow-and-go dose.",
+      "scene": "close-up of hands fastening a wristwatch before leaving the house, morning light on smooth forearms, unhurried routine",
+      "cast": "none"
+    },
+    "collagen-peptides": {
+      "excerpt": "Whole collagen is too large for the body to absorb well — peptides are broken into smaller chains that help your skin and joints actually get what you paid for.",
+      "scene": "a spoonful of fine white powder dissolving into a clear glass of water, swirling trails caught in bright light",
+      "cast": "none"
+    },
+    "collagen-powder": {
+      "excerpt": "Natural collagen production drops from your mid-twenties onward, and a daily scoop stirred into porridge, tea or a smoothie helps maintain firm skin and comfortable joints.",
+      "scene": "a scoop of collagen powder being stirred into a breakfast smoothie on a kitchen counter, fresh fruit beside the glass",
+      "cast": "none"
+    },
+    "marine-collagen": {
+      "excerpt": "If bovine sources do not suit your diet or beliefs, marine collagen from fish offers type I peptides — the exact type that helps maintain skin firmness and elasticity.",
+      "scene": "fresh whole fish on crushed ice at a coastal market stall, silver scales glinting, sea salt and lemon nearby",
+      "cast": "none"
+    },
+    "collagen-tablets": {
+      "excerpt": "Powders can clump and taste chalky in hot drinks — collagen tablets give you a precise, measured daily dose with nothing to mix, scoop or wash up.",
+      "scene": "a hand placing a small pill organiser beside a glass of water on a tidy bedside table, soft morning light",
+      "cast": "none"
+    },
+    "collagen-gummies": {
+      "excerpt": "Most people quit collagen because they forget it — chewable gummies turn the daily dose into something you look forward to, supporting skin, hair and nails consistently.",
+      "scene": "colourful chewable gummies scattered on a pale marble surface, jewel-like translucence, soft daylight from the side",
+      "cast": "none"
+    },
+    "flavored-collagen": {
+      "excerpt": "The faint broth-like taste of plain collagen puts many people off by week two — flavoured blends make it a drink you enjoy, so you actually keep going.",
+      "scene": "a tall glass of iced berry drink with condensation on the outside, mint leaf and fresh strawberries on the table",
+      "cast": "none"
+    },
+    "beauty-collagen": {
+      "excerpt": "Creams only reach the surface, while beauty collagen blends with biotin, vitamin C and hyaluronic acid work from within to help maintain glowing skin, strong hair and nails.",
+      "scene": "extreme close-up of healthy hair catching golden afternoon light, individual strands glossy against a soft blurred background",
+      "cast": "none"
+    },
+    "best-collagen-for-skin": {
+      "excerpt": "Strong equatorial sun, dust and dry seasons take a visible toll — type I and III collagen helps maintain the skin's elasticity, hydration and smooth texture over time.",
+      "scene": "macro detail of a bare shoulder and collarbone with dewy, even skin, warm natural window light, water droplets",
+      "cast": "none"
+    }
+  },
+  "herbal-supplements": {
+    "ashwagandha": {
+      "excerpt": "Traffic, deadlines and a phone that never stops keep your stress response switched on — ashwagandha is an adaptogen that helps the body maintain balanced cortisol and steadier calm.",
+      "scene": "dried ashwagandha roots and coarse root powder arranged on a rough clay dish, warm earthy tones, soft shadow",
+      "cast": "none"
+    },
+    "turmeric-curcumin": {
+      "excerpt": "Stiff knees after a long day on your feet are hard to ignore — turmeric's curcumin, paired with black pepper for absorption, helps maintain a healthy inflammatory response and joint comfort.",
+      "scene": "fresh turmeric rhizomes sliced open beside a mound of golden ground turmeric and whole black peppercorns, rich saturated colour",
+      "cast": "none"
+    },
+    "ginseng": {
+      "excerpt": "For the three o'clock slump that coffee only papers over, ginseng supports natural energy, mental sharpness and stamina without the jittery crash that follows another cup.",
+      "scene": "a gnarled ginseng root resting on dark soil with green leaves, morning light raking across its texture",
+      "cast": "none"
+    },
+    "garlic": {
+      "excerpt": "Rich diets and long sitting hours put pressure on your heart — aged garlic extract supports healthy circulation, cholesterol already in the normal range and everyday immune defence.",
+      "scene": "a whole garlic bulb with papery skin peeling back beside separated cloves on a wooden board, rustic kitchen light",
+      "cast": "none"
+    },
+    "green-tea-extract": {
+      "excerpt": "When you want steady focus and support for a healthy metabolism, green tea extract delivers concentrated EGCG antioxidants with far gentler energy than repeated cups of coffee.",
+      "scene": "vivid green matcha powder mounded in a ceramic bowl beside fresh tea leaves and a bamboo whisk, natural daylight",
+      "cast": "none"
+    },
+    "adaptogens": {
+      "excerpt": "Some weeks demand more than your reserves can cover — adaptogenic herbs like rhodiola, holy basil and reishi help the body maintain resilience under sustained pressure.",
+      "scene": "an overhead flat lay of dried holy basil, sliced reishi mushroom and rhodiola root on textured linen, muted earth tones",
+      "cast": "none"
+    },
+    "plant-based": {
+      "excerpt": "Plant-forward eating can leave real gaps in B12, iron and omega-3 — plant-based supplements help fill them without anything derived from animals.",
+      "scene": "an abundant arrangement of lentils, pumpkin seeds, spinach leaves, chia and walnuts spilling across a wooden table, natural light",
+      "cast": "none"
+    }
+  },
+  "supplement-forms": {
+    "tablets": {
+      "excerpt": "When you take several supplements a day, tablets keep it simple and affordable — compact, precisely dosed and stable in warm, humid conditions.",
+      "scene": "a clean macro still life of smooth white and pastel tablets arranged in a loose row on a pale grey surface, soft shadow",
+      "cast": "none"
+    },
+    "capsules": {
+      "excerpt": "For anyone who struggles with chalky tablets, capsules swallow more easily, carry no taste and release their contents where the body can absorb them.",
+      "scene": "a clean macro still life of two-tone capsules scattered on a matte white surface, crisp edges and gentle directional light",
+      "cast": "none"
+    },
+    "softgels": {
+      "excerpt": "Oils like omega-3 and vitamin D go rancid when exposed to air and light — softgels seal them in an airtight, easy-to-swallow shell that helps protect potency.",
+      "scene": "a clean macro still life of glossy amber softgels on a smooth dark surface, golden oil glowing through translucent shells",
+      "cast": "none"
+    },
+    "gummies": {
+      "excerpt": "The best supplement is the one you remember to take — gummies make a daily dose genuinely enjoyable, which is why they work so well for the whole household.",
+      "scene": "a clean macro still life of translucent fruit-coloured gummies on a pale surface, backlit so the colours glow",
+      "cast": "none"
+    },
+    "powders": {
+      "excerpt": "When you need larger doses of protein, collagen or greens than a capsule can hold, powders let you scoop exactly what you need into any drink.",
+      "scene": "a clean macro still life of a heaped scoop of fine powder tipped onto a pale surface, soft cascade of grains, side light",
+      "cast": "none"
+    },
+    "liquids": {
+      "excerpt": "For children, older adults or anyone who cannot swallow pills, liquid supplements are easy to take, simple to adjust by the drop and quickly absorbed.",
+      "scene": "a clean macro still life of a glass dropper releasing a single golden drop above a small dish, backlit against a soft neutral background",
+      "cast": "none"
+    }
+  },
+  "specialty-supplements": {
+    "antioxidants": {
+      "excerpt": "Long hours, city pollution and strong sun add up — antioxidant formulas help defend your cells against the free-radical damage behind premature ageing.",
+      "scene": "a close, richly lit still life of blueberries, pomegranate seeds and dark leafy greens, deep saturated colour",
+      "cast": "none"
+    },
+    "eye-health": {
+      "excerpt": "Screens leave eyes dry, tired and strained by evening — lutein and zeaxanthin formulas help protect vision from blue light and age-related decline.",
+      "scene": "an extreme close-up of a bright, clear human eye with crisp iris detail, natural light, no makeup",
+      "cast": "none"
+    },
+    "detox-cleanse": {
+      "excerpt": "When you feel heavy, bloated and sluggish, gentle cleanse formulas support the liver and digestive system in clearing everyday build-up.",
+      "scene": "a clear glass of water with cucumber and lemon beside fresh greens on a clean kitchen counter, bright morning light",
+      "cast": "none"
+    },
+    "liver-support": {
+      "excerpt": "Late nights, rich food and the occasional drink take their toll — milk thistle and liver-support formulas help protect your hardest-working organ.",
+      "scene": "an anatomically accurate human liver rendered as a clean medical illustration on a soft neutral background, warm clinical lighting",
+      "cast": "none"
+    },
+    "immunity": {
+      "excerpt": "Catching every bug going round the office wears you down — vitamin C, zinc and elderberry formulas help support your immune defences year-round.",
+      "scene": "a healthy young adult walking outdoors on a bright cool morning, breathing easily, wearing a light jacket",
+      "cast": "person"
+    },
+    "stress-anxiety": {
+      "excerpt": "When you are running on adrenaline and cannot switch off, adaptogens such as ashwagandha help the body regulate cortisol and feel calmer under pressure.",
+      "scene": "a person sitting calmly by a window with eyes closed and shoulders relaxed, soft diffused daylight, unhurried mood",
+      "cast": "person"
+    },
+    "brain-cognitive": {
+      "excerpt": "When focus fades by mid-afternoon, nootropic and omega-3 formulas support memory, concentration and mental clarity through long working days.",
+      "scene": "a focused professional at a tidy desk in warm afternoon light, mid-thought while reading, sharp and alert expression",
+      "cast": "person"
+    },
+    "wellness-bundles": {
+      "excerpt": "If you are unsure which supplements actually work well together, ready-made bundles pair complementary formulas into one complete routine.",
+      "scene": "a calm morning routine scene — yoga mat, water bottle, fresh fruit by a sunlit window",
+      "cast": "person"
+    },
+    "immune-booster-packs": {
+      "excerpt": "Covering the whole family costs less as a bundle — curated immunity packs group the essentials at a lower price per bottle.",
+      "scene": "a family of four laughing together outdoors in a garden, healthy and energetic, natural light",
+      "cast": "family"
+    },
+    "bones-joints": {
+      "excerpt": "Stiff knees and aching joints turn stairs into a chore — glucosamine, calcium and collagen formulas support cartilage, bone density and easier movement.",
+      "scene": "an active woman in her fifties climbing a sunlit outdoor staircase with ease, hand resting lightly on the railing, knees and posture in frame",
+      "cast": "person"
+    },
+    "anti-inflammatory": {
+      "excerpt": "For aches that linger and workouts that leave you sore for days, turmeric, omega-3 and boswellia help calm everyday inflammation.",
+      "scene": "a runner seated on a track easing tension in a knee after training, late golden light, relaxed and recovering",
+      "cast": "person"
+    },
+    "herbal": {
+      "excerpt": "If you would rather start with what grows naturally, traditional botanicals like ashwagandha, moringa and turmeric offer plant-based everyday support.",
+      "scene": "fresh medicinal plants and roots — turmeric, ginger, moringa leaves — arranged on a weathered wooden surface in soft daylight",
+      "cast": "none"
+    },
+    "kidney-support": {
+      "excerpt": "Dehydration and a high-protein diet leave your kidneys under strain, and targeted formulas help maintain healthy filtration and fluid balance.",
+      "scene": "an anatomically accurate pair of human kidneys rendered as a clean medical illustration on a soft neutral background, warm clinical lighting",
+      "cast": "none"
+    },
+    "heart-health": {
+      "excerpt": "With blood pressure and cholesterol concerns running in so many families, omega-3 and CoQ10 formulas help maintain healthy circulation.",
+      "scene": "an anatomically accurate human heart rendered as a clean medical illustration on a soft neutral background, warm clinical lighting",
+      "cast": "none"
+    },
+    "sleep": {
+      "excerpt": "For nights spent staring at the ceiling, melatonin, magnesium and calming botanicals help you fall asleep faster and wake genuinely rested.",
+      "scene": "a person sleeping peacefully in crisp white bedding, early dawn light across the pillow, calm and restful",
+      "cast": "person"
+    }
+  }
+}
