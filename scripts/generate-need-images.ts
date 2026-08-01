@@ -27,7 +27,14 @@ import { mkdirSync, writeFileSync } from "fs";
 import { collectionHeading } from "../src/lib/headings";
 
 const API_URL = "https://openrouter.ai/api/v1/chat/completions";
-const DEFAULT_MODEL = "google/gemini-2.5-flash-image-preview";
+/**
+ * Must be a model whose architecture.output_modalities includes "image" —
+ * most OpenRouter models are text-only and return a 404 "No endpoints found".
+ * Check the current list with:
+ *   curl -s https://openrouter.ai/api/v1/models
+ * Higher quality alternative: google/gemini-3-pro-image
+ */
+const DEFAULT_MODEL = "google/gemini-2.5-flash-image";
 const OUT_DIR = "public/images/needs";
 
 function arg(name: string): string | undefined {
@@ -149,6 +156,13 @@ async function main() {
       if (!res.ok) {
         const text = await res.text();
         console.error(`FAIL ${sub.slug} — HTTP ${res.status}: ${text.slice(0, 300)}`);
+        if (res.status === 404 && text.includes("No endpoints found")) {
+          console.error(
+            `       "${MODEL}" is not a valid image model. Most OpenRouter models are\n` +
+            `       text-only. Pass --model with one that outputs images, e.g.\n` +
+            `       google/gemini-2.5-flash-image  or  google/gemini-3-pro-image`
+          );
+        }
         failed.push(sub.slug);
         continue;
       }
@@ -182,7 +196,10 @@ async function main() {
 
   console.log(`\ngenerated ${done}, skipped ${skipped}${failed.length ? `, failed: ${failed.join(", ")}` : ""}`);
   console.log("Review the images before trusting them; replace any you dislike via Admin > Subcategories > Hero Image URL.");
-  process.exit(failed.length ? 1 : 0);
+  // Set the code rather than calling process.exit(): exiting immediately while
+  // fetch keep-alive sockets are still open trips a libuv assertion on Windows
+  // ("!(handle->flags & UV_HANDLE_CLOSING)") after the summary has printed.
+  process.exitCode = failed.length ? 1 : 0;
 }
 
-main().catch(err => { console.error("generation failed:", err); process.exit(1); });
+main().catch(err => { console.error("generation failed:", err); process.exitCode = 1; });
