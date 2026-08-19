@@ -1,8 +1,9 @@
 import type { APIRoute } from 'astro';
 import { db } from '../../../../server/db';
-import { products, categories, subcategories, blogPosts, contentPages } from '@shared/schema';
-import { ilike, or, eq, and } from 'drizzle-orm';
+import { products, categories, subcategories, blogPosts, blogCategories, contentPages } from '@shared/schema';
+import { ilike, or, eq, and, inArray } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
+import { generateBlogPostUrl } from '@lib/seo';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
@@ -84,7 +85,7 @@ export const GET: APIRoute = async ({ url }) => {
 
       // Blog posts
       db
-        .select({ title: blogPosts.title, slug: blogPosts.slug })
+        .select({ title: blogPosts.title, slug: blogPosts.slug, categoryId: blogPosts.categoryId })
         .from(blogPosts)
         .where(and(eq(blogPosts.status, 'published'), ilike(blogPosts.title, term)))
         .limit(5),
@@ -115,8 +116,14 @@ export const GET: APIRoute = async ({ url }) => {
       results.push({ label: p.name, sublabel, url: pageUrl, type: 'product' });
     }
 
+    const blogCategoryIds = [...new Set(blogRows.map(b => b.categoryId).filter((id): id is string => !!id))];
+    const blogCategoryRows = blogCategoryIds.length
+      ? await db.select({ id: blogCategories.id, slug: blogCategories.slug }).from(blogCategories).where(inArray(blogCategories.id, blogCategoryIds))
+      : [];
+    const blogCategorySlugById = new Map(blogCategoryRows.map(c => [c.id, c.slug]));
+
     for (const b of blogRows) {
-      const pageUrl = `/blog/${b.slug}/`;
+      const pageUrl = generateBlogPostUrl(b.categoryId ? blogCategorySlugById.get(b.categoryId) : null, b.slug);
       results.push({ label: b.title, sublabel: pageUrl, url: pageUrl, type: 'blog' });
     }
 

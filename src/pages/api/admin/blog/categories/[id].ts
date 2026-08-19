@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import { storage } from "@lib/storage";
 import { insertBlogCategorySchema } from "@shared/schema";
 import { getAdminSessionToken, verifyAdminSession } from "@lib/admin";
+import { UNCATEGORIZED_BLOG_SLUG } from "@lib/seo";
 
 async function requireAdmin(request: Request) {
   const sessionToken = getAdminSessionToken(request);
@@ -17,6 +18,13 @@ export const PUT: APIRoute = async ({ request, params }) => {
 
     const body = await request.json();
     const data = insertBlogCategorySchema.partial().parse(body);
+
+    if (data.slug === UNCATEGORIZED_BLOG_SLUG) {
+      return new Response(
+        JSON.stringify({ error: `"${UNCATEGORIZED_BLOG_SLUG}" is a reserved slug — please choose another.` }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
 
     if (data.slug) {
       const existing = await storage.getBlogCategoryBySlug(data.slug);

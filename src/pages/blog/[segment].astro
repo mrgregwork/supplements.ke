@@ -1,0 +1,114 @@
+---
+/**
+ * Resolves the single URL segment after /blog/ two ways, in order:
+ *
+ *   1. A category slug (including the reserved "uncategorized") -> renders
+ *      that category's archive.
+ *   2. Otherwise, a post slug from the old /blog/<postSlug>/ URL shape ->
+ *      301-redirects to its new /blog/<category>/<postSlug>/ URL.
+ *
+ * This file exists specifically so both cases can live at the same one-segment
+ * route — Astro does not allow two separate files to both match "/blog/:x/",
+ * so the old post page and the category archive had to merge into one.
+ */
+import BaseLayout from "@layouts/BaseLayout.astro";
+import { storage } from "@lib/storage";
+import { generateBlogPostUrl, UNCATEGORIZED_BLOG_SLUG } from "@lib/seo";
+
+const { segment } = Astro.params;
+
+const isUncategorized = segment === UNCATEGORIZED_BLOG_SLUG;
+const category = isUncategorized ? null : await storage.getBlogCategoryBySlug(segment!);
+
+if (!category && !isUncategorized) {
+  // Not a category — try it as a legacy post slug before giving up.
+  const legacyPost = await storage.getBlogPostBySlug(segment!);
+  if (legacyPost) {
+    const legacyCategory = legacyPost.categoryId ? await storage.getBlogCategory(legacyPost.categoryId) : undefined;
+    return Astro.redirect(generateBlogPostUrl(legacyCategory?.slug, legacyPost.slug), 301);
+  }
+  return Astro.redirect("/blog/");
+}
+
+const allPosts = isUncategorized
+  ? await storage.getBlogPosts()
+  : await storage.getBlogPostsByCategory(category!.id);
+
+const publishedPosts = isUncategorized
+  ? allPosts.filter(p => p.status === "published" && !p.categoryId)
+  : allPosts.filter(p => p.status === "published");
+
+const displayName = isUncategorized ? "Uncategorised" : category!.name;
+const displayDescription = isUncategorized
+  ? "Articles not yet assigned to a category."
+  : category!.description;
+
+function formatDate(d: Date | null | undefined) {
+  if (!d) return "";
+  return new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+}
+---
+
+<BaseLayout
+  title={`${displayName} — Supplement Blog | Supplements Kenya`}
+  description={displayDescription || `Articles on ${displayName.toLowerCase()} from the Supplements Kenya team.`}
+  noindex={isUncategorized}
+>
+  <div class="max-w-5xl mx-auto px-4 py-12 md:py-16">
+    <nav class="text-sm text-muted-foreground mb-6">
+      <a href="/" class="hover:text-foreground transition">Home</a>
+      <span class="mx-2">/</span>
+      <a href="/blog/" class="hover:text-foreground transition">Blog</a>
+      <span class="mx-2">/</span>
+      <span class="text-foreground">{displayName}</span>
+    </nav>
+
+    <div class="mb-10">
+      <h1 class="text-3xl md:text-4xl font-bold mb-3">{displayName}</h1>
+      {displayDescription && (
+        <p class="text-lg text-muted-foreground">{displayDescription}</p>
+      )}
+    </div>
+
+    {publishedPosts.length === 0 ? (
+      <div class="text-center py-16 text-muted-foreground">
+        <p class="text-xl mb-2">No posts yet</p>
+        <p class="text-sm">
+          Check back soon, or browse <a href="/blog/" class="text-primary hover:underline">all articles</a>.
+        </p>
+      </div>
+    ) : (
+      <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+        {publishedPosts.map(post => (
+          <article class="border rounded-xl overflow-hidden hover:shadow-md transition bg-card flex flex-col">
+            {post.featuredImage && (
+              <a href={generateBlogPostUrl(category?.slug, post.slug)} class="block">
+                <img
+                  src={post.featuredImage}
+                  alt={post.title}
+                  class="w-full h-48 object-cover"
+                  loading="lazy"
+                />
+              </a>
+            )}
+            <div class="p-5 flex flex-col flex-1">
+              <p class="text-xs text-muted-foreground mb-2">{formatDate(post.publishedAt || post.createdAt)}</p>
+              <h2 class="text-lg font-semibold mb-2 leading-snug">
+                <a href={generateBlogPostUrl(category?.slug, post.slug)} class="hover:text-primary transition">{post.title}</a>
+              </h2>
+              {post.excerpt && (
+                <p class="text-sm text-muted-foreground mb-4 flex-1 line-clamp-3">{post.excerpt}</p>
+              )}
+              <a
+                href={generateBlogPostUrl(category?.slug, post.slug)}
+                class="text-sm text-primary font-medium hover:underline mt-auto inline-flex items-center gap-1"
+              >
+                Read more &rarr;
+              </a>
+            </div>
+          </article>
+        ))}
+      </div>
+    )}
+  </div>
+</BaseLayout>

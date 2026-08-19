@@ -2,8 +2,13 @@
 import BaseLayout from "@layouts/BaseLayout.astro";
 import { storage } from "@lib/storage";
 import { getAdminSessionToken, verifyAdminSession } from "@lib/admin";
+import { generateBlogPostUrl, generateBlogCategoryUrl, UNCATEGORIZED_BLOG_SLUG } from "@lib/seo";
 
-const { slug } = Astro.params;
+const { category: categorySegment, slug } = Astro.params;
+// Post slugs are globally unique, so the post is looked up by slug alone —
+// the :category segment is then checked against its actual category and
+// canonical-redirected if it doesn't match, the same pattern the product
+// pages use for their category/subcategory segments.
 const post = await storage.getBlogPostBySlug(slug!);
 
 // The admin editor's "Preview" link points here for drafts too, so a logged-in
@@ -15,7 +20,22 @@ const sessionData = post && post.status !== "published"
 const isAdminPreview = post?.status !== "published" && !!sessionData;
 
 if (!post || (post.status !== "published" && !isAdminPreview)) {
+  // /blog/category/<slug>/ was the archive URL before categories moved to
+  // /blog/<slug>/ — that's two segments, so it lands here (category="category",
+  // slug=<the actual category slug>) rather than in [segment].astro. Give it a
+  // real 301 to the new archive URL instead of bouncing to the blog index.
+  if (categorySegment === "category") {
+    const legacyCategory = await storage.getBlogCategoryBySlug(slug!);
+    if (legacyCategory) return Astro.redirect(generateBlogCategoryUrl(legacyCategory.slug), 301);
+  }
   return Astro.redirect("/blog/");
+}
+
+const category = post.categoryId ? await storage.getBlogCategory(post.categoryId) : undefined;
+const canonicalSegment = category?.slug || UNCATEGORIZED_BLOG_SLUG;
+
+if (categorySegment !== canonicalSegment) {
+  return Astro.redirect(generateBlogPostUrl(category?.slug, post.slug), 301);
 }
 
 function formatDate(d: Date | null | undefined) {
@@ -25,7 +45,6 @@ function formatDate(d: Date | null | undefined) {
 
 const seoTitle = post.seoTitle || post.title;
 const seoDescription = post.seoDescription || post.excerpt || `${post.title} — Supplements Kenya`;
-const category = post.categoryId ? await storage.getBlogCategory(post.categoryId) : undefined;
 ---
 
 <BaseLayout
@@ -46,6 +65,12 @@ const category = post.categoryId ? await storage.getBlogCategory(post.categoryId
       <a href="/" class="hover:text-foreground transition">Home</a>
       <span class="mx-2">/</span>
       <a href="/blog/" class="hover:text-foreground transition">Blog</a>
+      {category && (
+        <>
+          <span class="mx-2">/</span>
+          <a href={`/blog/${category.slug}/`} class="hover:text-foreground transition">{category.name}</a>
+        </>
+      )}
       <span class="mx-2">/</span>
       <span class="text-foreground">{post.title}</span>
     </nav>
@@ -54,7 +79,7 @@ const category = post.categoryId ? await storage.getBlogCategory(post.categoryId
       <p class="text-sm text-muted-foreground mb-3 flex items-center gap-2">
         {category && (
           <>
-            <a href={`/blog/category/${category.slug}/`} class="text-primary font-medium hover:underline">{category.name}</a>
+            <a href={`/blog/${category.slug}/`} class="text-primary font-medium hover:underline">{category.name}</a>
             <span aria-hidden="true">&middot;</span>
           </>
         )}

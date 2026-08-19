@@ -66,6 +66,17 @@ export function generateBrandUrl(brandSlug: string): string {
   return `/brand/${brandSlug}/`;
 }
 
+/** Reserved URL segment for posts with no category assigned. Not a real category row. */
+export const UNCATEGORIZED_BLOG_SLUG = "uncategorized";
+
+export function generateBlogCategoryUrl(categorySlug: string): string {
+  return `/blog/${categorySlug}/`;
+}
+
+export function generateBlogPostUrl(categorySlug: string | null | undefined, postSlug: string): string {
+  return `/blog/${categorySlug || UNCATEGORIZED_BLOG_SLUG}/${postSlug}/`;
+}
+
 export function formatPrice(price: number, currency: string = 'KES'): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',

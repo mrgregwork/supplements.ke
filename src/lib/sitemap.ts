@@ -12,6 +12,8 @@ import {
   generateSubcategoryUrl,
   generateProductUrl,
   generateBrandUrl,
+  generateBlogPostUrl,
+  generateBlogCategoryUrl,
 } from '@lib/seo';
 
 export interface SitemapEntry {
@@ -156,10 +158,12 @@ export async function getSitemapSections(): Promise<SitemapSection[]> {
     .sort((a, b) => a.label.localeCompare(b.label));
 
   // ── Blog posts & content pages (published only) ─────────────────────────────
+  const blogCategoryById = new Map(blogCategories.map(c => [c.id, c]));
+
   const blogEntries: SitemapEntry[] = blogPosts
     .filter(p => p.status === 'published')
     .map(p => ({
-      path: `/blog/${p.slug}/`,
+      path: generateBlogPostUrl(blogCategoryById.get(p.categoryId ?? '')?.slug, p.slug),
       label: p.title,
       lastmod: toIso(p.publishedAt ?? p.updatedAt),
       changefreq: 'monthly' as const,
@@ -172,7 +176,7 @@ export async function getSitemapSections(): Promise<SitemapSection[]> {
   const blogCategoryEntries: SitemapEntry[] = blogCategories
     .filter(cat => blogPosts.some(p => p.status === 'published' && p.categoryId === cat.id))
     .map(cat => ({
-      path: `/blog/category/${cat.slug}/`,
+      path: generateBlogCategoryUrl(cat.slug),
       label: `Blog: ${cat.name}`,
       lastmod: toIso(cat.updatedAt),
       changefreq: 'weekly' as const,

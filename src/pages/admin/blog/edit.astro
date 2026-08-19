@@ -3,6 +3,7 @@ import BaseLayout from "@layouts/BaseLayout.astro";
 import AdminSidebar from "@components/AdminSidebar.astro";
 import { getAdminSessionToken, verifyAdminSession } from "@lib/admin";
 import { storage } from "@lib/storage";
+import { generateBlogPostUrl } from "@lib/seo";
 
 const sessionToken = getAdminSessionToken(Astro.request);
 const sessionData = await verifyAdminSession(sessionToken);
@@ -23,6 +24,10 @@ if (id) {
 }
 
 const categories = await storage.getBlogCategories();
+// Exposed to the client script so it can turn a categoryId back into the slug
+// the post's URL actually needs, without a round trip to the server.
+const categorySlugById: Record<string, string> = Object.fromEntries(categories.map(c => [c.id, c.slug]));
+const existingCategorySlug = existingData?.categoryId ? categorySlugById[existingData.categoryId] : undefined;
 
 const isEditing = !!existingData;
 const pageTitle = isEditing ? `Edit Post: ${existingData?.title}` : "New Blog Post";
@@ -58,7 +63,7 @@ function formatDateValue(d: Date | null | undefined) {
           {isEditing && existingData?.slug && (
             <a
               id="preview-btn"
-              href={`/blog/${existingData.slug}/`}
+              href={generateBlogPostUrl(existingCategorySlug, existingData.slug)}
               target="_blank"
               rel="noopener noreferrer"
               class="px-4 py-2 min-h-[48px] border rounded-lg font-medium hover:bg-muted transition flex items-center gap-2 text-sm"
@@ -477,7 +482,7 @@ function formatDateValue(d: Date | null | undefined) {
   </div>
 </BaseLayout>
 
-<script define:vars={{ existingContent: existingData?.content || '' }}>
+<script define:vars={{ existingContent: existingData?.content || '', categorySlugById }}>
   // DOM
   const formId = document.getElementById('form-id');
   const formTitle = document.getElementById('form-title');
@@ -542,15 +547,42 @@ function formatDateValue(d: Date | null | undefined) {
     }
   });
 
+  // Post URLs are /blog/<category-slug-or-"uncategorized">/<post-slug>/ — mirrors
+  // generateBlogPostUrl() in @lib/seo, duplicated here since this script has no
+  // module import boundary with the server code.
+  function blogPostUrl(categorySlug, postSlug) {
+    return `/blog/${categorySlug || 'uncategorized'}/${postSlug}/`;
+  }
+
+  function refreshPreviewHref() {
+    const previewBtn = document.getElementById('preview-btn');
+    if (!previewBtn || !formSlug.value) return;
+    const categorySlug = formCategory?.value ? categorySlugById[formCategory.value] : undefined;
+    previewBtn.href = blogPostUrl(categorySlug, formSlug.value);
+  }
+
   formSlug?.addEventListener('input', () => {
     slugManuallyEdited = true;
     markDirty();
-    if (seoPreviewUrl) seoPreviewUrl.textContent = '/blog/' + (formSlug.value || 'post-slug') + '/';
-    // Editing the slug without saving left Preview pointed at the old slug —
-    // it would 404 (redirecting to the blog index) rather than open the post,
-    // which looked identical to the "preview does nothing" bug but wasn't it.
-    const previewBtn = document.getElementById('preview-btn');
-    if (previewBtn && formSlug.value) previewBtn.href = `/blog/${formSlug.value}/`;
+    if (seoPreviewUrl) seoPreviewUrl.textContent = blogPostUrl(
+      formCategory?.value ? categorySlugById[formCategory.value] : undefined,
+      formSlug.value || 'post-slug'
+    );
+    // Editing the slug (or category) without saving left Preview pointed at
+    // the old URL — it would 404 (redirecting to the blog index) rather than
+    // open the post, which looked identical to the "preview does nothing" bug
+    // without being it.
+    refreshPreviewHref();
+  });
+
+  formCategory?.addEventListener('change', () => {
+    if (seoPreviewUrl && formSlug.value) {
+      seoPreviewUrl.textContent = blogPostUrl(
+        formCategory.value ? categorySlugById[formCategory.value] : undefined,
+        formSlug.value
+      );
+    }
+    refreshPreviewHref();
   });
 
   formExcerpt?.addEventListener('input', markDirty);
@@ -898,7 +930,8 @@ function formatDateValue(d: Date | null | undefined) {
           saveStatusEl?.parentElement?.insertBefore(a, saveStatusEl.nextSibling);
           previewBtn = a;
         }
-        previewBtn.href = `/blog/${result.slug}/`;
+        const savedCategorySlug = result.categoryId ? categorySlugById[result.categoryId] : undefined;
+        previewBtn.href = blogPostUrl(savedCategorySlug, result.slug);
       }
     } catch (error) {
       showMessage(error.message || 'Failed to save', 'error');

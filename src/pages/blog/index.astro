@@ -1,6 +1,7 @@
 ---
 import BaseLayout from "@layouts/BaseLayout.astro";
 import { storage } from "@lib/storage";
+import { generateBlogPostUrl, generateBlogCategoryUrl } from "@lib/seo";
 
 const posts = await storage.getBlogPosts();
 const publishedPosts = posts.filter(p => p.status === "published");
@@ -31,7 +32,7 @@ function formatDate(d: Date | null | undefined) {
       <div class="flex flex-wrap gap-2 mb-8" data-testid="section-category-filters">
         {categoriesWithPosts.map(cat => (
           <a
-            href={`/blog/category/${cat.slug}/`}
+            href={generateBlogCategoryUrl(cat.slug)}
             class="px-3 py-1.5 min-h-[36px] text-sm rounded-full border border-card-border hover:border-primary hover:text-primary transition flex items-center"
             data-testid={`link-blog-category-${cat.slug}`}
           >
@@ -51,7 +52,7 @@ function formatDate(d: Date | null | undefined) {
         {publishedPosts.map(post => (
           <article class="border rounded-xl overflow-hidden hover:shadow-md transition bg-card flex flex-col">
             {post.featuredImage && (
-              <a href={`/blog/${post.slug}/`} class="block">
+              <a href={generateBlogPostUrl(post.categoryId ? categoryById.get(post.categoryId)?.slug : null, post.slug)} class="block">
                 <img
                   src={post.featuredImage}
                   alt={post.title}
@@ -64,7 +65,7 @@ function formatDate(d: Date | null | undefined) {
               <div class="flex items-center gap-2 mb-2">
                 {post.categoryId && categoryById.get(post.categoryId) && (
                   <a
-                    href={`/blog/category/${categoryById.get(post.categoryId)!.slug}/`}
+                    href={generateBlogCategoryUrl(categoryById.get(post.categoryId)!.slug)}
                     class="text-xs font-medium text-primary hover:underline"
                   >
                     {categoryById.get(post.categoryId)!.name}
@@ -73,13 +74,13 @@ function formatDate(d: Date | null | undefined) {
                 <p class="text-xs text-muted-foreground">{formatDate(post.publishedAt || post.createdAt)}</p>
               </div>
               <h2 class="text-lg font-semibold mb-2 leading-snug">
-                <a href={`/blog/${post.slug}/`} class="hover:text-primary transition">{post.title}</a>
+                <a href={generateBlogPostUrl(post.categoryId ? categoryById.get(post.categoryId)?.slug : null, post.slug)} class="hover:text-primary transition">{post.title}</a>
               </h2>
               {post.excerpt && (
                 <p class="text-sm text-muted-foreground mb-4 flex-1 line-clamp-3">{post.excerpt}</p>
               )}
               <a
-                href={`/blog/${post.slug}/`}
+                href={generateBlogPostUrl(post.categoryId ? categoryById.get(post.categoryId)?.slug : null, post.slug)}
                 class="text-sm text-primary font-medium hover:underline mt-auto inline-flex items-center gap-1"
               >
                 Read more &rarr;

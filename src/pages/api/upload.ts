@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { getAdminSessionToken, verifyAdminSession } from "@lib/admin";
+import { getUploadDir, UPLOAD_URL_PREFIX, ALLOWED_UPLOAD_MIME_TYPES } from "@lib/uploadStorage";
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -28,8 +29,7 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     // Validate file type
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml"];
-    if (!allowedTypes.includes(file.type)) {
+    if (!ALLOWED_UPLOAD_MIME_TYPES.includes(file.type)) {
       return new Response(
         JSON.stringify({ success: false, message: "Invalid file type. Only JPEG, PNG, WebP, GIF and SVG are allowed." }),
         { status: 400, headers: { "Content-Type": "application/json" } }
@@ -45,18 +45,20 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-    const fileName = `${randomUUID()}-0.${ext}`;
+    const fileName = `${randomUUID()}.${ext}`;
 
-    // Save to public/images/products/ so it's served by Astro/Node static file handler
-    // On Railway this is the persistent app directory during a deployment session
-    const uploadDir = join(process.cwd(), "public", "images", "products");
+    // Served back through src/pages/uploads/[...path].ts, not Astro's static
+    // handler — that only serves dist/client/, which is rebuilt from public/
+    // at BUILD time and never sees a runtime write. See uploadStorage.ts for
+    // why the directory itself may or may not survive the next deploy.
+    const uploadDir = getUploadDir();
     await mkdir(uploadDir, { recursive: true });
 
     const filePath = join(uploadDir, fileName);
     const buffer = Buffer.from(await file.arrayBuffer());
     await writeFile(filePath, buffer);
 
-    const publicUrl = `/images/products/${fileName}`;
+    const publicUrl = `${UPLOAD_URL_PREFIX}/${fileName}`;
 
     return new Response(
       JSON.stringify({
