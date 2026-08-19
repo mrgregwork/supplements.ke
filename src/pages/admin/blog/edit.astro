@@ -265,6 +265,20 @@ function formatDateValue(d: Date | null | undefined) {
                     <input type="file" id="fi-replace-input" accept="image/*" class="hidden" />
                   </label>
                 </div>
+
+                <label class="flex items-start gap-2 mt-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    id="form-show-featured-in-post"
+                    checked={existingData ? existingData.showFeaturedInPost !== false : true}
+                    class="mt-0.5 h-4 w-4 rounded border-input"
+                    data-testid="checkbox-show-featured-in-post"
+                  />
+                  <span class="text-sm text-muted-foreground">
+                    Show this image at the top of the post.
+                    <span class="block text-xs">Turn off to save space above the fold on mobile — it still appears on the blog and category listing cards either way.</span>
+                  </span>
+                </label>
               </div>
               <div>
                 <label class="block text-sm font-medium mb-2" for="form-status">Status</label>
@@ -489,6 +503,7 @@ function formatDateValue(d: Date | null | undefined) {
   const formSlug = document.getElementById('form-slug');
   const formExcerpt = document.getElementById('form-excerpt');
   const formFeaturedImage = document.getElementById('form-featured-image');
+  const formShowFeaturedInPost = document.getElementById('form-show-featured-in-post');
   const formStatus = document.getElementById('form-status');
   const formCategory = document.getElementById('form-category');
   const formPublishedAt = document.getElementById('form-published-at');
@@ -587,6 +602,7 @@ function formatDateValue(d: Date | null | undefined) {
 
   formExcerpt?.addEventListener('input', markDirty);
   formFeaturedImage?.addEventListener('input', markDirty);
+  formShowFeaturedInPost?.addEventListener('change', markDirty);
   formStatus?.addEventListener('change', markDirty);
   formCategory?.addEventListener('change', markDirty);
   formPublishedAt?.addEventListener('input', markDirty);
@@ -881,6 +897,7 @@ function formatDateValue(d: Date | null | undefined) {
       excerpt: formExcerpt?.value?.trim() || null,
       content: content || null,
       featuredImage: formFeaturedImage?.value?.trim() || null,
+      showFeaturedInPost: formShowFeaturedInPost?.checked ?? true,
       status: formStatus?.value || 'draft',
       categoryId: formCategory?.value || null,
       publishedAt: formPublishedAt?.value ? new Date(formPublishedAt.value).toISOString() : null,

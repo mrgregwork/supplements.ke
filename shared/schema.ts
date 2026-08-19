@@ -484,6 +484,11 @@ export const blogPosts = pgTable("blog_posts", {
   seoTitle: text("seo_title"),
   seoDescription: text("seo_description"),
   featuredImage: text("featured_image"),
+  // The featured image always shows on blog/category cards regardless of this
+  // flag — it only controls the large image at the top of the post itself,
+  // which eats the whole above-the-fold area on mobile. Defaults to true so
+  // existing posts don't change appearance until an author opts out.
+  showFeaturedInPost: boolean("show_featured_in_post").default(true).notNull(),
   status: text("status").notNull().default("draft"),
   publishedAt: timestamp("published_at"),
   createdAt: timestamp("created_at").defaultNow(),

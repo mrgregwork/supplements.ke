@@ -91,7 +91,7 @@ const seoDescription = post.seoDescription || post.excerpt || `${post.title} —
       )}
     </header>
 
-    {post.featuredImage && (
+    {post.featuredImage && post.showFeaturedInPost && (
       <img
         src={post.featuredImage}
         alt={post.title}
