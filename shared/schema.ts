@@ -474,7 +474,31 @@ export const blogPosts = pgTable("blog_posts", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const insertBlogPostSchema = createInsertSchema(blogPosts).omit({ id: true, createdAt: true, updatedAt: true });
+/**
+ * Timestamp fields arriving from an admin form over JSON.
+ *
+ * drizzle-zod maps a timestamp column to z.date(), which rejects the ISO string
+ * that JSON.stringify necessarily produces — so saving a blog post with a
+ * publish date failed validation with a bare 400 "Invalid data". Accept a Date,
+ * an ISO string, or empty/null, and normalise to Date | null.
+ */
+const timestampFromJson = z
+  .union([z.date(), z.string(), z.null()])
+  .optional()
+  .transform((value, ctx) => {
+    if (value === null || value === undefined || value === "") return null;
+    if (value instanceof Date) return value;
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Invalid date" });
+      return z.NEVER;
+    }
+    return parsed;
+  });
+
+export const insertBlogPostSchema = createInsertSchema(blogPosts)
+  .omit({ id: true, createdAt: true, updatedAt: true })
+  .extend({ publishedAt: timestampFromJson });
 export type BlogPost = typeof blogPosts.$inferSelect;
 export type InsertBlogPost = typeof blogPosts.$inferInsert;
 

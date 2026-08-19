@@ -145,10 +145,43 @@ function formatDateValue(d: Date | null | undefined) {
                 <div class="w-px bg-border mx-1 h-6 self-center"></div>
                 <select data-cmd="formatBlock" class="toolbar-select px-2 py-1 min-h-[36px] text-sm bg-background border rounded">
                   <option value="p">Paragraph</option>
+                  <option value="h1">Heading 1</option>
                   <option value="h2">Heading 2</option>
                   <option value="h3">Heading 3</option>
                   <option value="h4">Heading 4</option>
+                  <option value="blockquote">Quote</option>
                 </select>
+                <div class="w-px bg-border mx-1 h-6 self-center"></div>
+
+                <!-- Highlight / text colour -->
+                <button type="button" id="highlight-btn" class="toolbar-btn px-2 py-1 min-h-[36px] min-w-[36px] hover:bg-muted rounded text-sm" title="Highlight text (yellow)">
+                  <span class="px-1 rounded" style="background-color:#fef08a;color:#111">H</span>
+                </button>
+                <input type="color" id="highlight-color" value="#fef08a" class="w-9 h-9 min-h-[36px] p-0.5 bg-background border rounded cursor-pointer" title="Pick highlight colour" />
+                <input type="color" id="text-color" value="#111827" class="w-9 h-9 min-h-[36px] p-0.5 bg-background border rounded cursor-pointer" title="Pick text colour" />
+                <div class="w-px bg-border mx-1 h-6 self-center"></div>
+
+                <!-- Alignment -->
+                <button type="button" data-cmd="justifyLeft" class="toolbar-btn px-2 py-1 min-h-[36px] min-w-[36px] hover:bg-muted rounded" title="Align left">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h13"/></svg>
+                </button>
+                <button type="button" data-cmd="justifyCenter" class="toolbar-btn px-2 py-1 min-h-[36px] min-w-[36px] hover:bg-muted rounded" title="Align centre">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M4 6h16M7 12h10M6 18h12"/></svg>
+                </button>
+                <button type="button" data-cmd="justifyRight" class="toolbar-btn px-2 py-1 min-h-[36px] min-w-[36px] hover:bg-muted rounded" title="Align right">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M4 6h16M10 12h10M7 18h13"/></svg>
+                </button>
+                <button type="button" data-cmd="justifyFull" class="toolbar-btn px-2 py-1 min-h-[36px] min-w-[36px] hover:bg-muted rounded" title="Justify">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                </button>
+                <div class="w-px bg-border mx-1 h-6 self-center"></div>
+
+                <button type="button" data-cmd="undo" class="toolbar-btn px-2 py-1 min-h-[36px] min-w-[36px] hover:bg-muted rounded" title="Undo (Ctrl+Z)">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M3 10h10a4 4 0 010 8h-3M3 10l4-4M3 10l4 4"/></svg>
+                </button>
+                <button type="button" data-cmd="redo" class="toolbar-btn px-2 py-1 min-h-[36px] min-w-[36px] hover:bg-muted rounded" title="Redo (Ctrl+Y)">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M21 10H11a4 4 0 000 8h3M21 10l-4-4M21 10l-4 4"/></svg>
+                </button>
                 <div class="w-px bg-border mx-1 h-6 self-center"></div>
                 <button type="button" data-cmd="insertUnorderedList" class="toolbar-btn px-2 py-1 min-h-[36px] min-w-[36px] hover:bg-muted rounded text-sm" title="Bullet List">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
@@ -558,6 +591,69 @@ function formatDateValue(d: Date | null | undefined) {
       document.execCommand(select.dataset.cmd, false, select.value);
       visualEditor?.focus();
       markDirty();
+    });
+  });
+
+  // ── Highlight and text colour ────────────────────────────────────────────────
+  // styleWithCSS makes execCommand emit style="..." instead of legacy <font>
+  // tags. The server sanitizer allows a narrow set of CSS properties but strips
+  // <font> entirely, so without this the colour silently vanished on save.
+  try { document.execCommand('styleWithCSS', false, true); } catch {}
+
+  /** Re-apply the selection an <input type="color"> stole focus from. */
+  function withEditorSelection(fn) {
+    visualEditor?.focus();
+    fn();
+    markDirty();
+  }
+
+  const highlightBtn = document.getElementById('highlight-btn');
+  const highlightColor = document.getElementById('highlight-color');
+  const textColor = document.getElementById('text-color');
+
+  // Remember the selection before a colour picker takes focus, otherwise the
+  // range collapses and the command applies to nothing.
+  let colourSelection = null;
+  const rememberSelection = () => {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0 && visualEditor?.contains(sel.anchorNode)) {
+      colourSelection = sel.getRangeAt(0).cloneRange();
+    }
+  };
+  visualEditor?.addEventListener('keyup', rememberSelection);
+  visualEditor?.addEventListener('mouseup', rememberSelection);
+
+  const restoreSelection = () => {
+    if (!colourSelection) return;
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(colourSelection);
+  };
+
+  highlightBtn?.addEventListener('click', () => {
+    withEditorSelection(() => {
+      restoreSelection();
+      const colour = highlightColor?.value || '#fef08a';
+      // hiliteColor is the standard; backColor is the Firefox fallback.
+      if (!document.execCommand('hiliteColor', false, colour)) {
+        document.execCommand('backColor', false, colour);
+      }
+    });
+  });
+
+  highlightColor?.addEventListener('change', () => {
+    withEditorSelection(() => {
+      restoreSelection();
+      if (!document.execCommand('hiliteColor', false, highlightColor.value)) {
+        document.execCommand('backColor', false, highlightColor.value);
+      }
+    });
+  });
+
+  textColor?.addEventListener('change', () => {
+    withEditorSelection(() => {
+      restoreSelection();
+      document.execCommand('foreColor', false, textColor.value);
     });
   });
 
