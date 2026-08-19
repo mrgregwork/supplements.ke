@@ -459,12 +459,28 @@ export const cartItemsRelations = relations(cartItems, ({ one }) => ({
 // ============================================
 // BLOG POSTS
 // ============================================
+export const blogCategories = pgTable("blog_categories", {
+  id: text("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertBlogCategorySchema = createInsertSchema(blogCategories).omit({ id: true, createdAt: true, updatedAt: true });
+export type BlogCategory = typeof blogCategories.$inferSelect;
+export type InsertBlogCategory = typeof blogCategories.$inferInsert;
+
 export const blogPosts = pgTable("blog_posts", {
   id: text("id").primaryKey().default(sql`gen_random_uuid()`),
   title: text("title").notNull(),
   slug: text("slug").notNull().unique(),
   excerpt: text("excerpt"),
   content: text("content"),
+  // A post's category is optional and set null (not cascade-deleted) if its
+  // category is removed — losing the category shouldn't lose the post.
+  categoryId: text("category_id").references(() => blogCategories.id, { onDelete: "set null" }),
   seoTitle: text("seo_title"),
   seoDescription: text("seo_description"),
   featuredImage: text("featured_image"),

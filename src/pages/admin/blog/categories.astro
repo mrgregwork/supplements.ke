@@ -1,0 +1,315 @@
+---
+import BaseLayout from "@layouts/BaseLayout.astro";
+import AdminSidebar from "@components/AdminSidebar.astro";
+import { getAdminSessionToken, verifyAdminSession } from "@lib/admin";
+import { storage } from "@lib/storage";
+
+const sessionToken = getAdminSessionToken(Astro.request);
+const sessionData = await verifyAdminSession(sessionToken);
+
+const isDev = import.meta.env.DEV;
+if (!isDev && !sessionData) {
+  return Astro.redirect("/admin/login");
+}
+
+const adminEmail = sessionData?.admin?.email || "Dev Mode";
+const categories = await storage.getBlogCategories();
+const posts = await storage.getBlogPosts();
+const postCountByCategory = new Map<string, number>();
+for (const post of posts) {
+  if (post.categoryId) postCountByCategory.set(post.categoryId, (postCountByCategory.get(post.categoryId) ?? 0) + 1);
+}
+---
+
+<BaseLayout title="Blog Categories - Admin" description="Manage blog categories">
+  <div class="min-h-screen flex flex-col md:flex-row">
+    <AdminSidebar adminEmail={adminEmail} currentPage="blog" />
+
+    <main class="flex-1 p-4 md:p-6 lg:p-8">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-2xl font-bold">Blog Categories</h2>
+        <button
+          type="button"
+          id="add-btn"
+          class="px-4 py-3 min-h-[48px] bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition flex items-center gap-2"
+          data-testid="button-add-category"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          <span class="hidden sm:inline">New Category</span>
+        </button>
+      </div>
+
+      <!-- Posts / Categories tabs -->
+      <div class="flex gap-1 mb-6 bg-muted rounded-lg p-1 w-fit">
+        <a href="/admin/blog" class="px-4 py-2 min-h-[40px] text-sm rounded-md text-muted-foreground hover:text-foreground transition flex items-center">Posts</a>
+        <a href="/admin/blog/categories" class="px-4 py-2 min-h-[40px] text-sm rounded-md bg-background shadow-sm font-medium flex items-center">Categories</a>
+      </div>
+
+      <div class="bg-card border rounded-lg overflow-hidden">
+        {categories.length === 0 ? (
+          <div class="p-8 text-center text-muted-foreground">
+            No categories yet. Click "New Category" to create one, then assign it to posts from the post editor.
+          </div>
+        ) : (
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[500px]">
+              <thead>
+                <tr class="border-b bg-muted/50">
+                  <th class="text-left py-4 px-4 lg:px-6 font-medium">Name</th>
+                  <th class="text-left py-4 px-4 lg:px-6 font-medium hidden sm:table-cell">Slug</th>
+                  <th class="text-left py-4 px-4 lg:px-6 font-medium hidden md:table-cell">Posts</th>
+                  <th class="text-right py-4 px-4 lg:px-6 font-medium w-32">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y">
+                {categories.map((cat) => (
+                  <tr class="hover:bg-muted/30 transition" data-id={cat.id}>
+                    <td class="py-4 px-4 lg:px-6">
+                      <div class="font-medium">{cat.name}</div>
+                      <div class="text-sm text-muted-foreground sm:hidden">/blog/category/{cat.slug}/</div>
+                    </td>
+                    <td class="py-4 px-4 lg:px-6 text-sm text-muted-foreground hidden sm:table-cell">{cat.slug}</td>
+                    <td class="py-4 px-4 lg:px-6 hidden md:table-cell">
+                      <span class="inline-block px-2 py-0.5 text-xs rounded-full bg-muted text-muted-foreground">
+                        {postCountByCategory.get(cat.id) ?? 0}
+                      </span>
+                    </td>
+                    <td class="py-4 px-4 lg:px-6 text-right">
+                      <div class="flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          class="px-3 py-2 min-h-[40px] text-sm text-primary hover:bg-primary/10 rounded-md transition edit-btn"
+                          data-id={cat.id}
+                          data-name={cat.name}
+                          data-slug={cat.slug}
+                          data-description={cat.description ?? ""}
+                          data-testid={`button-edit-category-${cat.id}`}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          class="px-3 py-2 min-h-[40px] text-sm text-red-500 hover:bg-red-500/10 rounded-md transition delete-btn"
+                          data-id={cat.id}
+                          data-name={cat.name}
+                          data-count={postCountByCategory.get(cat.id) ?? 0}
+                          data-testid={`button-delete-category-${cat.id}`}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </main>
+  </div>
+
+  <!-- Add/Edit Modal -->
+  <div id="category-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-background rounded-lg shadow-xl w-full max-w-md p-6">
+      <h3 id="modal-title" class="text-lg font-semibold mb-4">New Category</h3>
+      <input type="hidden" id="cat-id" />
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium mb-2" for="cat-name">Name *</label>
+          <input
+            type="text"
+            id="cat-name"
+            required
+            class="w-full px-4 py-3 min-h-[48px] text-base border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:outline-none"
+            placeholder="Nutrition Tips"
+            data-testid="input-category-name"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2" for="cat-slug">Slug *</label>
+          <input
+            type="text"
+            id="cat-slug"
+            required
+            class="w-full px-4 py-3 min-h-[48px] text-base border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:outline-none"
+            placeholder="nutrition-tips"
+            data-testid="input-category-slug"
+          />
+          <p class="text-xs text-muted-foreground mt-1">Appears at /blog/category/<span id="slug-preview">slug</span>/</p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2" for="cat-description">Description</label>
+          <textarea
+            id="cat-description"
+            rows="2"
+            class="w-full px-4 py-3 text-base border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:outline-none resize-none"
+            placeholder="Shown at the top of this category's archive page"
+            data-testid="input-category-description"
+          ></textarea>
+        </div>
+      </div>
+      <p id="modal-error" class="text-sm text-red-500 mt-3 hidden"></p>
+      <div class="flex justify-end gap-2 mt-6">
+        <button type="button" id="modal-cancel" class="px-4 py-2 min-h-[48px] border rounded-lg hover:bg-muted transition">Cancel</button>
+        <button type="button" id="modal-save" class="px-4 py-2 min-h-[48px] bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition" data-testid="button-save-category">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div id="delete-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-background rounded-lg shadow-xl w-full max-w-sm p-6">
+      <h3 class="text-lg font-semibold mb-2">Delete Category</h3>
+      <p id="delete-message" class="text-muted-foreground mb-4">Are you sure?</p>
+      <div class="flex justify-end gap-2">
+        <button type="button" id="delete-cancel" class="px-4 py-2 min-h-[48px] border rounded-lg hover:bg-muted transition">Cancel</button>
+        <button type="button" id="delete-confirm" class="px-4 py-2 min-h-[48px] bg-red-500 text-white rounded-lg hover:opacity-90 transition">Delete</button>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  const modal = document.getElementById('category-modal') as HTMLElement;
+  const modalTitle = document.getElementById('modal-title')!;
+  const catId = document.getElementById('cat-id') as HTMLInputElement;
+  const catName = document.getElementById('cat-name') as HTMLInputElement;
+  const catSlug = document.getElementById('cat-slug') as HTMLInputElement;
+  const catDescription = document.getElementById('cat-description') as HTMLTextAreaElement;
+  const slugPreview = document.getElementById('slug-preview')!;
+  const modalError = document.getElementById('modal-error')!;
+  const modalSave = document.getElementById('modal-save') as HTMLButtonElement;
+  let slugManuallyEdited = false;
+
+  function slugify(value: string) {
+    return value.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim();
+  }
+
+  function openModal(mode: 'add' | 'edit', data?: { id: string; name: string; slug: string; description: string }) {
+    modalError.classList.add('hidden');
+    slugManuallyEdited = mode === 'edit';
+    if (mode === 'edit' && data) {
+      modalTitle.textContent = 'Edit Category';
+      catId.value = data.id;
+      catName.value = data.name;
+      catSlug.value = data.slug;
+      catDescription.value = data.description;
+    } else {
+      modalTitle.textContent = 'New Category';
+      catId.value = '';
+      catName.value = '';
+      catSlug.value = '';
+      catDescription.value = '';
+    }
+    slugPreview.textContent = catSlug.value || 'slug';
+    modal.classList.remove('hidden');
+    catName.focus();
+  }
+
+  function closeModal() { modal.classList.add('hidden'); }
+
+  document.getElementById('add-btn')?.addEventListener('click', () => openModal('add'));
+  document.getElementById('modal-cancel')?.addEventListener('click', closeModal);
+  modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+  document.querySelectorAll('.edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const el = btn as HTMLElement;
+      openModal('edit', {
+        id: el.dataset.id!,
+        name: el.dataset.name!,
+        slug: el.dataset.slug!,
+        description: el.dataset.description || '',
+      });
+    });
+  });
+
+  catName.addEventListener('input', () => {
+    if (!slugManuallyEdited) {
+      catSlug.value = slugify(catName.value);
+      slugPreview.textContent = catSlug.value || 'slug';
+    }
+  });
+  catSlug.addEventListener('input', () => {
+    slugManuallyEdited = true;
+    slugPreview.textContent = catSlug.value || 'slug';
+  });
+
+  modalSave.addEventListener('click', async () => {
+    const name = catName.value.trim();
+    const slug = slugify(catSlug.value.trim());
+    if (!name || !slug) {
+      modalError.textContent = 'Name and slug are required.';
+      modalError.classList.remove('hidden');
+      return;
+    }
+
+    const body = { name, slug, description: catDescription.value.trim() || null };
+    const isNew = !catId.value;
+
+    modalSave.disabled = true;
+    modalSave.textContent = 'Saving...';
+    try {
+      const res = await fetch(isNew ? '/api/admin/blog/categories' : `/api/admin/blog/categories/${catId.value}`, {
+        method: isNew ? 'POST' : 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Save failed');
+      window.location.reload();
+    } catch (err: any) {
+      modalError.textContent = err.message || 'Failed to save';
+      modalError.classList.remove('hidden');
+    } finally {
+      modalSave.disabled = false;
+      modalSave.textContent = 'Save';
+    }
+  });
+
+  // Delete flow
+  const deleteModal = document.getElementById('delete-modal')!;
+  const deleteMessage = document.getElementById('delete-message')!;
+  const deleteCancel = document.getElementById('delete-cancel')!;
+  const deleteConfirm = document.getElementById('delete-confirm') as HTMLButtonElement;
+  let pendingDeleteId: string | null = null;
+
+  document.querySelectorAll('.delete-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const el = btn as HTMLElement;
+      pendingDeleteId = el.dataset.id!;
+      const count = Number(el.dataset.count || '0');
+      deleteMessage.textContent = count > 0
+        ? `Delete "${el.dataset.name}"? ${count} post(s) in this category will become uncategorised, not deleted.`
+        : `Are you sure you want to delete "${el.dataset.name}"?`;
+      deleteModal.classList.remove('hidden');
+    });
+  });
+
+  deleteCancel.addEventListener('click', () => { pendingDeleteId = null; deleteModal.classList.add('hidden'); });
+  deleteModal.addEventListener('click', (e) => { if (e.target === deleteModal) { pendingDeleteId = null; deleteModal.classList.add('hidden'); } });
+
+  deleteConfirm.addEventListener('click', async () => {
+    if (!pendingDeleteId) return;
+    deleteConfirm.disabled = true;
+    deleteConfirm.textContent = 'Deleting...';
+    try {
+      const res = await fetch(`/api/admin/blog/categories/${pendingDeleteId}`, { method: 'DELETE' });
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to delete');
+      }
+    } catch {
+      alert('Failed to delete. Please try again.');
+    } finally {
+      deleteConfirm.disabled = false;
+      deleteConfirm.textContent = 'Delete';
+      deleteModal.classList.add('hidden');
+    }
+  });
+</script>

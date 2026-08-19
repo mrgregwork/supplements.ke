@@ -3,7 +3,7 @@ import {
   products, cartItems, orders, orderItems,
   categories, subcategories, attributeDefinitions, siteSettings,
   navigationItems, homepageContent,
-  blogPosts, contentPages,
+  blogPosts, blogCategories, contentPages,
   type User, type InsertUser,
   type Customer, type InsertCustomer,
   type OtpCode, type InsertOtpCode,
@@ -20,6 +20,7 @@ import {
   type NavigationItem, type InsertNavigationItem,
   type HomepageContent, type InsertHomepageContent,
   type BlogPost, type InsertBlogPost,
+  type BlogCategory, type InsertBlogCategory,
   type ContentPage, type InsertContentPage,
 } from "@shared/schema";
 import { db } from "./db";
@@ -136,6 +137,15 @@ export interface IStorage {
   createBlogPost(data: InsertBlogPost): Promise<BlogPost>;
   updateBlogPost(id: string, data: Partial<InsertBlogPost>): Promise<BlogPost | undefined>;
   deleteBlogPost(id: string): Promise<void>;
+
+  // Blog Categories
+  getBlogCategories(): Promise<BlogCategory[]>;
+  getBlogCategory(id: string): Promise<BlogCategory | undefined>;
+  getBlogCategoryBySlug(slug: string): Promise<BlogCategory | undefined>;
+  createBlogCategory(data: InsertBlogCategory): Promise<BlogCategory>;
+  updateBlogCategory(id: string, data: Partial<InsertBlogCategory>): Promise<BlogCategory | undefined>;
+  deleteBlogCategory(id: string): Promise<void>;
+  getBlogPostsByCategory(categoryId: string): Promise<BlogPost[]>;
 
   // Content Pages
   getContentPages(): Promise<ContentPage[]>;
@@ -669,6 +679,40 @@ export class DatabaseStorage implements IStorage {
 
   async deleteBlogPost(id: string): Promise<void> {
     await db.delete(blogPosts).where(eq(blogPosts.id, id));
+  }
+
+  // Blog Categories
+  async getBlogCategories(): Promise<BlogCategory[]> {
+    return db.select().from(blogCategories).orderBy(blogCategories.name);
+  }
+
+  async getBlogCategory(id: string): Promise<BlogCategory | undefined> {
+    const [cat] = await db.select().from(blogCategories).where(eq(blogCategories.id, id));
+    return cat || undefined;
+  }
+
+  async getBlogCategoryBySlug(slug: string): Promise<BlogCategory | undefined> {
+    const [cat] = await db.select().from(blogCategories).where(eq(blogCategories.slug, slug));
+    return cat || undefined;
+  }
+
+  async createBlogCategory(data: InsertBlogCategory): Promise<BlogCategory> {
+    const [cat] = await db.insert(blogCategories).values(data as any).returning();
+    return cat;
+  }
+
+  async updateBlogCategory(id: string, data: Partial<InsertBlogCategory>): Promise<BlogCategory | undefined> {
+    const [cat] = await db.update(blogCategories).set({ ...data, updatedAt: new Date() } as any).where(eq(blogCategories.id, id)).returning();
+    return cat || undefined;
+  }
+
+  async deleteBlogCategory(id: string): Promise<void> {
+    // Posts keep existing on delete; the categoryId FK is ON DELETE SET NULL.
+    await db.delete(blogCategories).where(eq(blogCategories.id, id));
+  }
+
+  async getBlogPostsByCategory(categoryId: string): Promise<BlogPost[]> {
+    return db.select().from(blogPosts).where(eq(blogPosts.categoryId, categoryId)).orderBy(desc(blogPosts.createdAt));
   }
 
   // Content Pages

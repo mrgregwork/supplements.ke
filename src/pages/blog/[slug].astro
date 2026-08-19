@@ -25,6 +25,7 @@ function formatDate(d: Date | null | undefined) {
 
 const seoTitle = post.seoTitle || post.title;
 const seoDescription = post.seoDescription || post.excerpt || `${post.title} — Supplements Kenya`;
+const category = post.categoryId ? await storage.getBlogCategory(post.categoryId) : undefined;
 ---
 
 <BaseLayout
@@ -50,7 +51,13 @@ const seoDescription = post.seoDescription || post.excerpt || `${post.title} —
     </nav>
 
     <header class="mb-8">
-      <p class="text-sm text-muted-foreground mb-3">
+      <p class="text-sm text-muted-foreground mb-3 flex items-center gap-2">
+        {category && (
+          <>
+            <a href={`/blog/category/${category.slug}/`} class="text-primary font-medium hover:underline">{category.name}</a>
+            <span aria-hidden="true">&middot;</span>
+          </>
+        )}
         {formatDate(post.publishedAt || post.createdAt)}
       </p>
       <h1 class="text-3xl md:text-4xl font-bold leading-tight mb-4">{post.title}</h1>

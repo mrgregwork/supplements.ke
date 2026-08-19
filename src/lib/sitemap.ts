@@ -77,11 +77,12 @@ export async function getSitemapSections(): Promise<SitemapSection[]> {
     try { return await fn(); } catch { return []; }
   };
 
-  const [products, categories, subcategories, blogPosts, contentPages] = await Promise.all([
+  const [products, categories, subcategories, blogPosts, blogCategories, contentPages] = await Promise.all([
     safe(() => storage.getProducts()),
     safe(() => storage.getCategories()),
     safe(() => storage.getSubcategories()),
     safe(() => storage.getBlogPosts()),
+    safe(() => storage.getBlogCategories()),
     safe(() => storage.getContentPages()),
   ]);
 
@@ -166,6 +167,19 @@ export async function getSitemapSections(): Promise<SitemapSection[]> {
     }))
     .sort((a, b) => a.label.localeCompare(b.label));
 
+  // Only list a blog category page if it actually has a published post —
+  // an empty archive page is thin content and not worth indexing.
+  const blogCategoryEntries: SitemapEntry[] = blogCategories
+    .filter(cat => blogPosts.some(p => p.status === 'published' && p.categoryId === cat.id))
+    .map(cat => ({
+      path: `/blog/category/${cat.slug}/`,
+      label: `Blog: ${cat.name}`,
+      lastmod: toIso(cat.updatedAt),
+      changefreq: 'weekly' as const,
+      priority: 0.5,
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+
   const contentPageEntries: SitemapEntry[] = contentPages
     .filter(p => p.status === 'published')
     .map(p => ({
@@ -185,6 +199,7 @@ export async function getSitemapSections(): Promise<SitemapSection[]> {
     { title: 'Products',      entries: indexableProductEntries,   includeInXml: true },
     { title: 'Products (not yet indexed)', entries: noindexProductEntries, includeInXml: false },
     { title: 'Articles',      entries: blogEntries,               includeInXml: true },
+    { title: 'Blog Categories', entries: blogCategoryEntries,     includeInXml: true },
     { title: 'Other Pages',   entries: contentPageEntries,        includeInXml: true },
   ].filter(section => section.entries.length > 0);
 }

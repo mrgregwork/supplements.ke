@@ -4,6 +4,12 @@ import { storage } from "@lib/storage";
 
 const posts = await storage.getBlogPosts();
 const publishedPosts = posts.filter(p => p.status === "published");
+const categories = await storage.getBlogCategories();
+const categoryById = new Map(categories.map(c => [c.id, c]));
+// Only offer categories that actually have a published post in them.
+const categoriesWithPosts = categories.filter(cat =>
+  publishedPosts.some(p => p.categoryId === cat.id)
+);
 
 function formatDate(d: Date | null | undefined) {
   if (!d) return "";
@@ -20,6 +26,20 @@ function formatDate(d: Date | null | undefined) {
       <h1 class="text-3xl md:text-4xl font-bold mb-3">Supplement Guides &amp; Advice</h1>
       <p class="text-lg text-muted-foreground">Evidence-based articles on supplements, nutrition, and health in Kenya.</p>
     </div>
+
+    {categoriesWithPosts.length > 0 && (
+      <div class="flex flex-wrap gap-2 mb-8" data-testid="section-category-filters">
+        {categoriesWithPosts.map(cat => (
+          <a
+            href={`/blog/category/${cat.slug}/`}
+            class="px-3 py-1.5 min-h-[36px] text-sm rounded-full border border-card-border hover:border-primary hover:text-primary transition flex items-center"
+            data-testid={`link-blog-category-${cat.slug}`}
+          >
+            {cat.name}
+          </a>
+        ))}
+      </div>
+    )}
 
     {publishedPosts.length === 0 ? (
       <div class="text-center py-16 text-muted-foreground">
@@ -41,7 +61,17 @@ function formatDate(d: Date | null | undefined) {
               </a>
             )}
             <div class="p-5 flex flex-col flex-1">
-              <p class="text-xs text-muted-foreground mb-2">{formatDate(post.publishedAt || post.createdAt)}</p>
+              <div class="flex items-center gap-2 mb-2">
+                {post.categoryId && categoryById.get(post.categoryId) && (
+                  <a
+                    href={`/blog/category/${categoryById.get(post.categoryId)!.slug}/`}
+                    class="text-xs font-medium text-primary hover:underline"
+                  >
+                    {categoryById.get(post.categoryId)!.name}
+                  </a>
+                )}
+                <p class="text-xs text-muted-foreground">{formatDate(post.publishedAt || post.createdAt)}</p>
+              </div>
               <h2 class="text-lg font-semibold mb-2 leading-snug">
                 <a href={`/blog/${post.slug}/`} class="hover:text-primary transition">{post.title}</a>
               </h2>

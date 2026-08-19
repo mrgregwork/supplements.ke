@@ -14,6 +14,8 @@ if (!isDev && !sessionData) {
 
 const adminEmail = sessionData?.admin?.email || "Dev Mode";
 const posts = await storage.getBlogPosts();
+const categories = await storage.getBlogCategories();
+const categoryById = new Map(categories.map(c => [c.id, c]));
 
 function formatDate(d: Date | null | undefined) {
   if (!d) return "—";
@@ -40,6 +42,12 @@ function formatDate(d: Date | null | undefined) {
         </a>
       </div>
 
+      <!-- Posts / Categories tabs -->
+      <div class="flex gap-1 mb-6 bg-muted rounded-lg p-1 w-fit">
+        <a href="/admin/blog" class="px-4 py-2 min-h-[40px] text-sm rounded-md bg-background shadow-sm font-medium flex items-center">Posts</a>
+        <a href="/admin/blog/categories" class="px-4 py-2 min-h-[40px] text-sm rounded-md text-muted-foreground hover:text-foreground transition flex items-center">Categories</a>
+      </div>
+
       <div class="bg-card border rounded-lg overflow-hidden">
         {posts.length === 0 ? (
           <div class="p-8 text-center text-muted-foreground">
@@ -53,6 +61,7 @@ function formatDate(d: Date | null | undefined) {
                   <th class="text-left py-4 px-4 lg:px-6 font-medium">Title</th>
                   <th class="text-left py-4 px-4 lg:px-6 font-medium hidden sm:table-cell">Slug</th>
                   <th class="text-left py-4 px-4 lg:px-6 font-medium hidden md:table-cell">Status</th>
+                  <th class="text-left py-4 px-4 lg:px-6 font-medium hidden lg:table-cell">Category</th>
                   <th class="text-left py-4 px-4 lg:px-6 font-medium hidden lg:table-cell">Created</th>
                   <th class="text-right py-4 px-4 lg:px-6 font-medium w-32">Actions</th>
                 </tr>
@@ -71,6 +80,9 @@ function formatDate(d: Date | null | undefined) {
                       ) : (
                         <span class="inline-block px-2 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400">Draft</span>
                       )}
+                    </td>
+                    <td class="py-4 px-4 lg:px-6 text-sm text-muted-foreground hidden lg:table-cell">
+                      {post.categoryId ? (categoryById.get(post.categoryId)?.name ?? "—") : "—"}
                     </td>
                     <td class="py-4 px-4 lg:px-6 text-sm text-muted-foreground hidden lg:table-cell">{formatDate(post.createdAt)}</td>
                     <td class="py-4 px-4 lg:px-6 text-right">

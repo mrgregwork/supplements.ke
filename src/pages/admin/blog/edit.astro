@@ -22,6 +22,8 @@ if (id) {
   existingData = await storage.getBlogPost(id);
 }
 
+const categories = await storage.getBlogCategories();
+
 const isEditing = !!existingData;
 const pageTitle = isEditing ? `Edit Post: ${existingData?.title}` : "New Blog Post";
 
@@ -270,6 +272,24 @@ function formatDateValue(d: Date | null | undefined) {
                   <option value="published" selected={existingData?.status === "published"}>Published</option>
                 </select>
               </div>
+              <div>
+                <label class="block text-sm font-medium mb-2" for="form-category">Category</label>
+                <select
+                  id="form-category"
+                  class="w-full px-4 py-3 min-h-[48px] text-base border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:outline-none"
+                  data-testid="select-category"
+                >
+                  <option value="">Uncategorised</option>
+                  {categories.map((cat) => (
+                    <option value={cat.id} selected={existingData?.categoryId === cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+                {categories.length === 0 && (
+                  <p class="text-xs text-muted-foreground mt-1">
+                    No categories yet — <a href="/admin/blog/categories" class="text-primary hover:underline">create one</a>.
+                  </p>
+                )}
+              </div>
             </div>
 
             <!-- Published At -->
@@ -465,6 +485,7 @@ function formatDateValue(d: Date | null | undefined) {
   const formExcerpt = document.getElementById('form-excerpt');
   const formFeaturedImage = document.getElementById('form-featured-image');
   const formStatus = document.getElementById('form-status');
+  const formCategory = document.getElementById('form-category');
   const formPublishedAt = document.getElementById('form-published-at');
   const formSeoTitle = document.getElementById('form-seo-title');
   const formSeoDescription = document.getElementById('form-seo-description');
@@ -535,6 +556,7 @@ function formatDateValue(d: Date | null | undefined) {
   formExcerpt?.addEventListener('input', markDirty);
   formFeaturedImage?.addEventListener('input', markDirty);
   formStatus?.addEventListener('change', markDirty);
+  formCategory?.addEventListener('change', markDirty);
   formPublishedAt?.addEventListener('input', markDirty);
 
   formSeoTitle?.addEventListener('input', () => {
@@ -828,6 +850,7 @@ function formatDateValue(d: Date | null | undefined) {
       content: content || null,
       featuredImage: formFeaturedImage?.value?.trim() || null,
       status: formStatus?.value || 'draft',
+      categoryId: formCategory?.value || null,
       publishedAt: formPublishedAt?.value ? new Date(formPublishedAt.value).toISOString() : null,
       seoTitle: formSeoTitle?.value?.trim() || null,
       seoDescription: formSeoDescription?.value?.trim() || null,
