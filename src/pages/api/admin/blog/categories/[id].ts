@@ -3,6 +3,7 @@ import { storage } from "@lib/storage";
 import { insertBlogCategorySchema } from "@shared/schema";
 import { getAdminSessionToken, verifyAdminSession } from "@lib/admin";
 import { UNCATEGORIZED_BLOG_SLUG } from "@lib/seo";
+import { sanitizeHTML } from "@lib/sanitize";
 
 async function requireAdmin(request: Request) {
   const sessionToken = getAdminSessionToken(request);
@@ -18,6 +19,9 @@ export const PUT: APIRoute = async ({ request, params }) => {
 
     const body = await request.json();
     const data = insertBlogCategorySchema.partial().parse(body);
+
+    if (data.description !== undefined) data.description = sanitizeHTML(data.description);
+    if (data.longDescription !== undefined) data.longDescription = sanitizeHTML(data.longDescription);
 
     if (data.slug === UNCATEGORIZED_BLOG_SLUG) {
       return new Response(

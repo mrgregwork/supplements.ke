@@ -3,6 +3,7 @@ import { storage } from "@lib/storage";
 import { insertBlogCategorySchema } from "@shared/schema";
 import { getAdminSessionToken, verifyAdminSession } from "@lib/admin";
 import { UNCATEGORIZED_BLOG_SLUG } from "@lib/seo";
+import { sanitizeHTML } from "@lib/sanitize";
 
 export const GET: APIRoute = async () => {
   try {
@@ -33,6 +34,9 @@ export const POST: APIRoute = async ({ request }) => {
 
     const body = await request.json();
     const data = insertBlogCategorySchema.parse(body);
+
+    if (data.description !== undefined) data.description = sanitizeHTML(data.description);
+    if (data.longDescription !== undefined) data.longDescription = sanitizeHTML(data.longDescription);
 
     // "uncategorized" is the reserved URL segment for posts with no category
     // (see @lib/seo). A real category using it would collide with that.

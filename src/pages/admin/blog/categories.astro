@@ -19,6 +19,16 @@ const postCountByCategory = new Map<string, number>();
 for (const post of posts) {
   if (post.categoryId) postCountByCategory.set(post.categoryId, (postCountByCategory.get(post.categoryId) ?? 0) + 1);
 }
+
+// Full records (including rich HTML description/longDescription) are handed to
+// the client as JSON rather than HTML data-attributes — attribute-encoding
+// arbitrary rich HTML (quotes, nested tags) is exactly the kind of thing that
+// breaks quietly, so the Edit button looks records up from this array by id
+// instead.
+const categoriesJson = JSON.stringify(categories.map(c => ({
+  id: c.id, name: c.name, slug: c.slug,
+  description: c.description ?? "", longDescription: c.longDescription ?? "",
+})));
 ---
 
 <BaseLayout title="Blog Categories - Admin" description="Manage blog categories">
@@ -82,9 +92,6 @@ for (const post of posts) {
                           type="button"
                           class="px-3 py-2 min-h-[40px] text-sm text-primary hover:bg-primary/10 rounded-md transition edit-btn"
                           data-id={cat.id}
-                          data-name={cat.name}
-                          data-slug={cat.slug}
-                          data-description={cat.description ?? ""}
                           data-testid={`button-edit-category-${cat.id}`}
                         >
                           Edit
@@ -112,43 +119,49 @@ for (const post of posts) {
   </div>
 
   <!-- Add/Edit Modal -->
-  <div id="category-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-background rounded-lg shadow-xl w-full max-w-md p-6">
+  <div id="category-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-start justify-center p-4 overflow-y-auto">
+    <div class="bg-background rounded-lg shadow-xl w-full max-w-2xl p-6 my-8">
       <h3 id="modal-title" class="text-lg font-semibold mb-4">New Category</h3>
       <input type="hidden" id="cat-id" />
-      <div class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium mb-2" for="cat-name">Name *</label>
-          <input
-            type="text"
-            id="cat-name"
-            required
-            class="w-full px-4 py-3 min-h-[48px] text-base border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:outline-none"
-            placeholder="Nutrition Tips"
-            data-testid="input-category-name"
-          />
+      <div class="space-y-5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium mb-2" for="cat-name">Name *</label>
+            <input
+              type="text"
+              id="cat-name"
+              required
+              class="w-full px-4 py-3 min-h-[48px] text-base border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:outline-none"
+              placeholder="Nutrition Tips"
+              data-testid="input-category-name"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-2" for="cat-slug">Slug *</label>
+            <input
+              type="text"
+              id="cat-slug"
+              required
+              class="w-full px-4 py-3 min-h-[48px] text-base border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:outline-none"
+              placeholder="nutrition-tips"
+              data-testid="input-category-slug"
+            />
+            <p class="text-xs text-muted-foreground mt-1">/blog/<span id="slug-preview">slug</span>/</p>
+          </div>
         </div>
+
         <div>
-          <label class="block text-sm font-medium mb-2" for="cat-slug">Slug *</label>
-          <input
-            type="text"
-            id="cat-slug"
-            required
-            class="w-full px-4 py-3 min-h-[48px] text-base border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:outline-none"
-            placeholder="nutrition-tips"
-            data-testid="input-category-slug"
-          />
-          <p class="text-xs text-muted-foreground mt-1">Appears at /blog/<span id="slug-preview">slug</span>/</p>
+          <label class="block text-sm font-medium mb-2">Content — top of category page</label>
+          <p class="text-xs text-muted-foreground mb-2">Rendered above the post grid.</p>
+          <div id="editor-top" data-rich-editor data-hidden-id="cat-top-content"></div>
+          <input type="hidden" id="cat-top-content" data-testid="input-category-description" />
         </div>
+
         <div>
-          <label class="block text-sm font-medium mb-2" for="cat-description">Description</label>
-          <textarea
-            id="cat-description"
-            rows="2"
-            class="w-full px-4 py-3 text-base border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:outline-none resize-none"
-            placeholder="Shown at the top of this category's archive page"
-            data-testid="input-category-description"
-          ></textarea>
+          <label class="block text-sm font-medium mb-2">Content — bottom of category page</label>
+          <p class="text-xs text-muted-foreground mb-2">Rendered below the post grid — good place for longer, keyword-rich SEO copy.</p>
+          <div id="editor-bottom" data-rich-editor data-hidden-id="cat-bottom-content"></div>
+          <input type="hidden" id="cat-bottom-content" data-testid="input-category-long-description" />
         </div>
       </div>
       <p id="modal-error" class="text-sm text-red-500 mt-3 hidden"></p>
@@ -172,37 +185,180 @@ for (const post of posts) {
   </div>
 </BaseLayout>
 
-<script>
-  const modal = document.getElementById('category-modal') as HTMLElement;
-  const modalTitle = document.getElementById('modal-title')!;
-  const catId = document.getElementById('cat-id') as HTMLInputElement;
-  const catName = document.getElementById('cat-name') as HTMLInputElement;
-  const catSlug = document.getElementById('cat-slug') as HTMLInputElement;
-  const catDescription = document.getElementById('cat-description') as HTMLTextAreaElement;
-  const slugPreview = document.getElementById('slug-preview')!;
-  const modalError = document.getElementById('modal-error')!;
-  const modalSave = document.getElementById('modal-save') as HTMLButtonElement;
+<script define:vars={{ categoriesJson }}>
+  const categoryRecords = JSON.parse(categoriesJson);
+
+  // ── Minimal WordPress-style rich editor ──────────────────────────────────────
+  // Mounted twice (top/bottom content). Mirrors the toolbar in the blog post
+  // editor — headings, highlight, alignment, lists, links — built generic over
+  // any [data-rich-editor] host so it isn't hand-duplicated per instance.
+  const TOOLBAR_HTML = `
+    <div class="rt-toolbar border border-b-0 rounded-t-lg bg-muted/30 p-2 flex flex-wrap gap-1">
+      <button type="button" data-cmd="bold" class="rt-btn px-2 py-1 min-h-[36px] min-w-[36px] hover:bg-muted rounded font-bold text-sm" title="Bold (Ctrl+B)">B</button>
+      <button type="button" data-cmd="italic" class="rt-btn px-2 py-1 min-h-[36px] min-w-[36px] hover:bg-muted rounded italic text-sm" title="Italic (Ctrl+I)">I</button>
+      <button type="button" data-cmd="underline" class="rt-btn px-2 py-1 min-h-[36px] min-w-[36px] hover:bg-muted rounded underline text-sm" title="Underline (Ctrl+U)">U</button>
+      <button type="button" data-cmd="strikeThrough" class="rt-btn px-2 py-1 min-h-[36px] min-w-[36px] hover:bg-muted rounded line-through text-sm" title="Strikethrough">S</button>
+      <div class="w-px bg-border mx-1 h-6 self-center"></div>
+      <select data-cmd="formatBlock" class="rt-select px-2 py-1 min-h-[36px] text-sm bg-background border rounded">
+        <option value="p">Paragraph</option>
+        <option value="h1">Heading 1</option>
+        <option value="h2">Heading 2</option>
+        <option value="h3">Heading 3</option>
+        <option value="h4">Heading 4</option>
+        <option value="blockquote">Quote</option>
+      </select>
+      <div class="w-px bg-border mx-1 h-6 self-center"></div>
+      <button type="button" data-highlight class="rt-btn px-2 py-1 min-h-[36px] min-w-[36px] hover:bg-muted rounded text-sm" title="Highlight text (yellow)">
+        <span class="px-1 rounded" style="background-color:#fef08a;color:#111">H</span>
+      </button>
+      <input type="color" data-highlight-color value="#fef08a" class="w-9 h-9 min-h-[36px] p-0.5 bg-background border rounded cursor-pointer" title="Pick highlight colour" />
+      <input type="color" data-text-color value="#111827" class="w-9 h-9 min-h-[36px] p-0.5 bg-background border rounded cursor-pointer" title="Pick text colour" />
+      <div class="w-px bg-border mx-1 h-6 self-center"></div>
+      <button type="button" data-cmd="justifyLeft" class="rt-btn px-2 py-1 min-h-[36px] min-w-[36px] hover:bg-muted rounded" title="Align left">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h13"/></svg>
+      </button>
+      <button type="button" data-cmd="justifyCenter" class="rt-btn px-2 py-1 min-h-[36px] min-w-[36px] hover:bg-muted rounded" title="Align centre">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M4 6h16M7 12h10M6 18h12"/></svg>
+      </button>
+      <button type="button" data-cmd="justifyRight" class="rt-btn px-2 py-1 min-h-[36px] min-w-[36px] hover:bg-muted rounded" title="Align right">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M4 6h16M10 12h10M7 18h13"/></svg>
+      </button>
+      <button type="button" data-cmd="justifyFull" class="rt-btn px-2 py-1 min-h-[36px] min-w-[36px] hover:bg-muted rounded" title="Justify">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+      <div class="w-px bg-border mx-1 h-6 self-center"></div>
+      <button type="button" data-cmd="insertUnorderedList" class="rt-btn px-2 py-1 min-h-[36px] min-w-[36px] hover:bg-muted rounded text-sm" title="Bullet List">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+      </button>
+      <button type="button" data-cmd="insertOrderedList" class="rt-btn px-2 py-1 min-h-[36px] min-w-[36px] hover:bg-muted rounded text-sm" title="Numbered List">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h10M7 16h10M3 8h.01M3 12h.01M3 16h.01"></path></svg>
+      </button>
+      <div class="w-px bg-border mx-1 h-6 self-center"></div>
+      <button type="button" data-link class="rt-btn px-2 py-1 min-h-[36px] min-w-[36px] hover:bg-muted rounded text-sm" title="Insert Link">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+      </button>
+      <button type="button" data-cmd="undo" class="rt-btn px-2 py-1 min-h-[36px] min-w-[36px] hover:bg-muted rounded" title="Undo (Ctrl+Z)">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M3 10h10a4 4 0 010 8h-3M3 10l4-4M3 10l4 4"/></svg>
+      </button>
+      <button type="button" data-cmd="redo" class="rt-btn px-2 py-1 min-h-[36px] min-w-[36px] hover:bg-muted rounded" title="Redo (Ctrl+Y)">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M21 10H11a4 4 0 000 8h3M21 10l-4-4M21 10l-4 4"/></svg>
+      </button>
+      <div class="w-px bg-border mx-1 h-6 self-center"></div>
+      <button type="button" data-cmd="removeFormat" class="rt-btn px-2 py-1 min-h-[36px] min-w-[36px] hover:bg-muted rounded text-sm text-muted-foreground" title="Clear Formatting">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+    </div>
+    <div class="rt-visual min-h-[160px] border rounded-b-lg p-4 bg-background focus:outline-none prose prose-sm max-w-none dark:prose-invert" contenteditable="true"></div>
+  `;
+
+  function mountRichEditor(host) {
+    host.innerHTML = TOOLBAR_HTML;
+    const visual = host.querySelector('.rt-visual');
+    const hiddenInput = document.getElementById(host.dataset.hiddenId);
+
+    try { document.execCommand('styleWithCSS', false, true); } catch {}
+
+    const sync = () => { hiddenInput.value = visual.innerHTML; };
+    visual.addEventListener('input', sync);
+
+    host.querySelectorAll('.rt-btn[data-cmd]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        visual.focus();
+        document.execCommand(btn.dataset.cmd, false, null);
+        sync();
+      });
+    });
+    host.querySelectorAll('.rt-select[data-cmd]').forEach(select => {
+      select.addEventListener('change', () => {
+        visual.focus();
+        document.execCommand(select.dataset.cmd, false, select.value);
+        sync();
+      });
+    });
+
+    // Colour pickers steal focus, collapsing the selection — remember the
+    // range while the caret is still in the editor, restore before applying.
+    let savedRange = null;
+    const remember = () => {
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0 && visual.contains(sel.anchorNode)) savedRange = sel.getRangeAt(0).cloneRange();
+    };
+    visual.addEventListener('keyup', remember);
+    visual.addEventListener('mouseup', remember);
+    const restore = () => {
+      if (!savedRange) return;
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(savedRange);
+    };
+
+    const highlightBtn = host.querySelector('[data-highlight]');
+    const highlightColor = host.querySelector('[data-highlight-color]');
+    const textColor = host.querySelector('[data-text-color]');
+    const applyColour = (cmd, value) => {
+      visual.focus();
+      restore();
+      if (cmd === 'hiliteColor' && !document.execCommand('hiliteColor', false, value)) {
+        document.execCommand('backColor', false, value);
+      } else if (cmd !== 'hiliteColor') {
+        document.execCommand(cmd, false, value);
+      }
+      sync();
+    };
+    highlightBtn?.addEventListener('click', () => applyColour('hiliteColor', highlightColor.value));
+    highlightColor?.addEventListener('change', () => applyColour('hiliteColor', highlightColor.value));
+    textColor?.addEventListener('change', () => applyColour('foreColor', textColor.value));
+
+    host.querySelector('[data-link]')?.addEventListener('click', () => {
+      restore();
+      const url = prompt('Link URL (e.g. /blog/some-post/ or https://example.com):');
+      if (!url) return;
+      visual.focus();
+      restore();
+      document.execCommand('createLink', false, url);
+      sync();
+    });
+
+    return {
+      setHTML: (html) => { visual.innerHTML = html || ''; hiddenInput.value = html || ''; },
+    };
+  }
+
+  const topEditor = mountRichEditor(document.getElementById('editor-top'));
+  const bottomEditor = mountRichEditor(document.getElementById('editor-bottom'));
+
+  // ── Modal open/close/save ─────────────────────────────────────────────────────
+  const modal = document.getElementById('category-modal');
+  const modalTitle = document.getElementById('modal-title');
+  const catId = document.getElementById('cat-id');
+  const catName = document.getElementById('cat-name');
+  const catSlug = document.getElementById('cat-slug');
+  const slugPreview = document.getElementById('slug-preview');
+  const modalError = document.getElementById('modal-error');
+  const modalSave = document.getElementById('modal-save');
   let slugManuallyEdited = false;
 
-  function slugify(value: string) {
+  function slugify(value) {
     return value.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim();
   }
 
-  function openModal(mode: 'add' | 'edit', data?: { id: string; name: string; slug: string; description: string }) {
+  function openModal(mode, record) {
     modalError.classList.add('hidden');
     slugManuallyEdited = mode === 'edit';
-    if (mode === 'edit' && data) {
+    if (mode === 'edit' && record) {
       modalTitle.textContent = 'Edit Category';
-      catId.value = data.id;
-      catName.value = data.name;
-      catSlug.value = data.slug;
-      catDescription.value = data.description;
+      catId.value = record.id;
+      catName.value = record.name;
+      catSlug.value = record.slug;
+      topEditor.setHTML(record.description);
+      bottomEditor.setHTML(record.longDescription);
     } else {
       modalTitle.textContent = 'New Category';
       catId.value = '';
       catName.value = '';
       catSlug.value = '';
-      catDescription.value = '';
+      topEditor.setHTML('');
+      bottomEditor.setHTML('');
     }
     slugPreview.textContent = catSlug.value || 'slug';
     modal.classList.remove('hidden');
@@ -217,13 +373,8 @@ for (const post of posts) {
 
   document.querySelectorAll('.edit-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      const el = btn as HTMLElement;
-      openModal('edit', {
-        id: el.dataset.id!,
-        name: el.dataset.name!,
-        slug: el.dataset.slug!,
-        description: el.dataset.description || '',
-      });
+      const record = categoryRecords.find(c => c.id === btn.dataset.id);
+      if (record) openModal('edit', record);
     });
   });
 
@@ -247,7 +398,12 @@ for (const post of posts) {
       return;
     }
 
-    const body = { name, slug, description: catDescription.value.trim() || null };
+    const body = {
+      name,
+      slug,
+      description: document.getElementById('cat-top-content').value.trim() || null,
+      longDescription: document.getElementById('cat-bottom-content').value.trim() || null,
+    };
     const isNew = !catId.value;
 
     modalSave.disabled = true;
@@ -261,7 +417,7 @@ for (const post of posts) {
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || 'Save failed');
       window.location.reload();
-    } catch (err: any) {
+    } catch (err) {
       modalError.textContent = err.message || 'Failed to save';
       modalError.classList.remove('hidden');
     } finally {
@@ -271,20 +427,19 @@ for (const post of posts) {
   });
 
   // Delete flow
-  const deleteModal = document.getElementById('delete-modal')!;
-  const deleteMessage = document.getElementById('delete-message')!;
-  const deleteCancel = document.getElementById('delete-cancel')!;
-  const deleteConfirm = document.getElementById('delete-confirm') as HTMLButtonElement;
-  let pendingDeleteId: string | null = null;
+  const deleteModal = document.getElementById('delete-modal');
+  const deleteMessage = document.getElementById('delete-message');
+  const deleteCancel = document.getElementById('delete-cancel');
+  const deleteConfirm = document.getElementById('delete-confirm');
+  let pendingDeleteId = null;
 
   document.querySelectorAll('.delete-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      const el = btn as HTMLElement;
-      pendingDeleteId = el.dataset.id!;
-      const count = Number(el.dataset.count || '0');
+      pendingDeleteId = btn.dataset.id;
+      const count = Number(btn.dataset.count || '0');
       deleteMessage.textContent = count > 0
-        ? `Delete "${el.dataset.name}"? ${count} post(s) in this category will become uncategorised, not deleted.`
-        : `Are you sure you want to delete "${el.dataset.name}"?`;
+        ? `Delete "${btn.dataset.name}"? ${count} post(s) in this category will become uncategorised, not deleted.`
+        : `Are you sure you want to delete "${btn.dataset.name}"?`;
       deleteModal.classList.remove('hidden');
     });
   });

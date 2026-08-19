@@ -463,7 +463,11 @@ export const blogCategories = pgTable("blog_categories", {
   id: text("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
+  // Both are rich HTML, sanitized on write in the admin API — same convention
+  // as product categories.description / .longDescription. description renders
+  // above the post grid on the archive page, longDescription below it.
   description: text("description"),
+  longDescription: text("long_description"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

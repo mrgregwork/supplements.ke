@@ -39,9 +39,17 @@ const publishedPosts = isUncategorized
   : allPosts.filter(p => p.status === "published");
 
 const displayName = isUncategorized ? "Uncategorised" : category!.name;
-const displayDescription = isUncategorized
-  ? "Articles not yet assigned to a category."
+// Rich HTML, rendered above the post grid via set:html — sanitized on write
+// in the categories API, same trust model as blog post content.
+const topContent = isUncategorized
+  ? "<p>Articles not yet assigned to a category.</p>"
   : category!.description;
+// Rich HTML, rendered below the post grid — a good spot for longer SEO copy.
+const bottomContent = isUncategorized ? null : category!.longDescription;
+
+// Meta descriptions must be plain text — strip tags and collapse whitespace
+// rather than dumping raw HTML into a <meta> attribute.
+const plainTextDescription = (topContent ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 
 function formatDate(d: Date | null | undefined) {
   if (!d) return "";
@@ -51,7 +59,7 @@ function formatDate(d: Date | null | undefined) {
 
 <BaseLayout
   title={`${displayName} — Supplement Blog | Supplements Kenya`}
-  description={displayDescription || `Articles on ${displayName.toLowerCase()} from the Supplements Kenya team.`}
+  description={plainTextDescription || `Articles on ${displayName.toLowerCase()} from the Supplements Kenya team.`}
   noindex={isUncategorized}
 >
   <div class="max-w-5xl mx-auto px-4 py-12 md:py-16">
@@ -65,8 +73,8 @@ function formatDate(d: Date | null | undefined) {
 
     <div class="mb-10">
       <h1 class="text-3xl md:text-4xl font-bold mb-3">{displayName}</h1>
-      {displayDescription && (
-        <p class="text-lg text-muted-foreground">{displayDescription}</p>
+      {topContent && (
+        <div class="prose prose-neutral dark:prose-invert max-w-none text-lg text-muted-foreground" set:html={topContent} />
       )}
     </div>
 
@@ -108,6 +116,12 @@ function formatDate(d: Date | null | undefined) {
             </div>
           </article>
         ))}
+      </div>
+    )}
+
+    {bottomContent && (
+      <div class="mt-16 pt-8 border-t prose prose-neutral dark:prose-invert max-w-none">
+        <Fragment set:html={bottomContent} />
       </div>
     )}
   </div>
