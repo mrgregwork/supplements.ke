@@ -1,11 +1,20 @@
 ---
 import BaseLayout from "@layouts/BaseLayout.astro";
 import { storage } from "@lib/storage";
+import { getAdminSessionToken, verifyAdminSession } from "@lib/admin";
 
 const { slug } = Astro.params;
 const post = await storage.getBlogPostBySlug(slug!);
 
-if (!post || post.status !== "published") {
+// The admin editor's "Preview" link points here for drafts too, so a logged-in
+// admin may view an unpublished post. Everyone else still gets redirected —
+// this is the only gate keeping drafts off the public site.
+const sessionData = post && post.status !== "published"
+  ? await verifyAdminSession(getAdminSessionToken(Astro.request))
+  : null;
+const isAdminPreview = post?.status !== "published" && !!sessionData;
+
+if (!post || (post.status !== "published" && !isAdminPreview)) {
   return Astro.redirect("/blog/");
 }
 
@@ -23,7 +32,13 @@ const seoDescription = post.seoDescription || post.excerpt || `${post.title} —
   description={seoDescription}
   image={post.featuredImage || undefined}
   type="article"
+  noindex={isAdminPreview}
 >
+  {isAdminPreview && (
+    <div class="bg-amber-100 dark:bg-amber-950/60 border-b border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-sm text-center py-2 px-4">
+      Draft preview — only visible to you, signed in as an admin. This post is not live.
+    </div>
+  )}
   <article class="max-w-3xl mx-auto px-4 py-12 md:py-16">
     <!-- Breadcrumb -->
     <nav class="text-sm text-muted-foreground mb-6">

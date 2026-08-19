@@ -525,6 +525,11 @@ function formatDateValue(d: Date | null | undefined) {
     slugManuallyEdited = true;
     markDirty();
     if (seoPreviewUrl) seoPreviewUrl.textContent = '/blog/' + (formSlug.value || 'post-slug') + '/';
+    // Editing the slug without saving left Preview pointed at the old slug —
+    // it would 404 (redirecting to the blog index) rather than open the post,
+    // which looked identical to the "preview does nothing" bug but wasn't it.
+    const previewBtn = document.getElementById('preview-btn');
+    if (previewBtn && formSlug.value) previewBtn.href = `/blog/${formSlug.value}/`;
   });
 
   formExcerpt?.addEventListener('input', markDirty);
@@ -851,19 +856,26 @@ function formatDateValue(d: Date | null | undefined) {
         const newUrl = new URL(window.location.href);
         newUrl.searchParams.set('id', result.id);
         window.history.replaceState({}, '', newUrl.toString());
-        // Add preview button dynamically
-        const previewBtn = document.getElementById('preview-btn');
-        if (!previewBtn && result.slug) {
+      }
+
+      // Create the Preview link on first save, and re-point it at the
+      // server-confirmed slug on every save after — the slug field can be
+      // edited freely between saves, and result.slug is the one the post was
+      // actually stored under.
+      if (result.slug) {
+        let previewBtn = document.getElementById('preview-btn');
+        if (!previewBtn) {
           const saveStatusEl = document.getElementById('save-status');
           const a = document.createElement('a');
           a.id = 'preview-btn';
-          a.href = `/blog/${result.slug}/`;
           a.target = '_blank';
           a.rel = 'noopener noreferrer';
           a.className = 'px-4 py-2 min-h-[48px] border rounded-lg font-medium hover:bg-muted transition flex items-center gap-2 text-sm';
           a.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg> Preview';
           saveStatusEl?.parentElement?.insertBefore(a, saveStatusEl.nextSibling);
+          previewBtn = a;
         }
+        previewBtn.href = `/blog/${result.slug}/`;
       }
     } catch (error) {
       showMessage(error.message || 'Failed to save', 'error');
