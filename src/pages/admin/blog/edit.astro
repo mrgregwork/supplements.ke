@@ -623,7 +623,10 @@ function formatDateValue(d: Date | null | undefined) {
   visualEditor?.addEventListener('keyup', rememberSelection);
   visualEditor?.addEventListener('mouseup', rememberSelection);
 
-  const restoreSelection = () => {
+  // Named distinctly from the link modal's restoreSelection() further down —
+  // declaring both in this scope is a SyntaxError that kills the whole script,
+  // which silently disabled every toolbar button rather than just this one.
+  const restoreColourSelection = () => {
     if (!colourSelection) return;
     const sel = window.getSelection();
     sel.removeAllRanges();
@@ -632,7 +635,7 @@ function formatDateValue(d: Date | null | undefined) {
 
   highlightBtn?.addEventListener('click', () => {
     withEditorSelection(() => {
-      restoreSelection();
+      restoreColourSelection();
       const colour = highlightColor?.value || '#fef08a';
       // hiliteColor is the standard; backColor is the Firefox fallback.
       if (!document.execCommand('hiliteColor', false, colour)) {
@@ -643,7 +646,7 @@ function formatDateValue(d: Date | null | undefined) {
 
   highlightColor?.addEventListener('change', () => {
     withEditorSelection(() => {
-      restoreSelection();
+      restoreColourSelection();
       if (!document.execCommand('hiliteColor', false, highlightColor.value)) {
         document.execCommand('backColor', false, highlightColor.value);
       }
@@ -652,7 +655,7 @@ function formatDateValue(d: Date | null | undefined) {
 
   textColor?.addEventListener('change', () => {
     withEditorSelection(() => {
-      restoreSelection();
+      restoreColourSelection();
       document.execCommand('foreColor', false, textColor.value);
     });
   });
