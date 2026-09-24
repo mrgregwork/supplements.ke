@@ -74,7 +74,46 @@ export const DELETE: APIRoute = async ({ params, request }) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json" } });
     }
 
-    await storage.deleteCategory(params.id!);
+    const id = params.id!;
+    const category = await storage.getCategory(id);
+    if (!category) {
+      return new Response(JSON.stringify({ error: "Category not found" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+
+    // subcategories.categoryId and products.categoryId/subcategoryId are plain
+    // FK references with no cascade, so this used to either fail with a
+    // generic 500 at the database level or (worse) leave orphaned rows. A
+    // product with both categoryId and subcategoryId set is returned by both
+    // queries below -- dedupe by id rather than summing list lengths, or it
+    // gets counted twice.
+    const categorySubcategories = await storage.getSubcategoriesByCategoryId(id);
+    const directProducts = await storage.getProductsByCategory(id);
+    const subcategoryProductLists = await Promise.all(
+      categorySubcategories.map(sub => storage.getProductsBySubcategory(sub.id))
+    );
+    const uniqueProductIds = new Set([
+      ...directProducts.map(p => p.id),
+      ...subcategoryProductLists.flat().map(p => p.id),
+    ]);
+    const totalProductCount = uniqueProductIds.size;
+
+    if (totalProductCount > 0) {
+      return new Response(JSON.stringify({
+        error: `This category still has ${totalProductCount} product${totalProductCount === 1 ? '' : 's'} (directly or in its ${categorySubcategories.length} subcategor${categorySubcategories.length === 1 ? 'y' : 'ies'}) -- move or delete them first.`,
+      }), {
+        status: 409,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+
+    for (const sub of categorySubcategories) {
+      await storage.deleteSubcategory(sub.id);
+    }
+    await storage.deleteCategory(id);
+
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
       headers: { "Content-Type": "application/json" }

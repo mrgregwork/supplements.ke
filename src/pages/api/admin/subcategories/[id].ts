@@ -74,7 +74,26 @@ export const DELETE: APIRoute = async ({ params, request }) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json" } });
     }
 
-    await storage.deleteSubcategory(params.id!);
+    const id = params.id!;
+    const subcategory = await storage.getSubcategory(id);
+    if (!subcategory) {
+      return new Response(JSON.stringify({ error: "Subcategory not found" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+
+    const products = await storage.getProductsBySubcategory(id);
+    if (products.length > 0) {
+      return new Response(JSON.stringify({
+        error: `This subcategory still has ${products.length} product${products.length === 1 ? '' : 's'} -- move or delete them first.`,
+      }), {
+        status: 409,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+
+    await storage.deleteSubcategory(id);
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
       headers: { "Content-Type": "application/json" }
