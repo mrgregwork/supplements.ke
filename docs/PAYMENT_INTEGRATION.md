@@ -189,11 +189,10 @@ derivable from anything in this repo.
   live credentials with explicit owner confirmation and proven with two
   real small-value charges — see "Live verification" below. See
   `docs/ROADMAP.md` for current status.
-- **Reconciliation cron (`scripts/reconcile-epayments.ts`) exists as a
-  script only** — not yet provisioned as actual Railway infrastructure (a
-  scheduled Cron Job service). See cosmetics.ke's own `.railway/railway.ts`
-  and `docs/PAYMENT_INTEGRATION.md` §7 for the pattern to follow; this is
-  planned follow-up work, not blocking the core checkout flow.
+- **Reconciliation cron is real infrastructure, not just a script**, as of
+  30/09/2026 — `supplements-reconcile-epayments`, defined in
+  `.railway/railway.ts`, `*/5 * * * *`, same pattern as cosmetics.ke's own.
+  Confirmed running correctly via its own log output.
 
 ---
 
@@ -262,5 +261,37 @@ Full detail and the debugging trail: cosmetics.ke's own
   against tsx's JS entry point** (`node node_modules/tsx/dist/cli.mjs
   scripts/reconcile-epayments.ts`), not `npm run` or `npx tsx` — both fail
   with "Permission denied" on `node_modules/.bin/tsx` in this container
-  image. Relevant once the reconciliation cron (§5) is provisioned as real
-  infrastructure.
+  image. Already applied here — the reconciliation cron
+  (`supplements-reconcile-epayments`, `.railway/railway.ts`, `*/5 * * * *`)
+  is real Railway infrastructure, not just a script, and confirmed running
+  correctly via its own log output (`reconcile-epayments: 0 stuck pending
+  order(s) found`).
+
+### A repeat guest checkout crashed with a 500 — unique constraint on `customers.email`/`customers.phone`
+
+**Found live 30/09/2026** while re-verifying the live-credentials test:
+`customers.email` and `customers.phone` both carry a `UNIQUE` constraint
+(`phone` is also used to look a customer up at OTP login — see
+`src/lib/auth.ts`). The guest-checkout path in `checkout/init.ts`
+unconditionally ran `db.insert(customers).values({ email, phone })` with no
+handling for either field already belonging to an existing customer row.
+The second live M-Pesa test (same phone number as the first, different
+email) hit a raw Postgres `23505 duplicate key value violates unique
+constraint` error, which the outer `catch` turned into a bare 500 "Failed
+to start checkout." **Any real returning guest customer's second checkout
+attempt — same email, or the same phone typed under a different email —
+would have failed the same way.**
+
+The fix does **not** look up and reuse an existing customer by email/phone
+— that would reintroduce exactly the kind of silent authentication-by-
+contact-info the guest-checkout design in §2.1 deliberately avoids. Instead,
+on a `23505` collision, `insertGuestCustomer()` drops whichever field
+collided and retries the insert without it — the real email/phone the
+customer typed is still recorded correctly on the `orders`/`pending_orders`
+row regardless of what this particular guest `customers` row ends up
+carrying. `NULL` is never itself a unique-constraint collision, so the
+retry loop always terminates within two extra attempts.
+
+This same latent bug was found to exist, unfixed, in cosmetics.ke's
+identical code (live since 29/09/2026) — ported the same fix there too,
+see its own `docs/PAYMENT_INTEGRATION.md` §6.6.
