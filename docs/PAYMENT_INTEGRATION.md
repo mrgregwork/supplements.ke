@@ -68,7 +68,8 @@ existing routes in `CLAUDE.md`.
    checkout always creates a fresh `customers` row.
 3. Inserts a `pending_orders` row holding a snapshot of the cart items (so
    finalize never needs to re-read a cart that may already be cleared),
-   the shipping address, and the chosen `paymentMethod`.
+   the shipping address, the chosen `paymentMethod`, and a freshly
+   generated `orderCode` (see the standing convention below).
 4. Calls `initiateMpesaStkPush()` or `initiatePaystackCharge()` in
    `src/lib/epayments.ts`, with the callback/redirect URL built from
    `RAILWAY_PUBLIC_DOMAIN` — never from `request.url`, which on Railway is
@@ -78,6 +79,19 @@ existing routes in `CLAUDE.md`.
    `/checkout/return?pendingOrderId=...`, since the customer returns via a
    full page navigation (Paystack's hosted checkout page) that loses any
    React state the checkout page had.
+
+**Standing convention, confirmed 30/09/2026: the gateway's account
+reference must always be the eventual order number, never the raw
+`pending_orders.id` UUID.** `src/lib/orderCode.ts`'s `generateOrderCode()`
+is called at step 3, before the gateway call, specifically so it exists in
+time to be sent as `accountReference` — and `checkoutFinalize.ts` then
+reuses that exact same value as the real order's `orderNumber`. This is
+not optional or cosmetic: whatever value gets sent as the M-Pesa reference
+is literally what a real customer sees in their own confirmation SMS, and
+a raw UUID there reads as broken to a paying customer (see §6 for the
+incident this was fixed after). Any future payment gateway integration on
+this codebase must follow the same rule — generate the order-facing code
+before the gateway call, not after.
 
 ### 2.2 The E-Payments client (`src/lib/epayments.ts`)
 
