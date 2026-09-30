@@ -152,8 +152,9 @@ git push origin master
 ```
 
 Railway is connected and auto-deploys `master` on every push — no separate
-`railway up` step, and pushes are pre-approved (see `CLAUDE.md` → "How to
-deploy"). Build + rollout takes roughly 2–3 minutes.
+`railway up` step, but a push is never run without the user's explicit
+go-ahead for that specific change, given at the time (see `CLAUDE.md` →
+"How to deploy"). Build + rollout takes roughly 2–3 minutes once pushed.
 
 **A successful push is not proof production is healthy.** After pushing,
 confirm the rollout actually landed and the changed behaviour is really
@@ -194,7 +195,7 @@ a feature end-to-end:
 | Change the DB schema                       | Hand-written additive SQL — never blind `npm run db:push` |
 | Upload an admin image                      | `POST /api/upload`, multipart, admin-session gated |
 | Apply/fix product descriptions             | `scripts/apply-product-descriptions.cjs` / `scripts/fix-description-style.cjs` |
-| Ship a change                               | `git push origin master` (pre-approved, Railway auto-deploys) |
+| Ship a change                               | `git push origin master` (needs explicit go-ahead first, then Railway auto-deploys) |
 | Confirm a deploy actually landed           | Check `https://supplements.ke` directly, or the Railway dashboard's Deployments tab |
 
 See `CLAUDE.md` for the full safety rules and architecture behind each of

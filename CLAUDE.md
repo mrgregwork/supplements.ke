@@ -38,10 +38,9 @@ E-commerce supplements store at **supplements.ke**. Sells health supplements onl
 
 ## How to deploy
 
-Just `git push origin master` — Railway auto-deploys. Takes ~2-3 minutes.
-**No need to ask user approval before pushing** — this has been standing guidance since the project started.
+`git push origin master` triggers a Railway auto-deploy, live in ~2-3 minutes — which is exactly why commit and push are their own gate, not a formality once the code is written.
 
-That standing approval covers shipping a change once it's built and verified, not skipping planning for a genuinely architectural change (schema, auth, deployment strategy) — see "Implementation Planning" below.
+**Ship through once authorised — but commit, push, and deploy are their own gate.** After the user approves a task's implementation, carry it through writing the code and verifying it (type checks, affected UI behaviour, database impact) without stopping at each of those steps for permission. `git commit` and `git push` are different: never run either without the user's explicit go-ahead for that specific change, given in plain language at the time (e.g. "commit and push this" / "ship it"). Approving a task's implementation, or answering a clarifying question about it, is not by itself consent to commit or push — ask separately, even for a small or obviously-correct fix. See "Implementation Planning" below for the separate, additional gate on genuinely architectural changes (schema, auth, deployment strategy).
 
 ## Database — important rules
 
@@ -89,13 +88,19 @@ field: file
 
 Handled by `src/pages/api/upload.ts` — validates MIME type and a 5MB size cap, admin-session-gated outside dev, then writes to disk via `getUploadDir()` in `src/lib/uploadStorage.ts` and serves it back through `src/pages/uploads/[...path].ts`.
 
+## Payments
+
+Checkout and cash-on-delivery (`src/pages/api/checkout.ts`, `src/pages/api/cod-order.ts`) currently just create order records — **no payment gateway is wired in yet.** Real payment integration (M-Pesa + card via E-Payments, the same provider cosmetics.ke uses) is planned work, not yet built here.
+
+**Critical, non-negotiable rule once that integration exists: never implement or run changes to the payments codebase directly.** `epayments.co.ke` already serves other live merchants processing real money — a mistake there has blast radius far beyond this one store. Any payment-related change (the E-Payments integration itself, webhook handling, checkout/order finalisation logic tied to a real charge, the reconciliation cron) must be **suggested only** — describe the change and why it's needed, then stop. The user implements or adjusts it themselves, separately. This sits on top of the normal per-change commit/push approval rule — see Safety Rules below.
+
 **Open, unverified risk:** `getUploadDir()` writes to `RAILWAY_VOLUME_MOUNT_PATH` if that env var is set, otherwise falls back to `data/uploads` on the container's local filesystem — which is wiped on every Railway redeploy. As of this writing it is **not confirmed whether a Railway Volume is attached to this service.** Until that's checked in the Railway dashboard, assume uploaded blog/category images may not survive the next deploy. See `docs/ROADMAP.md` for this as a tracked open question — verify before relying on any admin-uploaded image for anything that matters long-term, and don't build new features on top of this path assuming persistence without checking first.
 
 This is a different mechanism from cosmetics.ke's Postgres-bytea media storage (`src/lib/mediaStorage.ts` there) — don't assume the two are interchangeable or that a fix in one applies to the other.
 
 ## Content and collaboration preferences
 
-- Pre-approves all pushes to GitHub — never ask for approval before pushing
+- Commit, push, and deploy each need the user's explicit go-ahead for that specific change, given in plain language at the time — never assume approval to implement also covers shipping it
 - British English in all content (organise, colour, recognise)
 - No em-dashes anywhere in descriptions
 - Max 2 sentences per short product description
@@ -243,7 +248,7 @@ Before implementing, present:
 10. Trade-offs.
 11. Alternative approaches where applicable.
 
-If the implementation changes architecture, business logic, authentication, authorization, database structure, APIs, or deployment strategy, explain the impact before proceeding — and wait for explicit approval before a major architectural change, even though day-to-day pushes to `master` are separately pre-approved (see "How to deploy" above; that standing approval covers shipping a change once it's built and verified, not skipping the planning step for a significant one).
+If the implementation changes architecture, business logic, authentication, authorization, database structure, APIs, or deployment strategy, explain the impact before proceeding — and wait for explicit approval before a major architectural change. This is a separate gate from the per-change commit/push approval in "How to deploy" above: even a small, non-architectural fix still needs its own explicit go-ahead before it's committed or pushed, once implementation itself has been approved.
 
 ### How to Communicate Next Steps
 
@@ -333,7 +338,7 @@ Before considering work complete, review:
 - Deployment risks
 - Production readiness
 
-Railway auto-deploys `master` on every push — there is no separate manual deploy step to remember, but that also means there is no staging gate between "pushed" and "live": verify before pushing, not after. Rollback here means a `git revert` (or fixing forward) followed by another push, not a manual redeploy command.
+Railway auto-deploys `master` on every push — there is no separate manual deploy step to remember, but that also means there is no staging gate between "pushed" and "live": verify before pushing, not after, and don't push without the user's explicit go-ahead for that specific change (see "How to deploy" above). Rollback here means a `git revert` (or fixing forward) followed by another push, not a manual redeploy command — and that revert push needs its own go-ahead too.
 
 Always think beyond local development.
 
@@ -560,6 +565,12 @@ They apply even when a task appears small or harmless.
 - All admin image uploads currently go through `POST /api/upload` as `multipart/form-data` (see "Admin uploads" above) — this is the existing, working pattern; don't switch it to JSON/base64 without a reason, that's a different project's (cosmetics.ke's) convention, not this one's.
 - **Do not assume an uploaded image persists across a Railway redeploy.** Whether this service has a Railway Volume attached is currently unverified — treat this as an open risk (tracked in `docs/ROADMAP.md`) rather than a solved problem, and say so explicitly if a task depends on upload persistence.
 
+## Payments
+
+- **NEVER implement, edit, or run code changes to the payments integration once it exists** (E-Payments/M-Pesa/card handling, webhook processing, the reconciliation cron, or checkout/order logic tied to a real charge). `epayments.co.ke` has live merchants already taking real payments through it — this is not the same risk profile as the rest of this codebase.
+- Instead: explain the needed change, why it's needed, the files it would touch, and the risk — then stop and let the user implement or adjust it themselves, separately.
+- This overrides the standing "pushes to GitHub are pre-approved" rule above for anything payments-related. Suggest-only, no exceptions, regardless of how small the change looks.
+
 ## Data integrity and admin operations
 
 - Treat API endpoints that replace complete JSON settings/sections as replacement operations, not patches.
@@ -591,9 +602,9 @@ They apply even when a task appears small or harmless.
 
 ## Git, deployment, and production verification
 
-- GitHub pushes are pre-approved for this project, so do not stop to ask for permission before pushing.
-- Still verify the change before pushing: type checks as applicable, affected UI behaviour, database impact, and unintended file changes.
-- Railway automatically deploys the `master` branch. Do not invent a separate manual deployment command for the normal flow.
+- **`git commit`, `git push`, and deploy each need the user's explicit go-ahead for that specific change, given in plain language at the time** (e.g. "commit and push this" / "deploy this now"). Approving a task's implementation, or answering a clarifying question about it, is not by itself consent to commit, push, or deploy — ask separately, even for a small or obviously-correct fix.
+- Verify the change before asking to push: type checks as applicable, affected UI behaviour, database impact, and unintended file changes.
+- Railway automatically deploys the `master` branch on push — so the go-ahead to push is also the go-ahead to deploy; there is no separate manual deployment command for the normal flow.
 - A successful `git push` is **not** proof that production is healthy. After deployment, verify that Railway completed the rollout and that the changed behaviour is actually present on `https://supplements.ke`.
 - Never claim a deployment or fix is verified when it has only been committed or pushed.
 - Do not force-push, rewrite published history, or overwrite unrelated work.
@@ -624,7 +635,7 @@ They apply even when a task appears small or harmless.
 - NEVER implement speculative features not asked for "while in the area."
 - NEVER bypass the Engineering Workflow above for a change that touches architecture, database structure, authentication, or deployment strategy.
 - ALWAYS explain significant implementation decisions in plain language, per "How to Communicate Next Steps" above — this user is non-technical.
-- ALWAYS request approval before an irreversible or architectural change, even though day-to-day pushes are separately pre-approved.
+- ALWAYS request approval before an irreversible or architectural change, and ALWAYS request separate, explicit approval before every `git commit`/`git push` (which also triggers deploy) — approval to implement is not approval to ship.
 - ALWAYS prioritise correctness, security, maintainability, and template-reusability over implementation speed.
 
 <!-- END:safety-rules -->
