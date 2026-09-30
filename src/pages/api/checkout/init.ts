@@ -53,6 +53,41 @@ function getPublicOrigin(): string {
   return domain ? `https://${domain}` : siteSettings.siteUrl;
 }
 
+/**
+ * customers.email and customers.phone both carry a unique DB constraint
+ * (phone is also used to look a customer up at OTP login), but guest
+ * checkout must always create a fresh row rather than being silently
+ * matched against an existing customer by either field (see the note at
+ * the call site). A collision here just means this contact info already
+ * belongs to another customer record -- drop whichever field collided and
+ * retry, rather than failing the whole checkout. The order itself still
+ * carries the real email/phone regardless of what this guest row ends up
+ * with; NULL is never itself a unique-constraint collision, so this always
+ * terminates.
+ */
+async function insertGuestCustomer(email: string, phone: string | null) {
+  let attemptEmail: string | null = email;
+  let attemptPhone: string | null = phone;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const [guest] = await db.insert(customers).values({ email: attemptEmail, phone: attemptPhone }).returning();
+      return guest;
+    } catch (err: any) {
+      if (err?.code !== "23505") throw err;
+      if (err.constraint === "customers_email_key" && attemptEmail !== null) {
+        attemptEmail = null;
+        continue;
+      }
+      if (err.constraint === "customers_phone_key" && attemptPhone !== null) {
+        attemptPhone = null;
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error("Could not create guest customer record");
+}
+
 export const POST: APIRoute = async ({ request }) => {
   try {
     const body = await request.json();
@@ -98,7 +133,7 @@ export const POST: APIRoute = async ({ request }) => {
     // customer row.
     let resolvedCustomerId: string | null = customerId ?? null;
     if (!resolvedCustomerId) {
-      const [guest] = await db.insert(customers).values({ email, phone: normalizedPhone ?? phone ?? null }).returning();
+      const guest = await insertGuestCustomer(email, normalizedPhone ?? phone ?? null);
       resolvedCustomerId = guest.id;
     }
 
