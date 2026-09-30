@@ -4,14 +4,16 @@
 
 **For repeatable local development, database, testing, content, and deployment procedures, read [`docs/RUNBOOK.md`](docs/RUNBOOK.md).** This file contains the standing rules and safety constraints; the runbook contains the step-by-step operational procedures. Current status and open items live in [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
-E-commerce supplements store at **supplements.ke**. Sells health supplements only (no cosmetics/skincare). Built with Astro SSR + Node.js + Neon PostgreSQL + Railway hosting — same stack as its sibling project, cosmetics.ke, which was scaffolded from this codebase.
+E-commerce supplements store at **supplements.ke**. Sells health supplements only (no cosmetics/skincare). Built with Astro SSR + Node.js + Railway Postgres + Railway hosting — same stack as its sibling project, cosmetics.ke, which was scaffolded from this codebase.
+
+**Migrated from Neon to Railway Postgres on 30/09/2026**, to mirror how cosmetics.ke is deployed (one Railway project holding both the app and its own Postgres service, rather than an external database provider). All 19 tables were copied and row-count-verified before cutover, and the live cutover itself was verified with a temporary test row before being removed. Nothing else about the schema or application code changed. The old Neon project has not been deleted — it's being kept untouched for a period as a safety net, not as the source of truth. If anything below still says "Neon," treat it as stale and fix it — see "Database — important rules" below for the current setup.
 
 **This codebase was originally built as a distributable template** (the old `replit.md` describes it as "a production-ready, SEO-optimised e-commerce template... designed for distribution and deployment across numerous websites in various niches"), and cosmetics.ke was in fact cloned from it. That template ambition is still live — see "Template principles" below before changing anything that isn't supplements-specific, and note the "Template principles vs. current state" gap called out there: this file hasn't been holding up that side of the bargain as strictly as cosmetics.ke's has.
 
 ## Stack
 
 - **Frontend/SSR**: Astro 5 (`output: 'server'`, `@astrojs/node` standalone adapter)
-- **Database**: Neon PostgreSQL (project: `weathered-base-05591763`, org: `org-snowy-shadow-41735691`) — connection string belongs in Railway env vars / local `.env` as `DATABASE_URL`, never in this file or any committed doc
+- **Database**: Railway Postgres — a database service named `Postgres` inside the same `supplements.ke` Railway project as the app itself (not an external provider). Connection string is in Railway's env vars / local `.env` as `DATABASE_URL`, not documented here (don't re-add a plaintext credential to this file)
 - **Hosting**: Railway (auto-deploys from GitHub `master` on every push)
 - **GitHub**: `mrgregwork/supplements.ke` (branch: `master`)
 - **Domain**: supplements.ke (DNS via Cloudflare → Railway CNAME)
@@ -44,10 +46,11 @@ E-commerce supplements store at **supplements.ke**. Sells health supplements onl
 
 ## Database — important rules
 
-- Neon project ID: `weathered-base-05591763`
-- Neon free tier: auto-suspends when idle, wakes on first connection (expect 1-2s cold start)
-- Use `mcp__Neon__run_sql` with projectId `weathered-base-05591763` for direct DB queries
-- There is **one** Neon project documented for this store — no separate staging/dev database exists. Once `DATABASE_URL` is set locally, treat any local run as touching the same live data production uses.
+- Database service `Postgres`, inside the same Railway project (`supplements.ke`) as the app — not an external provider, no separate project ID to track.
+- The database has no public host — local access needs an SSH tunnel opened fresh every session (`railway connect Postgres --tunnel-only`), not a background service. See `docs/RUNBOOK.md`.
+- There is **one** database for this store — no separate staging/dev database exists. Once `DATABASE_URL` is set locally, treat any local run as touching the same live data production uses.
+- There is no Neon MCP tool for this database (that only applied before the 30/09/2026 migration) — a throwaway `node -e` script through the tunnel is the supported path for a direct query now. See `docs/RUNBOOK.md`.
+- **Setting a Railway variable does not reliably trigger a redeploy on its own** — confirmed during this migration and cosmetics.ke's own. After changing an env var on the live service, verify a fresh deploy actually happened (`railway logs`, look for a recent "Starting Container" line) rather than assuming the variable took effect.
 - **Never run `npm run db:push` (`drizzle-kit push`) against this database without first checking what it would actually change.** The sibling project (cosmetics.ke) hit exactly this: a full schema diff proposed destructive changes because the live database had objects `shared/schema.ts` didn't declare. For a schema change here, write a narrow, reviewed `ALTER TABLE ... ADD COLUMN` (or equivalent) by hand instead of a blind full push.
 - Products table has: `slug`, `name`, `brand`, `description` (short), `long_description` (HTML), `seo_title`, `seo_description`, `category_id`, `subcategory_id`, `category_slug`, `subcategory_slug`, `price`, `images` (jsonb), `attributes` (jsonb), `featured`
 - Other tables of note: `blog_categories`, `blog_posts`, `content_pages`, `navigation_items`, `homepage_content`, `site_settings`, `admin_users`/`admin_sessions`, `customers`/`sessions`/`otp_codes`, `orders`/`order_items`/`cart_items`, `attribute_definitions`
@@ -536,7 +539,7 @@ They apply even when a task appears small or harmless.
 
 ## Production database
 
-- **NEVER drop, truncate, wipe, or reset the production Neon database.**
+- **NEVER drop, truncate, wipe, or reset the production Railway Postgres database.**
 - **NEVER run destructive SQL** such as `DROP TABLE`, `TRUNCATE`, or broad `DELETE` against the live database.
 - **NEVER run `drizzle-kit push` / `npm run db:push` manually against this database without first reviewing exactly what it would change.** The sibling project (cosmetics.ke) confirmed a full schema diff can propose unrelated destructive changes when the live database contains objects not represented in `shared/schema.ts` — assume the same risk exists here until proven otherwise.
 - When `shared/schema.ts` needs to change, use a narrowly scoped, reviewed SQL change that does only what the task requires. Do not turn an additive schema change into a destructive reconciliation of the whole database.

@@ -18,7 +18,9 @@ entry that turns out to be stale.
 
 Live e-commerce supplements store at supplements.ke, and originally
 scaffolded as a distributable niche template — cosmetics.ke was cloned from
-this codebase. Astro 5 SSR + Node + Neon Postgres + Railway.
+this codebase. Astro 5 SSR + Node + Railway Postgres + Railway, same
+database setup as cosmetics.ke ("Template principles"). Migrated from Neon
+to Railway Postgres 30/09/2026 — see `CLAUDE.md` and §2 below.
 
 ---
 
@@ -63,6 +65,12 @@ this codebase. Astro 5 SSR + Node + Neon Postgres + Railway.
   cosmetics.ke's guard: counts direct + subcategory products (deduped by
   id), returns `409` with the count if any exist, cascades subcategory
   deletion only once confirmed empty.
+- **Database moved from Neon to Railway Postgres, 30/09/2026** — done, to
+  match how cosmetics.ke is deployed. All 19 tables copied and
+  row-count-verified before cutover; the live cutover itself was verified
+  with a temporary test row (created directly in the new database, checked
+  live on `https://supplements.ke`, then deleted). Old Neon project kept
+  untouched for now as a fallback, not wired up as a fallback in code.
 
 ---
 
@@ -94,25 +102,30 @@ this codebase. Astro 5 SSR + Node + Neon Postgres + Railway.
   is confirmed stable.
 - **Category/subcategory filter UI:** nofollow/noindex on filtered URLs —
   old pending task, not re-verified this pass.
-- **Performance:** Lighthouse was last measured at 53/100. Main suspects:
-  Neon cold start (~700ms server response) and JavaScript bundle size.
+- **Performance:** Lighthouse was last measured at 53/100 (before the
+  Railway Postgres migration — the ~700ms server response then was
+  attributed to Neon's serverless cold start). Not yet re-measured against
+  Railway Postgres, which doesn't auto-suspend the same way; JavaScript
+  bundle size is the other known suspect either way.
 - **`scripts/` directory is cluttered** with one-off legacy scripts (several
   prefixed `_`) from the original description/cleanup passes. Worth a
   tidy-up pass eventually; not urgent. See `RUNBOOK.md` §4.
 - **Local `.env` is currently empty** — `DATABASE_URL` (and anything else
   `server/db.ts` needs) isn't set locally as of this writing, so `npm run
-  dev` can't reach the database until that's configured. See `RUNBOOK.md`
-  §1.
+  dev` can't reach the database until an SSH tunnel is opened and its URL
+  copied in. See `RUNBOOK.md` §1.
 
 ---
 
 ## 4. Environment variables — current status
 
 Local `.env` at the repo root is present but empty (0 bytes) as of this
-pass — needs `DATABASE_URL` populated from Railway's env vars before local
-dev can run against the database. Not independently re-verified against
-Railway's actual env var store for what else may be configured there
-(e.g. `LICENSE_SERVER_URL`, email/OTP provider keys).
+pass — needs `DATABASE_URL` populated from an SSH tunnel to the Railway
+Postgres service (see `RUNBOOK.md` §1) before local dev can run against the
+database; the database has no public host to copy a static connection
+string from anymore. Not independently re-verified against Railway's actual
+env var store for what else may be configured there (e.g.
+`LICENSE_SERVER_URL`, email/OTP provider keys).
 
 ---
 

@@ -11,18 +11,40 @@ constraints).
 
 ## 1. Local dev — running the server
 
-There is **no separate staging/dev database** documented for this project —
-local dev and production are expected to point at the same Neon Postgres
-instance (project `weathered-base-05591763`). Treat every local run as
-touching real, live data once `DATABASE_URL` is set.
+There is **no separate staging/dev database** — local dev and production
+point at the same Railway Postgres instance (service `Postgres`, inside the
+`supplements.ke` Railway project, alongside the app itself). The database has
+no public host, so local access needs an SSH tunnel opened fresh **every
+session** — it is not a background service, and its port changes every time
+it's started (the password stays the same, tied to the database itself).
 
-**Step 1 — Set `.env` with `DATABASE_URL`.** As of this writing the local
-`.env` at the repo root is empty — it needs a real `DATABASE_URL` (and
-whatever else `server/db.ts` expects) before `npm run dev` can reach the
-database. Get the connection string from Railway's env vars for this
-service; never paste it into a committed file.
+**Step 1 — Open the tunnel** (leave this running in its own terminal for the
+whole session):
 
-**Step 2 — Start the server:**
+```bash
+railway connect Postgres --tunnel-only
+```
+
+This prints something like:
+
+```
+PostgreSQL tunnel open — point an external client at:
+
+  Host:     127.0.0.1
+  Port:     <changes every time>
+  User:     postgres
+  Password: ...
+  Database: railway
+
+  URL:      postgresql://postgres:...@127.0.0.1:<port>/railway
+```
+
+**Step 2 — Update the root `.env`.** Copy the `URL:` line above into
+`DATABASE_URL` in `D:\Projects\supplements.ke\.env`. The port changes every
+time you open the tunnel — the old value will `ECONNREFUSED`/`ECONNRESET`
+once the previous tunnel session is gone.
+
+**Step 3 — Start the server:**
 
 ```bash
 npm run dev
@@ -35,7 +57,7 @@ locally, but don't treat that as proof an auth-gated change works in
 production. Test the real login flow before shipping anything that touches
 `/admin` auth.
 
-**Step 3 — Typecheck before considering a change done:**
+**Step 4 — Typecheck before considering a change done:**
 
 ```bash
 npm run check
@@ -55,10 +77,9 @@ npm run test:watch  # vitest, watch mode
 
 ## 2. Database access — direct queries
 
-- **`mcp__Neon__run_sql`** with `projectId: weathered-base-05591763` — the
-  preferred path for a one-off read or a small, reviewed write.
-- **A throwaway Node script**, run from the repo root so `node_modules`
-  resolves, then deleted after:
+Since dev and prod share one database, any direct query is production-data
+work. With the tunnel from §1 open, run a throwaway Node script from the
+repo root so `node_modules` resolves, then delete it after:
 
   ```bash
   node -e "
@@ -73,6 +94,10 @@ npm run test:watch  # vitest, watch mode
   "
   ```
 
+There is no Neon MCP tool for this database (that only applied before the
+30/09/2026 migration to Railway Postgres — see `CLAUDE.md`) — the throwaway
+script above is the only supported path for a direct query now.
+
 **Don't run `npm run db:push` (`drizzle-kit push`) against this database
 without first reviewing the diff it proposes.** See `CLAUDE.md` → Safety
 Rules → Production database for why — the sibling project cosmetics.ke
@@ -80,6 +105,16 @@ confirmed a full schema diff can propose destructive changes against
 objects the live database has that `shared/schema.ts` doesn't declare. For
 a schema change, write the narrow `ALTER TABLE ... ADD COLUMN` (or
 equivalent) by hand instead.
+
+**Changing `DATABASE_URL` (or another env var) on the live service may or may
+not trigger a fresh deploy on its own** — observed during the 30/09/2026
+Neon-to-Railway migration: `railway variables --set` here was followed a
+moment later by Railway already redeploying on its own (`railway redeploy`
+then failed with "cannot be redeployed... currently building"). Don't assume
+either way — after changing a variable, check `railway logs` for a recent
+"Starting Container" line (a fresh boot) before assuming the new value is
+live, and run `railway redeploy --service <name> --yes` yourself only if one
+hasn't already started.
 
 ---
 
@@ -188,10 +223,10 @@ a feature end-to-end:
 
 | I want to...                              | Command / path |
 |--------------------------------------------|-----------------|
-| Run the site locally                       | `npm run dev` (port 5000; needs `DATABASE_URL` set first) |
+| Run the site locally                       | `railway connect Postgres --tunnel-only` (open a tunnel first), then `npm run dev` (port 5000) |
 | Typecheck                                  | `npm run check` |
 | Run tests                                  | `npm run test` |
-| Query the live database directly           | `mcp__Neon__run_sql` (projectId `weathered-base-05591763`) or a throwaway `node -e` script |
+| Query the live database directly           | Open the tunnel above, then a throwaway `node -e` script |
 | Change the DB schema                       | Hand-written additive SQL — never blind `npm run db:push` |
 | Upload an admin image                      | `POST /api/upload`, multipart, admin-session gated |
 | Apply/fix product descriptions             | `scripts/apply-product-descriptions.cjs` / `scripts/fix-description-style.cjs` |
