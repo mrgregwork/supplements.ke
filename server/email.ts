@@ -44,3 +44,36 @@ export async function sendOtpEmail(to: string, code: string): Promise<void> {
     throw new Error(`Resend email error: ${error.message}`);
   }
 }
+
+export async function sendOrderConfirmationEmail(params: {
+  to: string;
+  orderNumber: string;
+  currency: string;
+  total: number;
+}): Promise<void> {
+  const { error } = await getResend().emails.send({
+    from: FROM_ADDRESS,
+    to: params.to,
+    subject: `Order confirmed - ${params.orderNumber}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #fff;">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <span style="display: inline-block; background: #16a34a; color: #fff; font-weight: bold; font-size: 20px; padding: 8px 18px; border-radius: 8px; letter-spacing: 1px;">SK</span>
+          <h2 style="margin: 16px 0 4px; color: #111;">Supplements Kenya</h2>
+        </div>
+        <p style="color: #444; font-size: 15px;">Thanks for your order! Your payment has been confirmed.</p>
+        <div style="text-align: center; margin: 24px 0;">
+          <span style="display: inline-block; font-size: 20px; font-weight: bold; font-family: monospace; color: #16a34a; background: #f0fdf4; padding: 12px 20px; border-radius: 10px; border: 2px solid #bbf7d0;">${params.orderNumber}</span>
+        </div>
+        <p style="color: #444; font-size: 15px; text-align: center;">Total: <strong>${params.currency} ${params.total.toLocaleString()}</strong></p>
+        <hr style="border: none; border-top: 1px solid #eee; margin: 28px 0;">
+        <p style="color: #999; font-size: 12px; text-align: center;">Questions about your order? Reply to this email or reach us on WhatsApp.</p>
+      </div>
+    `,
+    text: `Thanks for your order! Your payment has been confirmed.\n\nOrder number: ${params.orderNumber}\nTotal: ${params.currency} ${params.total.toLocaleString()}`,
+  });
+
+  if (error) {
+    throw new Error(`Resend email error: ${error.message}`);
+  }
+}

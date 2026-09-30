@@ -335,12 +335,12 @@ export const orders = pgTable("orders", {
   customerId: varchar("customer_id").references(() => customers.id),
   email: text("email").notNull(),
   phone: text("phone"),
-  status: text("status").notNull().default("pending"), // pending, confirmed, processing, shipped, delivered, cancelled
+  status: text("status").notNull().default("pending"), // pending, confirmed, processing, shipped, delivered, cancelled -- fulfilment only, separate from paymentStatus below
   subtotal: real("subtotal").notNull(),
   tax: real("tax").default(0).notNull(),
   shipping: real("shipping").default(0).notNull(),
   total: real("total").notNull(),
-  currency: text("currency").default("USD").notNull(),
+  currency: text("currency").default("KES").notNull(),
   shippingAddress: jsonb("shipping_address").$type<{
     firstName: string;
     lastName: string;
@@ -352,6 +352,13 @@ export const orders = pgTable("orders", {
     country: string;
   }>(),
   notes: text("notes"),
+  // Added with the E-Payments (M-Pesa/Paystack) checkout integration --
+  // see shared/checkoutFinalize.ts and docs/PAYMENT_INTEGRATION.md.
+  paymentMethod: text("payment_method"), // 'mpesa' | 'card' | 'cod'
+  paymentStatus: text("payment_status").notNull().default("awaiting_payment"), // awaiting_payment | paid | failed
+  gatewayTransactionId: text("gateway_transaction_id"),
+  mpesaReceiptNumber: text("mpesa_receipt_number"),
+  cardReference: text("card_reference"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -364,6 +371,54 @@ export const insertOrderSchema = createInsertSchema(orders).omit({
 
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
 export type Order = typeof orders.$inferSelect;
+
+// ============================================
+// PENDING ORDERS (checkout staging, before a gateway payment confirms)
+// ============================================
+export const pendingOrders = pgTable("pending_orders", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  customerId: varchar("customer_id").references(() => customers.id),
+  email: text("email").notNull(),
+  phone: text("phone"),
+  shippingAddress: jsonb("shipping_address").$type<{
+    firstName: string;
+    lastName: string;
+    address1: string;
+    address2?: string;
+    city: string;
+    state?: string;
+    postalCode: string;
+    country: string;
+  }>(),
+  notes: text("notes"),
+  // Snapshot of the cart at checkout time -- finalize never needs to re-read
+  // a cart that may already be cleared.
+  items: jsonb("items").$type<{
+    productId: string;
+    productName: string;
+    productImage: string | null;
+    quantity: number;
+    unitPrice: number;
+    totalPrice: number;
+  }[]>().notNull(),
+  subtotal: real("subtotal").notNull(),
+  tax: real("tax").default(0).notNull(),
+  shipping: real("shipping").default(0).notNull(),
+  total: real("total").notNull(),
+  currency: text("currency").default("KES").notNull(),
+  paymentMethod: text("payment_method").notNull(), // 'mpesa' | 'card'
+  gatewayTransactionId: text("gateway_transaction_id"),
+  mpesaReceiptNumber: text("mpesa_receipt_number"),
+  cardReference: text("card_reference"),
+  status: text("status").notNull().default("pending"), // pending | confirmed | failed
+  gatewayMessage: text("gateway_message"),
+  orderId: varchar("order_id").references(() => orders.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type PendingOrder = typeof pendingOrders.$inferSelect;
+export type InsertPendingOrder = typeof pendingOrders.$inferInsert;
 
 // ============================================
 // ORDER ITEMS

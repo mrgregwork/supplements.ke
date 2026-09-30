@@ -1,0 +1,68 @@
+---
+import BaseLayout from "@layouts/BaseLayout.astro";
+
+const pendingOrderId = Astro.url.searchParams.get("pendingOrderId") || "";
+---
+
+<BaseLayout title="Confirming your payment" description="Confirming your card payment">
+  <main class="container mx-auto px-4 py-16 max-w-md text-center">
+    <div id="return-waiting">
+      <div class="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
+      <h1 class="text-2xl font-bold mb-2">Confirming your payment</h1>
+      <p class="text-muted-foreground">This only takes a moment.</p>
+    </div>
+
+    <div id="return-success" class="hidden">
+      <div class="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+      </div>
+      <h1 class="text-2xl font-bold mb-2">Order Confirmed!</h1>
+      <p class="font-mono text-lg font-semibold mb-6" id="return-order-number"></p>
+      <a href="/" class="block w-full bg-primary text-primary-foreground py-3 px-4 rounded-lg font-medium hover:opacity-90 transition">Continue Shopping</a>
+    </div>
+
+    <div id="return-failed" class="hidden">
+      <h1 class="text-2xl font-bold mb-2">Payment not completed</h1>
+      <p class="text-muted-foreground mb-6" id="return-failed-message">Your card payment wasn't completed. No charge was made.</p>
+      <a href="/checkout" class="block w-full bg-primary text-primary-foreground py-3 px-4 rounded-lg font-medium hover:opacity-90 transition">Try Again</a>
+    </div>
+  </main>
+</BaseLayout>
+
+<script define:vars={{ pendingOrderId }}>
+  async function poll() {
+    if (!pendingOrderId) {
+      document.getElementById("return-waiting")?.classList.add("hidden");
+      document.getElementById("return-failed")?.classList.remove("hidden");
+      return;
+    }
+    for (let attempt = 0; attempt < 20; attempt++) {
+      try {
+        const res = await fetch(`/api/checkout/status/${pendingOrderId}`);
+        const data = await res.json();
+        if (data.status === "confirmed") {
+          document.getElementById("return-waiting")?.classList.add("hidden");
+          const orderNumberEl = document.getElementById("return-order-number");
+          if (orderNumberEl) orderNumberEl.textContent = `Order #${data.orderNumber || ""}`;
+          document.getElementById("return-success")?.classList.remove("hidden");
+          return;
+        }
+        if (data.status === "failed") {
+          document.getElementById("return-waiting")?.classList.add("hidden");
+          const msgEl = document.getElementById("return-failed-message");
+          if (msgEl && data.gatewayMessage) msgEl.textContent = data.gatewayMessage;
+          document.getElementById("return-failed")?.classList.remove("hidden");
+          return;
+        }
+      } catch {
+        // transient hiccup -- keep polling
+      }
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+    document.getElementById("return-waiting")?.classList.add("hidden");
+    document.getElementById("return-failed")?.classList.remove("hidden");
+  }
+  poll();
+</script>

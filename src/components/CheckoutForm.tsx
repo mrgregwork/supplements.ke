@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatPrice } from "@lib/currency";
 
 interface CartItem {
   id: string;
@@ -19,7 +20,8 @@ interface CheckoutFormProps {
   customerId?: string | null;
 }
 
-type Step = "contact" | "shipping" | "payment" | "confirmation";
+type Step = "contact" | "shipping" | "payment" | "waiting" | "confirmation";
+type PaymentMethod = "mpesa" | "card";
 
 export default function CheckoutForm({ 
   cartItems, 
@@ -32,6 +34,9 @@ export default function CheckoutForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [orderNumber, setOrderNumber] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("mpesa");
+  const [pendingOrderId, setPendingOrderId] = useState("");
+  const [waitingMessage, setWaitingMessage] = useState("");
   
   const [formData, setFormData] = useState({
     email: customerEmail,
@@ -96,12 +101,41 @@ export default function CheckoutForm({
     }
   };
 
+  const pollPaymentStatus = async (id: string) => {
+    for (let attempt = 0; attempt < 40; attempt++) {
+      try {
+        const res = await fetch(`/api/checkout/status/${id}`);
+        const data = await res.json();
+        if (data.status === "confirmed") {
+          setOrderNumber(data.orderNumber || "");
+          setStep("confirmation");
+          return;
+        }
+        if (data.status === "failed") {
+          setError(data.gatewayMessage || "Payment was not completed. Please try again.");
+          setStep("payment");
+          return;
+        }
+      } catch {
+        // transient hiccup -- keep polling
+      }
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+    }
+    setError("We couldn't confirm your payment yet. Check your M-Pesa messages, or contact us with your order details.");
+    setStep("payment");
+  };
+
   const handlePlaceOrder = async () => {
+    if (paymentMethod === "mpesa" && !formData.phone) {
+      setError("Enter the M-Pesa phone number to receive the payment prompt");
+      return;
+    }
+
     setLoading(true);
     setError("");
-    
+
     try {
-      const response = await fetch("/api/checkout", {
+      const response = await fetch("/api/checkout/init", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -119,23 +153,42 @@ export default function CheckoutForm({
           },
           notes: formData.notes,
           customerId,
+          paymentMethod,
         }),
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.error || "Failed to place order");
       }
-      
-      setOrderNumber(data.orderNumber);
-      setStep("confirmation");
+
+      if (data.provider === "card" && data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+        return;
+      }
+
+      // M-Pesa: an STK push has been sent to the customer's phone.
+      setPendingOrderId(data.pendingOrderId);
+      setWaitingMessage("Enter your M-Pesa PIN on your phone to complete payment.");
+      setStep("waiting");
+      pollPaymentStatus(data.pendingOrderId);
     } catch (err: any) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
   };
+
+  if (step === "waiting") {
+    return (
+      <div className="bg-card rounded-lg p-8 text-center">
+        <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4" />
+        <h2 className="text-2xl font-bold mb-2">Waiting for payment</h2>
+        <p className="text-muted-foreground">{waitingMessage}</p>
+      </div>
+    );
+  }
 
   if (step === "confirmation") {
     return (
@@ -375,18 +428,52 @@ export default function CheckoutForm({
             </button>
           </div>
           
-          <div className="bg-muted/50 rounded-lg p-4 border border-dashed">
-            <div className="flex items-center gap-3 text-muted-foreground">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <div>
-                <p className="font-medium text-foreground">Demo Mode</p>
-                <p className="text-sm">No real payment will be processed. This is a demonstration checkout.</p>
-              </div>
+          <div className="space-y-2">
+            <p className="text-sm font-medium">How would you like to pay?</p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setPaymentMethod("mpesa")}
+                className={`px-4 py-3 rounded-lg border text-sm font-medium transition ${paymentMethod === "mpesa" ? "border-primary bg-primary/10 text-primary" : "border-input"}`}
+                data-testid="button-payment-mpesa"
+              >
+                M-Pesa
+              </button>
+              <button
+                type="button"
+                onClick={() => setPaymentMethod("card")}
+                className={`px-4 py-3 rounded-lg border text-sm font-medium transition ${paymentMethod === "card" ? "border-primary bg-primary/10 text-primary" : "border-input"}`}
+                data-testid="button-payment-card"
+              >
+                Card
+              </button>
             </div>
           </div>
-          
+
+          {paymentMethod === "mpesa" && (
+            <div>
+              <label className="block text-sm font-medium mb-1" htmlFor="mpesaPhone">
+                M-Pesa Phone Number <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="mpesaPhone"
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => updateField("phone", e.target.value)}
+                className="w-full px-4 py-3 rounded-lg border bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                placeholder="07XXXXXXXX"
+                data-testid="input-mpesa-phone"
+              />
+              <p className="text-xs text-muted-foreground mt-1">You'll get an M-Pesa prompt on this number to enter your PIN.</p>
+            </div>
+          )}
+
+          {paymentMethod === "card" && (
+            <div className="bg-muted/50 rounded-lg p-4 border border-dashed text-sm text-muted-foreground">
+              You'll be redirected to a secure page to enter your card details.
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium mb-1" htmlFor="notes">
               Order Notes (optional)
@@ -405,7 +492,7 @@ export default function CheckoutForm({
           <div className="border-t pt-4">
             <div className="flex justify-between mb-2">
               <span className="text-muted-foreground">Subtotal</span>
-              <span>${subtotal.toFixed(2)}</span>
+              <span>{formatPrice(subtotal, "KES")}</span>
             </div>
             <div className="flex justify-between mb-2">
               <span className="text-muted-foreground">Shipping</span>
@@ -413,10 +500,10 @@ export default function CheckoutForm({
             </div>
             <div className="flex justify-between font-semibold text-lg">
               <span>Total</span>
-              <span>${subtotal.toFixed(2)}</span>
+              <span>{formatPrice(subtotal, "KES")}</span>
             </div>
           </div>
-          
+
           <button
             type="button"
             onClick={handlePlaceOrder}
@@ -424,7 +511,11 @@ export default function CheckoutForm({
             className="w-full bg-primary text-primary-foreground py-4 px-4 rounded-lg font-medium hover:opacity-90 transition disabled:opacity-50"
             data-testid="button-place-order"
           >
-            {loading ? "Placing Order..." : `Place Order - $${subtotal.toFixed(2)}`}
+            {loading
+              ? "Processing..."
+              : paymentMethod === "mpesa"
+                ? `Pay with M-Pesa - ${formatPrice(subtotal, "KES")}`
+                : `Pay with Card - ${formatPrice(subtotal, "KES")}`}
           </button>
           
           <p className="text-xs text-muted-foreground text-center">

@@ -219,7 +219,56 @@ a feature end-to-end:
 
 ---
 
-## 7. Quick mental model
+## 7. Payment integration — E-Payments
+
+Built 30/09/2026 (see `docs/PAYMENT_INTEGRATION.md` for the full
+architecture) but **not yet live** — needs a supplements.ke merchant account
+on E-Payments before any of this can actually be tested end to end.
+
+**Webhook endpoint to register in E-Payments' dashboard (Settings →
+Webhooks) — needed to get back `EPAYMENTS_WEBHOOK_SECRET`:**
+
+```
+https://supplements.ke/api/webhooks/epayments
+```
+
+One-time registration, not sandbox-vs-production specific — the same
+endpoint receives events regardless of whether the merchant account is
+currently using sandbox or live M-Pesa/Paystack credentials.
+
+**Local/sandbox setup**, once a merchant account exists:
+
+1. Set in `.env` (never commit these):
+   ```
+   EPAYMENTS_API_URL=https://epayments.co.ke
+   EPAYMENTS_API_KEY=<supplements.ke's own merchant key>
+   EPAYMENTS_WEBHOOK_SECRET=<returned when the webhook URL above is registered>
+   ```
+2. A webhook needs a publicly reachable URL — E-Payments can't reach
+   `localhost`. Test the webhook path against a deployed Railway
+   environment, or a tunnelling tool, not local dev alone.
+3. Safaricom's sandbox only responds meaningfully to its shared test number
+   `254708374149` (see `D:\Projects\E-Payments\README.md`), and even that
+   doesn't reliably return "completed" — see `docs/PAYMENT_INTEGRATION.md`
+   §6 before assuming a sandbox test that comes back "failed" is a bug.
+
+**Running the reconciliation cron manually** (not yet provisioned as actual
+Railway infrastructure — see `docs/ROADMAP.md`):
+
+```bash
+npx tsx scripts/reconcile-epayments.ts
+```
+
+Sweeps every `pending_orders` row stuck "pending" for more than 2 minutes
+and asks E-Payments directly what happened. Safe to run repeatedly — it's
+a no-op for anything already resolved. Provisioning this as a real scheduled
+Railway Cron Job service (cosmetics.ke's pattern: `.railway/railway.ts`
+Infrastructure-as-Code, `*/5 * * * *`) is planned follow-up work, not yet
+done here.
+
+---
+
+## 8. Quick mental model
 
 | I want to...                              | Command / path |
 |--------------------------------------------|-----------------|
@@ -230,6 +279,7 @@ a feature end-to-end:
 | Change the DB schema                       | Hand-written additive SQL — never blind `npm run db:push` |
 | Upload an admin image                      | `POST /api/upload`, multipart, admin-session gated |
 | Apply/fix product descriptions             | `scripts/apply-product-descriptions.cjs` / `scripts/fix-description-style.cjs` |
+| Sweep stuck payment confirmations          | `npx tsx scripts/reconcile-epayments.ts` |
 | Ship a change                               | `git push origin master` (needs explicit go-ahead first, then Railway auto-deploys) |
 | Confirm a deploy actually landed           | Check `https://supplements.ke` directly, or the Railway dashboard's Deployments tab |
 

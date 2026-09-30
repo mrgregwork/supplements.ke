@@ -30,10 +30,14 @@ to Railway Postgres 30/09/2026 — see `CLAUDE.md` and §2 below.
 
 - Category → Subcategory → Product browsing — Done.
 - Brand pages (`src/pages/brand/`) — present.
-- Cart + checkout — order creation works (`/api/checkout.ts`,
-  `/api/cod-order.ts` for cash-on-delivery); **no payment gateway is wired
-  in** — checkout/COD currently just record the order, same gap as
-  cosmetics.ke.
+- Cart + checkout — real M-Pesa + Card payments via E-Payments, built
+  30/09/2026, same pattern as cosmetics.ke (`/api/checkout/init.ts` →
+  `src/lib/epayments.ts` → webhook/poll/cron finalize). **Not yet live** —
+  needs a supplements.ke merchant account on E-Payments and end-to-end
+  sandbox testing before switching to real credentials. See
+  `docs/PAYMENT_INTEGRATION.md`. `/api/cod-order.ts` (cash-on-delivery)
+  remains its own separate, working, no-payment-needed path. The old
+  `/api/checkout.ts` ("Demo Mode") is left in place, unused by the UI.
 - Customer accounts — OTP-based login (`/api/auth/request-otp`,
   `/api/auth/verify-otp`), account/orders pages.
 - Blog — categories with admin CRUD, public archive pages, rich
@@ -76,9 +80,17 @@ to Railway Postgres 30/09/2026 — see `CLAUDE.md` and §2 below.
 
 ## 3. Known open items
 
-- **No payment gateway.** Checkout and the cash-on-delivery flow create
-  order records with no real charge. Flag to the owner before this is
-  assumed to be a working checkout in front of a customer.
+- **Payment integration built but not yet live.** M-Pesa + Card via
+  E-Payments is fully wired (see `docs/PAYMENT_INTEGRATION.md`) but needs:
+  (1) supplements.ke registered as its own merchant on E-Payments with its
+  own credentials, (2) `EPAYMENTS_API_KEY`/`EPAYMENTS_WEBHOOK_SECRET` set in
+  Railway, (3) end-to-end sandbox testing of both M-Pesa and Card, (4)
+  explicit approval before switching to live credentials, verified with one
+  real small-value M-Pesa charge. Flag to the owner before assuming
+  checkout takes real payments today. The reconciliation cron
+  (`scripts/reconcile-epayments.ts`) also isn't yet provisioned as actual
+  Railway infrastructure (a scheduled Cron Job service) — script exists,
+  nothing runs it on a schedule yet.
 - **Upload persistence across deploys is unverified.** Admin-uploaded
   images fall back to the container's local filesystem unless a Railway
   Volume is attached (`RAILWAY_VOLUME_MOUNT_PATH`) — not confirmed either
@@ -134,8 +146,12 @@ env var store for what else may be configured there (e.g.
 - **Is a Railway Volume attached to this service?** Determines whether
   admin-uploaded images (blog, category) survive a redeploy. This is the
   single most actionable unknown in this file — see §3.
-- Is a real payment gateway planned for checkout (M-Pesa, card, etc.), and
-  if so which one? Same open question cosmetics.ke has.
+- **Has supplements.ke been registered as its own merchant on E-Payments
+  yet?** The integration is built and waiting on this — see
+  `docs/PAYMENT_INTEGRATION.md` §4. Needed before any sandbox testing can
+  start.
+- Once sandbox-tested, when should live M-Pesa/Paystack credentials be
+  switched on? Needs the owner's explicit go-ahead, not an assumption.
 - Should the ~35 files with hardcoded Kenya/Nairobi copy be migrated to
   `getSiteSettings()`, given this codebase's role as the original
   template? Not urgent for the live site, but worth a decision if this
