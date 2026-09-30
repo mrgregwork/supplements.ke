@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { renderOtpEmailHtml, renderOrderConfirmationEmailHtml, type OrderConfirmationItem } from "../src/lib/emailTemplate";
 
 // Resend's constructor throws when no API key is present. Building it at module
 // scope meant a missing RESEND_API_KEY made this whole module fail to import,
@@ -22,21 +23,7 @@ export async function sendOtpEmail(to: string, code: string): Promise<void> {
     from: FROM_ADDRESS,
     to,
     subject: "Your Supplements Kenya Login Code",
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #fff;">
-        <div style="text-align: center; margin-bottom: 24px;">
-          <span style="display: inline-block; background: #16a34a; color: #fff; font-weight: bold; font-size: 20px; padding: 8px 18px; border-radius: 8px; letter-spacing: 1px;">SK</span>
-          <h2 style="margin: 16px 0 4px; color: #111;">Supplements Kenya</h2>
-        </div>
-        <p style="color: #444; font-size: 15px; margin-bottom: 8px;">Your one-time login code is:</p>
-        <div style="text-align: center; margin: 24px 0;">
-          <span style="display: inline-block; letter-spacing: 10px; font-size: 36px; font-weight: bold; font-family: monospace; color: #16a34a; background: #f0fdf4; padding: 16px 24px; border-radius: 10px; border: 2px solid #bbf7d0;">${code}</span>
-        </div>
-        <p style="color: #666; font-size: 13px; text-align: center;">This code expires in <strong>10 minutes</strong>. Do not share it with anyone.</p>
-        <hr style="border: none; border-top: 1px solid #eee; margin: 28px 0;">
-        <p style="color: #999; font-size: 12px; text-align: center;">If you did not request this code, you can safely ignore this email.</p>
-      </div>
-    `,
+    html: renderOtpEmailHtml(code),
     text: `Your Supplements Kenya login code is: ${code}\n\nThis code expires in 10 minutes. Do not share it with anyone.`,
   });
 
@@ -50,26 +37,16 @@ export async function sendOrderConfirmationEmail(params: {
   orderNumber: string;
   currency: string;
   total: number;
+  items: OrderConfirmationItem[];
+  paymentMethod: string | null;
+  mpesaReceiptNumber: string | null;
+  cardReference: string | null;
 }): Promise<void> {
   const { error } = await getResend().emails.send({
     from: FROM_ADDRESS,
     to: params.to,
     subject: `Order confirmed - ${params.orderNumber}`,
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #fff;">
-        <div style="text-align: center; margin-bottom: 24px;">
-          <span style="display: inline-block; background: #16a34a; color: #fff; font-weight: bold; font-size: 20px; padding: 8px 18px; border-radius: 8px; letter-spacing: 1px;">SK</span>
-          <h2 style="margin: 16px 0 4px; color: #111;">Supplements Kenya</h2>
-        </div>
-        <p style="color: #444; font-size: 15px;">Thanks for your order! Your payment has been confirmed.</p>
-        <div style="text-align: center; margin: 24px 0;">
-          <span style="display: inline-block; font-size: 20px; font-weight: bold; font-family: monospace; color: #16a34a; background: #f0fdf4; padding: 12px 20px; border-radius: 10px; border: 2px solid #bbf7d0;">${params.orderNumber}</span>
-        </div>
-        <p style="color: #444; font-size: 15px; text-align: center;">Total: <strong>${params.currency} ${params.total.toLocaleString()}</strong></p>
-        <hr style="border: none; border-top: 1px solid #eee; margin: 28px 0;">
-        <p style="color: #999; font-size: 12px; text-align: center;">Questions about your order? Reply to this email or reach us on WhatsApp.</p>
-      </div>
-    `,
+    html: renderOrderConfirmationEmailHtml(params),
     text: `Thanks for your order! Your payment has been confirmed.\n\nOrder number: ${params.orderNumber}\nTotal: ${params.currency} ${params.total.toLocaleString()}`,
   });
 

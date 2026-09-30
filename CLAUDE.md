@@ -30,6 +30,7 @@ E-commerce supplements store at **supplements.ke**. Sells health supplements onl
 - `src/pages/[category]/[subcategory]/[product].astro` — Product page
 - `src/pages/admin/blog/` + `src/pages/api/admin/blog/` — Blog CRUD, categories, rich editor
 - `src/lib/epayments.ts` + `src/lib/checkoutFinalize.ts` + `src/pages/api/checkout/`, `src/pages/api/webhooks/epayments.ts`, `scripts/reconcile-epayments.ts` — E-Payments (M-Pesa/Card) integration, most recently shipped feature area — see `docs/PAYMENT_INTEGRATION.md` before touching any of it
+- `src/lib/emailTemplate.ts` — Shared branded shell for transactional emails (OTP login code, order confirmation), colors fixed to match `src/styles/global.css`'s live `:root` (cream/emerald/gold) — no admin-configurable theme system here, unlike cosmetics.ke's `src/lib/theme.ts`. `server/email.ts` renders through this rather than building its own HTML inline.
 - `src/layouts/BaseLayout.astro` — Global layout (favicon, fonts, meta)
 - `src/lib/storage.ts` — Re-exports from `server/storage`
 - `src/lib/admin.ts` — Admin auth: password hashing (scrypt), session tokens, session verification

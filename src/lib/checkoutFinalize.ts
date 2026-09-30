@@ -156,6 +156,8 @@ export async function finalizePendingOrder(
 
   order = guardResult.order;
 
+  const itemsSnapshot = (guardResult.pending.items as { productName: string; quantity: number; totalPrice: number }[]) ?? [];
+
   // Best-effort, after commit -- an email failure must never undo an
   // already-paid order.
   sendOrderConfirmationEmail({
@@ -163,6 +165,10 @@ export async function finalizePendingOrder(
     orderNumber: order.orderNumber,
     currency: order.currency,
     total: order.total,
+    items: itemsSnapshot,
+    paymentMethod: order.paymentMethod,
+    mpesaReceiptNumber: order.mpesaReceiptNumber,
+    cardReference: order.cardReference,
   }).catch(() => {
     // Deliberately swallowed -- see comment above. A missing/unconfigured
     // RESEND_API_KEY must never fail an already-paid checkout.
