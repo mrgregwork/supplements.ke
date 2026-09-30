@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { getCartSessionId, getCartItems, clearCart } from "@lib/cart";
 import { initiateMpesaStkPush, initiatePaystackCharge } from "@lib/epayments";
+import { generateOrderCode } from "@lib/orderCode";
 import siteSettings from "@config/siteSettings.json";
 
 // Real checkout entry point -- replaces the "Demo Mode" flow in the old
@@ -74,11 +75,18 @@ async function insertGuestCustomer(email: string, phone: string | null) {
       return guest;
     } catch (err: any) {
       if (err?.code !== "23505") throw err;
-      if (err.constraint === "customers_email_key" && attemptEmail !== null) {
+      // Matched by substring, not an exact constraint name -- this
+      // database's constraints happen to be Postgres's own default
+      // `<table>_<column>_key` naming, but cosmetics.ke's identical schema
+      // turned out to use Drizzle's `<table>_<column>_unique` naming
+      // instead (depends on how each database's schema was originally
+      // created), so an exact match there never fired. Substring matching
+      // survives either naming convention.
+      if (err.constraint?.includes("email") && attemptEmail !== null) {
         attemptEmail = null;
         continue;
       }
-      if (err.constraint === "customers_phone_key" && attemptPhone !== null) {
+      if (err.constraint?.includes("phone") && attemptPhone !== null) {
         attemptPhone = null;
         continue;
       }
@@ -146,9 +154,12 @@ export const POST: APIRoute = async ({ request }) => {
       totalPrice: item.product.price * item.quantity,
     }));
 
+    const orderCode = generateOrderCode();
+
     const [pending] = await db
       .insert(pendingOrders)
       .values({
+        orderCode,
         customerId: resolvedCustomerId,
         email,
         phone: normalizedPhone ?? phone ?? null,
@@ -172,7 +183,7 @@ export const POST: APIRoute = async ({ request }) => {
         const result = await initiateMpesaStkPush({
           phoneNumber: normalizedPhone!,
           amount: Math.round(total),
-          accountReference: pending.id,
+          accountReference: orderCode,
           description: `Supplements Kenya order`,
           metadata: { pendingOrderId: pending.id },
         });
@@ -189,7 +200,7 @@ export const POST: APIRoute = async ({ request }) => {
         const result = await initiatePaystackCharge({
           email,
           amount: Math.round(total),
-          accountReference: pending.id,
+          accountReference: orderCode,
           description: `Supplements Kenya order`,
           redirectUrl: `${origin}/checkout/return?pendingOrderId=${pending.id}`,
           metadata: { pendingOrderId: pending.id },

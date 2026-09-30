@@ -2,6 +2,7 @@ import { db } from "../../server/db";
 import { orders, orderItems, pendingOrders } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
 import { sendOrderConfirmationEmail } from "../../server/email";
+import { generateOrderCode } from "./orderCode";
 
 // The single place a checkout attempt gets turned into a real order. Called
 // from three independent, race-prone paths -- the E-Payments webhook, the
@@ -10,13 +11,6 @@ import { sendOrderConfirmationEmail } from "../../server/email";
 // at nearly the same instant. Same pattern as cosmetics.ke's
 // checkoutFinalize.ts; see docs/PAYMENT_INTEGRATION.md for why the shape
 // below is not optional scaffolding.
-
-function generateOrderNumber(): string {
-  const prefix = "ORD";
-  const timestamp = Date.now().toString(36).toUpperCase();
-  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `${prefix}-${timestamp}-${random}`;
-}
 
 export type FinalizeOutcome = "confirmed" | "failed";
 
@@ -80,7 +74,13 @@ export async function finalizePendingOrder(
       return { won: true as const, pending, order: null };
     }
 
-    const orderNumber = generateOrderNumber();
+    // Reuse the code generated at checkout/init.ts time (sent to E-Payments
+    // as the M-Pesa/Paystack reference, so it's what the customer's own
+    // confirmation SMS shows) as the real order's number -- so the
+    // reference the customer already saw and the order confirmation always
+    // match. Falls back to generating a fresh one only for a pending_orders
+    // row created before this column existed (order_code NULL).
+    const orderNumber = pending.order_code ?? generateOrderCode();
 
     const [newOrder] = await tx
       .insert(orders)

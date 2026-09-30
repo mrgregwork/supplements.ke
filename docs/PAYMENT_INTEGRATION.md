@@ -295,3 +295,43 @@ retry loop always terminates within two extra attempts.
 This same latent bug was found to exist, unfixed, in cosmetics.ke's
 identical code (live since 29/09/2026) — ported the same fix there too,
 see its own `docs/PAYMENT_INTEGRATION.md` §6.6.
+
+**Addendum**: porting this fix to cosmetics.ke surfaced that an exact
+`err.constraint === "customers_email_key"` match only works if the
+database's constraints actually use Postgres's own default naming — this
+database's do (confirmed via `SELECT conname FROM pg_constraint WHERE
+conrelid = 'customers'::regclass AND contype = 'u'` over the tunnel), but
+cosmetics.ke's identical-looking schema turned out to use Drizzle's
+`.unique()` naming (`customers_email_unique`) instead, silently never
+firing the retry there. `insertGuestCustomer()` here was hardened to match
+by `.includes("email")`/`.includes("phone")` instead of an exact string, so
+it survives either naming convention — check this in the live database,
+never assume it from how the constraint was declared in `shared/schema.ts`.
+
+### The M-Pesa confirmation SMS showed a raw UUID as the "account"
+
+**Found live 30/09/2026** on a real KES 1 test payment: the confirmation
+SMS read `"... sent to SHOPUSA LIMITED for account
+446a35d8-debd-4701-84f4-2b970641c87e ..."` — the raw `pending_orders.id`
+UUID, sent as-is as the M-Pesa `accountReference`. To a real payer this
+reads as broken or suspicious, not as a real order reference.
+
+**Fix**: added a nullable `order_code` column to `pending_orders`
+(additive SQL, applied directly). `checkout/init.ts` now generates a short
+code (`generateOrderCode()` in `src/lib/orderCode.ts`) up front, stores it
+on the `pending_orders` row, and sends *that* as the gateway
+`accountReference` instead of the raw UUID. `finalizePendingOrder()` then
+reuses that exact same code as the real order's `orderNumber` (falling
+back to `checkoutFinalize.ts`'s own `generateOrderNumber()` only for a row
+predating this column) — so the reference a customer already saw in their
+confirmation SMS always matches their order confirmation number.
+
+**The code is capped at 12 characters with no prefix or separator**
+(`<timestamp-in-base36><4-char-random>`, last 12 chars kept) — not the
+usual `ORD-XXXX-XXXX` shape `generateOrderNumber()` produces elsewhere.
+E-Payments' own API docs (`D:\Projects\E-Payments\src\app\docs\page.js`,
+read only — this repo never edits that codebase) state
+`accountReference` is capped at 12 characters; the initial version of this
+fix used the longer `ORD-...` format and would have silently exceeded that
+cap. Same fix ported to cosmetics.ke the same day; see its own
+`docs/PAYMENT_INTEGRATION.md` §6.7.

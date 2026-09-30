@@ -377,6 +377,14 @@ export type Order = typeof orders.$inferSelect;
 // ============================================
 export const pendingOrders = pgTable("pending_orders", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  // Generated at checkout/init.ts time and sent to E-Payments as the M-Pesa
+  // accountReference / Paystack reference instead of the raw `id` above --
+  // a customer's M-Pesa confirmation SMS shows this value as the "account",
+  // and a raw UUID there reads as broken/suspicious to a real payer. Reused
+  // as-is for the real order's orderNumber at finalize time (see
+  // checkoutFinalize.ts), so the SMS reference and the order confirmation
+  // always match. See docs/PAYMENT_INTEGRATION.md.
+  orderCode: text("order_code"),
   customerId: varchar("customer_id").references(() => customers.id),
   email: text("email").notNull(),
   phone: text("phone"),

@@ -72,7 +72,14 @@ export async function initiateMpesaStkPush(params: {
   const result = await initiate({
     phoneNumber: params.phoneNumber,
     amount: params.amount,
-    accountReference: params.accountReference,
+    // E-Payments passes this straight through to Safaricom's Daraja API with
+    // no truncation of its own; its own docs state "max 12 chars, shown in
+    // M-Pesa". Defensive belt-and-suspenders slice here -- the caller
+    // (checkout/init.ts) already generates a <=12-character code, but this
+    // stops a future caller from silently breaking the M-Pesa STK push (or a
+    // customer's SMS reference no longer matching their order number) by
+    // passing something longer.
+    accountReference: params.accountReference.slice(0, 12),
     description: params.description,
     metadata: params.metadata,
   });
