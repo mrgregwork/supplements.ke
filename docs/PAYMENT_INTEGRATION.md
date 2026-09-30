@@ -184,17 +184,54 @@ derivable from anything in this repo.
   that's a separate integration, not something this covers.
 - **Card requires a real email** (Paystack needs one for its own receipt);
   M-Pesa doesn't.
-- **Not yet live.** Built 30/09/2026 against E-Payments; not yet tested end
-  to end, not yet switched to real credentials. See `docs/ROADMAP.md` for
-  current status — needs a merchant account registered on E-Payments,
-  sandbox testing of both M-Pesa and Card, then explicit approval before
-  switching to live credentials and verifying with one real small-value
-  M-Pesa charge (exactly as cosmetics.ke did).
+- **Live and verified working, 30/09/2026.** Sandbox-tested first (both
+  M-Pesa and Card, via Safaricom's shared sandbox number), then switched to
+  live credentials with explicit owner confirmation and proven with two
+  real small-value charges — see "Live verification" below. See
+  `docs/ROADMAP.md` for current status.
 - **Reconciliation cron (`scripts/reconcile-epayments.ts`) exists as a
   script only** — not yet provisioned as actual Railway infrastructure (a
   scheduled Cron Job service). See cosmetics.ke's own `.railway/railway.ts`
   and `docs/PAYMENT_INTEGRATION.md` §7 for the pattern to follow; this is
   planned follow-up work, not blocking the core checkout flow.
+
+---
+
+## 5a. Live verification, 30/09/2026 — real charges, real confirmation
+
+Once live M-Pesa/Paystack credentials were entered on E-Payments (owner's
+explicit go-ahead), both payment methods were proven with one real charge
+each, using two throwaway `status: 'draft', indexable: false` products
+(never shown on the storefront) so the charged amount could be an exact,
+tiny, round number rather than a real product's price:
+
+- **M-Pesa: KES 1**, sent as a real STK push to a real phone
+  (`0719269571`), approved live. Resolved `confirmed` / `payment_status:
+  paid`, real receipt `UIU6K7WR4W` captured correctly on the `orders` row
+  (order `ORD-MUNTZWCH-R7A5`).
+- **Card: KES 5**, via a real Paystack hosted-checkout redirect, a real
+  card entered live. First attempt showed Paystack's own "We could not
+  start this transaction — Network Error" (a transient failure on
+  Paystack's side, not this codebase — a second, fresh `checkout/init`
+  call produced a working checkout page immediately). Resolved `confirmed`
+  / `payment_status: paid`, real reference `T665501926032456` (order
+  `ORD-MUNUUTQY-VFRT`), and `checkout/return.astro`'s poll-and-confirm UI
+  displayed correctly.
+
+**Standing test-amount convention for this integration, going forward:**
+when a real-money test is needed again (a credential rotation, a schema
+change, re-verifying after touching checkout code), use **KES 1 for
+M-Pesa** and **KES 5 for Card** — cheap enough to be inconsequential,
+proven to actually clear both gateways. Card in particular needs a real
+card entered by a human each time (the agent must never enter card
+details itself, live or sandbox) — coordinate that in the moment rather
+than assuming it can be automated end-to-end.
+
+The two throwaway test products created for this pass were left in place
+(`status: 'draft'` keeps them invisible to customers) rather than deleted,
+since the real `orders`/`order_items` rows they produced are genuine
+financial records that reference them by foreign key — do not delete a
+product that a real order's `order_items` row points at.
 
 ---
 

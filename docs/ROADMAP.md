@@ -30,12 +30,11 @@ to Railway Postgres 30/09/2026 — see `CLAUDE.md` and §2 below.
 
 - Category → Subcategory → Product browsing — Done.
 - Brand pages (`src/pages/brand/`) — present.
-- Cart + checkout — real M-Pesa + Card payments via E-Payments, built
-  30/09/2026, same pattern as cosmetics.ke (`/api/checkout/init.ts` →
-  `src/lib/epayments.ts` → webhook/poll/cron finalize). **Not yet live** —
-  needs a supplements.ke merchant account on E-Payments and end-to-end
-  sandbox testing before switching to real credentials. See
-  `docs/PAYMENT_INTEGRATION.md`. `/api/cod-order.ts` (cash-on-delivery)
+- Cart + checkout — real M-Pesa + Card payments via E-Payments, built and
+  **live, verified 30/09/2026** with a real KES 1 M-Pesa charge and a real
+  KES 5 Paystack charge, both confirmed end to end (`/api/checkout/init.ts`
+  → `src/lib/epayments.ts` → webhook/poll/cron finalize). See
+  `docs/PAYMENT_INTEGRATION.md` §5a. `/api/cod-order.ts` (cash-on-delivery)
   remains its own separate, working, no-payment-needed path. The old
   `/api/checkout.ts` ("Demo Mode") is left in place, unused by the UI.
 - Customer accounts — OTP-based login (`/api/auth/request-otp`,
