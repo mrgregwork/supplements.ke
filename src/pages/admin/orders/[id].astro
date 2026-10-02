@@ -104,10 +104,10 @@ const statusColors: Record<string, string> = {
                   <div class="flex-1">
                     <p class="font-medium">{item.productName}</p>
                     <p class="text-sm text-muted-foreground">
-                      ${item.unitPrice.toFixed(2)} × {item.quantity}
+                      {order.currency} {item.unitPrice.toFixed(2)} × {item.quantity}
                     </p>
                   </div>
-                  <p class="font-medium">${item.totalPrice.toFixed(2)}</p>
+                  <p class="font-medium">{order.currency} {item.totalPrice.toFixed(2)}</p>
                 </div>
               ))}
             </div>
@@ -115,19 +115,19 @@ const statusColors: Record<string, string> = {
               <div class="space-y-1">
                 <div class="flex justify-between text-sm">
                   <span>Subtotal</span>
-                  <span>${order.subtotal.toFixed(2)}</span>
+                  <span>{order.currency} {order.subtotal.toFixed(2)}</span>
                 </div>
                 <div class="flex justify-between text-sm">
                   <span>Shipping</span>
-                  <span>${order.shipping.toFixed(2)}</span>
+                  <span>{order.currency} {order.shipping.toFixed(2)}</span>
                 </div>
                 <div class="flex justify-between text-sm">
                   <span>Tax</span>
-                  <span>${order.tax.toFixed(2)}</span>
+                  <span>{order.currency} {order.tax.toFixed(2)}</span>
                 </div>
                 <div class="flex justify-between font-semibold text-lg pt-2 border-t">
                   <span>Total</span>
-                  <span>${order.total.toFixed(2)}</span>
+                  <span>{order.currency} {order.total.toFixed(2)}</span>
                 </div>
               </div>
             </div>
@@ -144,6 +144,35 @@ const statusColors: Record<string, string> = {
             />
           </div>
           
+          {/* Orders from before the payment integration have no payment method and a default 'awaiting_payment' status that is a schema artifact, so the card is hidden for them rather than showing a misleading status. */}
+          {order.paymentMethod && (
+          <div class="bg-card border rounded-lg p-4">
+            <h3 class="font-semibold mb-2">Payment</h3>
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between">
+                <span class="text-muted-foreground">Status</span>
+                <span class="capitalize">{order.paymentStatus.replace("_", " ")}</span>
+              </div>
+              {order.paymentMethod && (
+                <div class="flex justify-between">
+                  <span class="text-muted-foreground">Method</span>
+                  <span>{order.paymentMethod === "mpesa" ? "M-Pesa" : order.paymentMethod === "card" ? "Card" : order.paymentMethod === "cod" ? "Cash on Delivery" : order.paymentMethod}</span>
+                </div>
+              )}
+              {(order.mpesaReceiptNumber || order.cardReference || order.gatewayTransactionId) && (
+                <div class="flex justify-between gap-4">
+                  <span class="text-muted-foreground shrink-0">
+                    {order.mpesaReceiptNumber ? "M-Pesa code" : order.cardReference ? "Card reference" : "Gateway reference"}
+                  </span>
+                  <span class="font-mono text-xs break-all text-right">
+                    {order.mpesaReceiptNumber || order.cardReference || order.gatewayTransactionId}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+          )}
+
           <div class="bg-card border rounded-lg p-4">
             <h3 class="font-semibold mb-2">Customer</h3>
             <p class="text-sm">{order.email}</p>

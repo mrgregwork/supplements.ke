@@ -55,6 +55,19 @@ const statusColors = {
   cancelled: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
 };
 
+// Orders placed before the payment integration shipped (and cash-on-delivery
+// orders) have no payment method and a default 'awaiting_payment' status that
+// is a schema artifact, not a real signal -- so the badge only shows for
+// orders that actually went through the payment gateway.
+const paymentStatusLabels = {
+  paid: { label: "Paid", classes: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" },
+  awaiting_payment: { label: "Awaiting payment", classes: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400" },
+  failed: { label: "Payment failed", classes: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400" },
+};
+const paymentBadge = order.paymentMethod
+  ? paymentStatusLabels[order.paymentStatus as keyof typeof paymentStatusLabels] || paymentStatusLabels.awaiting_payment
+  : null;
+
 const breadcrumbItems = [
   { name: 'My Account', href: '/account' },
   { name: `Order ${order.orderNumber}`, href: `/account/orders/${id}` }
@@ -109,9 +122,16 @@ const structuredData = {
           })}
         </p>
       </div>
-      <span class={`px-3 py-1 text-sm font-medium rounded-full ${statusColors[order.status as keyof typeof statusColors] || statusColors.pending}`}>
-        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-      </span>
+      <div class="flex gap-2">
+        {paymentBadge && (
+          <span class={`px-3 py-1 text-sm font-medium rounded-full ${paymentBadge.classes}`}>
+            {paymentBadge.label}
+          </span>
+        )}
+        <span class={`px-3 py-1 text-sm font-medium rounded-full ${statusColors[order.status as keyof typeof statusColors] || statusColors.pending}`}>
+          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+        </span>
+      </div>
     </div>
     
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -167,11 +187,11 @@ const structuredData = {
                 </a>
               )}
               <p class="text-sm text-muted-foreground mt-1">
-                ${item.unitPrice.toFixed(2)} × {item.quantity}
+                {order.currency} {item.unitPrice.toLocaleString()} × {item.quantity}
               </p>
             </div>
             <div class="text-right font-medium">
-              ${item.totalPrice.toFixed(2)}
+              {order.currency} {item.totalPrice.toLocaleString()}
             </div>
           </div>
         ))}
@@ -181,19 +201,19 @@ const structuredData = {
         <div class="space-y-2">
           <div class="flex justify-between text-sm">
             <span class="text-muted-foreground">Subtotal</span>
-            <span>${order.subtotal.toFixed(2)}</span>
+            <span>{order.currency} {order.subtotal.toLocaleString()}</span>
           </div>
           <div class="flex justify-between text-sm">
             <span class="text-muted-foreground">Shipping</span>
-            <span>{order.shipping === 0 ? "Free" : `$${order.shipping.toFixed(2)}`}</span>
+            <span>{order.shipping === 0 ? "Free" : `${order.currency} ${order.shipping.toLocaleString()}`}</span>
           </div>
           <div class="flex justify-between text-sm">
             <span class="text-muted-foreground">Tax</span>
-            <span>${order.tax.toFixed(2)}</span>
+            <span>{order.currency} {order.tax.toLocaleString()}</span>
           </div>
           <div class="flex justify-between font-semibold text-lg pt-2 border-t">
             <span>Total</span>
-            <span>${order.total.toFixed(2)}</span>
+            <span>{order.currency} {order.total.toLocaleString()}</span>
           </div>
         </div>
       </div>
