@@ -6,6 +6,7 @@ import { z } from "zod";
 import { getCartSessionId, getCartItems, clearCart } from "@lib/cart";
 import { initiateMpesaStkPush, initiatePaystackCharge } from "@lib/epayments";
 import { generateOrderCode } from "@lib/orderCode";
+import { buildOrderDescription } from "@lib/orderDescription";
 import siteSettings from "@config/siteSettings.json";
 
 // Real checkout entry point -- replaces the "Demo Mode" flow in the old
@@ -155,6 +156,11 @@ export const POST: APIRoute = async ({ request }) => {
     }));
 
     const orderCode = generateOrderCode();
+    const description = buildOrderDescription(itemsSnapshot);
+    const gatewayMetadata = {
+      orderCode,
+      items: itemsSnapshot.map((i) => ({ name: i.productName, qty: i.quantity, total: i.totalPrice })),
+    };
 
     const [pending] = await db
       .insert(pendingOrders)
@@ -184,8 +190,8 @@ export const POST: APIRoute = async ({ request }) => {
           phoneNumber: normalizedPhone!,
           amount: Math.round(total),
           accountReference: orderCode,
-          description: `Supplements Kenya order`,
-          metadata: { pendingOrderId: pending.id },
+          description,
+          metadata: { ...gatewayMetadata, pendingOrderId: pending.id },
         });
 
         await db.update(pendingOrders).set({ gatewayTransactionId: result.transactionId }).where(eq(pendingOrders.id, pending.id));
@@ -201,9 +207,9 @@ export const POST: APIRoute = async ({ request }) => {
           email,
           amount: Math.round(total),
           accountReference: orderCode,
-          description: `Supplements Kenya order`,
+          description,
           redirectUrl: `${origin}/checkout/return?pendingOrderId=${pending.id}`,
-          metadata: { pendingOrderId: pending.id },
+          metadata: { ...gatewayMetadata, pendingOrderId: pending.id },
         });
 
         await db.update(pendingOrders).set({ gatewayTransactionId: result.transactionId }).where(eq(pendingOrders.id, pending.id));

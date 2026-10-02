@@ -93,6 +93,18 @@ incident this was fixed after). Any future payment gateway integration on
 this codebase must follow the same rule — generate the order-facing code
 before the gateway call, not after.
 
+**Standing convention, set 03/10/2026: the gateway `description` must always
+summarise what was bought, never be a fixed phrase like "Supplements Kenya
+order".** This is a required part of any payment integration on this
+codebase, not an optional polish item. `src/lib/orderDescription.ts`'s `buildOrderDescription()` builds it from the
+cart (first item, plus quantity and `+N` for further items, e.g.
+`Whey Protein Isol x2 +1`) and it appears in E-Payments' dashboard and its own
+"Payment received" email. It is capped at 23 characters, the length of the
+old fixed text and the only length proven live, because E-Payments passes it
+straight through to Daraja's short `TransactionDesc` field. The full item
+list also goes in `metadata` (no length risk there). Same helper as
+cosmetics.ke's, ported 03/10/2026.
+
 ### 2.2 The E-Payments client (`src/lib/epayments.ts`)
 
 Ported directly from cosmetics.ke's `src/lib/epayments.ts` (itself ported
