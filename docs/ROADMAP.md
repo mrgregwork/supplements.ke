@@ -6,11 +6,12 @@ companion to [`CLAUDE.md`](../CLAUDE.md) (standing rules) and
 lands; don't let it go stale the way an unmaintained changelog does — if a
 section below is wrong, fix it rather than leaving it.
 
-This first version was compiled 24/09/2026 from `git log`, the previous
-CLAUDE.md's own "Pending / known issues" list, and a codebase pass — not a
-line-by-line audit of every feature below. Treat "Done" as "shipped and
-present in the code," not as "manually re-verified live today." Correct any
-entry that turns out to be stale.
+First compiled 24/09/2026 from `git log`, the previous CLAUDE.md's own
+"Pending / known issues" list, and a codebase pass; brought fully up to date
+03/10/2026 against `git log` and the live Railway state (see §2a for the
+dated timeline). Treat "Done" as "shipped and present in the code," not as
+"manually re-verified live today," unless an entry says it was verified live.
+Correct any entry that turns out to be stale.
 
 ---
 
@@ -37,6 +38,15 @@ to Railway Postgres 30/09/2026 — see `CLAUDE.md` and §2 below.
   `docs/PAYMENT_INTEGRATION.md` §5a. `/api/cod-order.ts` (cash-on-delivery)
   remains its own separate, working, no-payment-needed path. The old
   `/api/checkout.ts` ("Demo Mode") is left in place, unused by the UI.
+  Every charge carries a short pre-generated order code (max 12 characters,
+  Safaricom's limit) as the M-Pesa account reference, reused as the order
+  number, plus a gateway description summarising the order (e.g.
+  `Whey Protein Isol x2 +1`) instead of a fixed phrase.
+- Transactional emails (login code, order confirmation) — branded to match
+  the storefront's own colours (`src/lib/emailTemplate.ts`), sent from
+  `noreply@supplements.ke` via Resend (domain verified). Full table-based
+  HTML with Gmail dark-mode protection; see `docs/PAYMENT_INTEGRATION.md`
+  §2.5.
 - Customer accounts — OTP-based login (`/api/auth/request-otp`,
   `/api/auth/verify-otp`), account/orders pages.
 - Blog — categories with admin CRUD, public archive pages, rich
@@ -77,19 +87,79 @@ to Railway Postgres 30/09/2026 — see `CLAUDE.md` and §2 below.
 
 ---
 
+## 2a. Timeline of work since 24/09/2026
+
+Newest last. Dates are commit dates from `git log`; "live" means verified
+against the real production site, not just pushed.
+
+- **24/09/2026** — Category/subcategory deletion protected with a `409` when
+  products depend on it (`bf9e093`). `CLAUDE.md` rewritten to match the
+  sibling project's standards (Engineering Standards, Safety Rules, Template
+  principles) and the `RUNBOOK.md` / `ROADMAP.md` split introduced.
+- **30/09/2026 — Database moved from Neon to Railway Postgres** (`57ab20d`).
+  All 19 tables copied and verified, cutover verified live, local access via
+  SSH tunnel. Git policy tightened: commit, push and deploy each need
+  explicit go-ahead (`740d8d3`).
+- **30/09/2026 — E-Payments integration built** (`288f312`): M-Pesa STK push
+  and Paystack card via one `checkout/init` route, `pending_orders` staging
+  table, webhook + client status-poll + reconciliation cron all converging
+  on `finalizePendingOrder()`. Payment fields added to `orders`.
+- **30/09/2026 — Live-verified with real money** (`b6c8bac`): a real KES 1
+  M-Pesa charge and a real KES 5 card charge, both confirmed end to end.
+  Standing test amounts (KES 1 M-Pesa, KES 5 card) recorded in
+  `docs/PAYMENT_INTEGRATION.md` §5a. Throwaway draft test products kept (real
+  orders reference them).
+- **30/09/2026 — Reconciliation cron provisioned as real infrastructure**
+  (`291fa20`): Railway Cron Job service `supplements-reconcile-epayments`,
+  every 5 minutes, defined as code in `.railway/railway.ts` and confirmed
+  running. Both the web service and the cron connect to the `Postgres`
+  service via `DATABASE_URL`.
+- **30/09/2026 — Repeat guest checkout crash fixed** (`de1395b`): a second
+  checkout with the same email or phone hit a unique-constraint error (500).
+  Now drops the colliding field and retries; constraint matched by
+  substring because naming differs by how a database's schema was created.
+- **30/09/2026 — Raw UUID in the M-Pesa SMS fixed** (`6ac714e`, `63d47d4`):
+  the customer's SMS showed a 36-character ID as the "account". Replaced
+  with a short order code (12 characters max, a real Safaricom limit) reused
+  as the order number. Confirmed live on both M-Pesa and card.
+- **30/09/2026 — Branded transactional emails** (`58b7e46`): login code and
+  order confirmation rebuilt in the storefront's cream/emerald/gold.
+- **03/10/2026 — Order description** (`b666999`): the gateway description
+  (shown in E-Payments' own "Payment received" email) now summarises the
+  order instead of the fixed text "Supplements Kenya order"; full item list
+  sent as metadata. Recorded as a standing payment-integration convention.
+- **03/10/2026 — Email hardening (written, not yet committed/pushed):**
+  `src/lib/emailTemplate.ts` rebuilt as a full table-based HTML document
+  with `color-scheme: light only` tags, no flexbox, and derived hex fallback
+  colours, to stop Gmail dark mode washing out the colours. Documented in
+  `docs/PAYMENT_INTEGRATION.md` §2.5 and `CLAUDE.md`. Needs a real order
+  after deploy to confirm in a real inbox.
+
+---
+
 ## 3. Known open items
 
-- **Payment integration built but not yet live.** M-Pesa + Card via
-  E-Payments is fully wired (see `docs/PAYMENT_INTEGRATION.md`) but needs:
-  (1) supplements.ke registered as its own merchant on E-Payments with its
-  own credentials, (2) `EPAYMENTS_API_KEY`/`EPAYMENTS_WEBHOOK_SECRET` set in
-  Railway, (3) end-to-end sandbox testing of both M-Pesa and Card, (4)
-  explicit approval before switching to live credentials, verified with one
-  real small-value M-Pesa charge. Flag to the owner before assuming
-  checkout takes real payments today. The reconciliation cron
-  (`scripts/reconcile-epayments.ts`) also isn't yet provisioned as actual
-  Railway infrastructure (a scheduled Cron Job service) — script exists,
-  nothing runs it on a schedule yet.
+- **Payments are live; follow-ups only.** Real M-Pesa and card checkout work
+  and were verified with real money (see §2a and
+  `docs/PAYMENT_INTEGRATION.md` §5a). Still to do: confirm the new order
+  description appears correctly in E-Payments' email after the next deploy,
+  and confirm the hardened confirmation email renders properly in a real
+  Gmail dark-mode inbox (a KES 1 M-Pesa test covers both).
+- **Reconciliation cron doesn't send its own confirmation email.** The cron
+  service only has `DATABASE_URL`, `EPAYMENTS_API_URL` and
+  `EPAYMENTS_API_KEY`. If the cron (rather than the webhook or the customer's
+  own browser poll) is the one that confirms an order, the confirmation email
+  is attempted without `RESEND_API_KEY` and silently skipped. Fix: add
+  `RESEND_API_KEY` to the cron service's variables in `.railway/railway.ts`
+  (needs go-ahead, then a `railway config apply`).
+- **Railway CLI permission gap (unresolved).** From 01/10/2026 `railway
+  redeploy`, the deploy API mutation, and (as of 02/10/2026) `railway config
+  plan` return "You do not have access to this resource" for this project,
+  while read-only commands (`status`, `logs`, `variables`) still work and
+  git-push deploys are unaffected. Likely a workspace role limit on the
+  account rather than a bug; check Workspace Settings → Members for the
+  account's role. Matters mainly because it blocks previewing or applying
+  infrastructure-as-code changes from the CLI.
 - **Upload persistence across deploys is unverified.** Admin-uploaded
   images fall back to the container's local filesystem unless a Railway
   Volume is attached (`RAILWAY_VOLUME_MOUNT_PATH`) — not confirmed either
@@ -145,12 +215,10 @@ env var store for what else may be configured there (e.g.
 - **Is a Railway Volume attached to this service?** Determines whether
   admin-uploaded images (blog, category) survive a redeploy. This is the
   single most actionable unknown in this file — see §3.
-- **Has supplements.ke been registered as its own merchant on E-Payments
-  yet?** The integration is built and waiting on this — see
-  `docs/PAYMENT_INTEGRATION.md` §4. Needed before any sandbox testing can
-  start.
-- Once sandbox-tested, when should live M-Pesa/Paystack credentials be
-  switched on? Needs the owner's explicit go-ahead, not an assumption.
+- Should the reconciliation cron also get `RESEND_API_KEY` so it can send
+  confirmation emails when it is the path that confirms an order? (See §3.)
+- What is this Railway account's workspace role, and can it be raised so
+  `railway config plan`/`redeploy` work again? (See §3.)
 - Should the ~35 files with hardcoded Kenya/Nairobi copy be migrated to
   `getSiteSettings()`, given this codebase's role as the original
   template? Not urgent for the live site, but worth a decision if this

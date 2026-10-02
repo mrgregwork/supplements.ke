@@ -149,6 +149,53 @@ the M-Pesa "waiting for payment" screen and the Card return page), and
    already-paid order if it fails: an order-confirmation email via
    `server/email.ts`'s `sendOrderConfirmationEmail` (Resend).
 
+### 2.5 Transactional emails (login code and order confirmation)
+
+There are **two different "payment received" emails**, from two different
+senders — don't confuse them:
+
+- **Ours:** the order confirmation sent by `sendOrderConfirmationEmail()`
+  (via Resend, from `noreply@supplements.ke`, domain verified in Resend),
+  built from `src/lib/emailTemplate.ts`. We control everything about it.
+- **E-Payments':** a separate "Payment received" email E-Payments itself
+  sends, built from the `description` we hand it (see §2.1). We only
+  control that through the `description` value.
+
+`src/lib/emailTemplate.ts` is the single shared shell for both of *our*
+emails (login code, order confirmation); `server/email.ts` only wraps it,
+never builds HTML itself. Standing rules for it:
+
+- **Colors match the live storefront.** `BRAND` in that file holds the exact
+  HSL values from `src/styles/global.css`'s `:root` (cream background,
+  emerald primary, gold accent). supplements.ke has no admin-configurable
+  theme system (cosmetics.ke reads its theme from the DB), so these are
+  fixed constants. **If the site's colors in `global.css` change, change
+  `BRAND` too** — nothing links them automatically.
+- **Hex is derived, never hand-typed.** Email clients need both `hsl(...)`
+  and a hex `bgcolor` attribute; the hex is computed from the `BRAND`
+  triplets so the two can't drift apart.
+- **Gmail dark-mode fix (do not regress).** An earlier cosmetics.ke version
+  was a bare fragment of `<div>`s with no `<html>`/`<head>`; Gmail's dark
+  mode repainted it, stripping the background colors and flattening text
+  to near-white (a washed-out, colourless email in production). The shell
+  is now a full HTML document with
+  `<meta name="color-scheme" content="light only">` and
+  `<meta name="supported-color-schemes" content="light only">`, which tells
+  mail clients to leave its palette alone.
+- **Table layout, not flexbox.** Several mobile mail apps ignore
+  `display:flex` and jam a flex row (e.g. the "Total" line) into one run;
+  `<table role="presentation">` renders consistently everywhere, with the
+  legacy `bgcolor` attribute as a fallback for clients that drop inline
+  `background-color`.
+- Product names are HTML-escaped before interpolation (they come from
+  admin-editable data).
+
+Ported from cosmetics.ke's `src/lib/emailTemplate.ts` on 03/10/2026. Verified
+by rendering both emails and checking for the `color-scheme` tags, the
+absence of any flex layout, and the derived hex palette; **not yet viewed in
+a real Gmail dark-mode inbox** — a real KES 1 order after deploy is the
+actual check.
+
 ---
 
 ## 3. Database tables involved
