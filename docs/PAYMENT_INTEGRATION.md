@@ -266,6 +266,14 @@ derivable from anything in this repo.
   30/09/2026 — `supplements-reconcile-epayments`, defined in
   `.railway/railway.ts`, `*/5 * * * *`, same pattern as cosmetics.ke's own.
   Confirmed running correctly via its own log output.
+  **Gotcha found 03/10/2026:** its `EPAYMENTS_API_URL`, `EPAYMENTS_API_KEY`
+  and `RESEND_API_KEY` must be set directly on the cron service, not as
+  `ref()` links to the web service — because the web service is named
+  `supplements.ke` (with a dot), such links resolve to empty strings. "0
+  stuck orders found" in the logs does NOT prove the cron's keys work, as it
+  only needs them when something is actually stuck. After rotating any of
+  those keys on the web service, update the cron's copy as well. See
+  `docs/ROADMAP.md`.
 
 ---
 

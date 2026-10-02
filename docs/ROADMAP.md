@@ -145,21 +145,30 @@ against the real production site, not just pushed.
   description appears correctly in E-Payments' email after the next deploy,
   and confirm the hardened confirmation email renders properly in a real
   Gmail dark-mode inbox (a KES 1 M-Pesa test covers both).
-- **Reconciliation cron doesn't send its own confirmation email.** The cron
-  service only has `DATABASE_URL`, `EPAYMENTS_API_URL` and
-  `EPAYMENTS_API_KEY`. If the cron (rather than the webhook or the customer's
-  own browser poll) is the one that confirms an order, the confirmation email
-  is attempted without `RESEND_API_KEY` and silently skipped. Fix: add
-  `RESEND_API_KEY` to the cron service's variables in `.railway/railway.ts`
-  (needs go-ahead, then a `railway config apply`).
-- **Railway CLI permission gap (unresolved).** From 01/10/2026 `railway
-  redeploy`, the deploy API mutation, and (as of 02/10/2026) `railway config
-  plan` return "You do not have access to this resource" for this project,
-  while read-only commands (`status`, `logs`, `variables`) still work and
-  git-push deploys are unaffected. Likely a workspace role limit on the
-  account rather than a bug; check Workspace Settings → Members for the
-  account's role. Matters mainly because it blocks previewing or applying
-  infrastructure-as-code changes from the CLI.
+- **Reconciliation cron email key — fixed 03/10/2026.** The cron originally
+  had only `DATABASE_URL`, `EPAYMENTS_API_URL` and `EPAYMENTS_API_KEY`, so an
+  order the cron (rather than the webhook or the customer's own browser poll)
+  confirmed would have skipped the confirmation email silently. `RESEND_API_KEY`
+  was added, **but a follow-up check the same day found that all three
+  variables the cron borrowed from the web service
+  (`EPAYMENTS_API_URL`, `EPAYMENTS_API_KEY`, `RESEND_API_KEY`) were reading
+  back empty** — the cron had only ever looked healthy because it found "0
+  stuck orders", so it never needed them. Cause: a `ref()` to the service
+  named `supplements.ke` resolves to an empty string (apparently the dot in
+  the name; the same pattern works on a service with no dot). Fixed
+  03/10/2026 by setting the three values directly on the cron service (copied
+  from the web service, now identical) and marking them `preserve()` in
+  `.railway/railway.ts`. **If any of those three change on the web service
+  (key rotation, new Resend key), copy the new value to the cron service too**
+  — nothing links them any more. Still to confirm: a real order resolved by
+  the cron, and the next cron run in `railway logs` showing no E-Payments
+  errors.
+- **Railway CLI permission gap — partly cleared.** From 01/10/2026 `railway
+  redeploy`, the deploy API mutation and `railway config plan` returned "You
+  do not have access to this resource" for this project. By 03/10/2026
+  `railway config plan` and `railway config apply` work again; `redeploy`
+  has not been re-tested. Cause never identified (likely a workspace role
+  limit that has since changed). Git-push deploys were never affected.
 - **Upload persistence across deploys is unverified.** Admin-uploaded
   images fall back to the container's local filesystem unless a Railway
   Volume is attached (`RAILWAY_VOLUME_MOUNT_PATH`) — not confirmed either
@@ -215,10 +224,8 @@ env var store for what else may be configured there (e.g.
 - **Is a Railway Volume attached to this service?** Determines whether
   admin-uploaded images (blog, category) survive a redeploy. This is the
   single most actionable unknown in this file — see §3.
-- Should the reconciliation cron also get `RESEND_API_KEY` so it can send
-  confirmation emails when it is the path that confirms an order? (See §3.)
-- What is this Railway account's workspace role, and can it be raised so
-  `railway config plan`/`redeploy` work again? (See §3.)
+- Does `railway redeploy` work again now that `config plan`/`apply` do?
+  (See §3.)
 - Should the ~35 files with hardcoded Kenya/Nairobi copy be migrated to
   `getSiteSettings()`, given this codebase's role as the original
   template? Not urgent for the live site, but worth a decision if this

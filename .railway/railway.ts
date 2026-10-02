@@ -31,8 +31,19 @@ export default defineRailway(() => {
     },
     env: {
       DATABASE_URL: ref(Postgres, "DATABASE_URL"),
-      EPAYMENTS_API_URL: ref(supplementsKe, "EPAYMENTS_API_URL"),
-      EPAYMENTS_API_KEY: ref(supplementsKe, "EPAYMENTS_API_KEY"),
+      // These three are set directly on this service (copied from the web
+      // service 03/10/2026), NOT as ref(supplementsKe, ...): a reference to
+      // the service named "supplements.ke" resolves to an empty string,
+      // apparently because of the dot in the name (confirmed: the same
+      // pattern works on a service with no dot, and a ref() here read back
+      // as length 0). preserve() stops `railway config apply` overwriting
+      // them. If any of these change on the web service, update them here too.
+      EPAYMENTS_API_URL: preserve(),
+      EPAYMENTS_API_KEY: preserve(),
+      // finalizePendingOrder() sends the order confirmation email after it
+      // confirms a payment; when the cron is the one that resolves the order
+      // it needs this too, or the customer silently gets no email.
+      RESEND_API_KEY: preserve(),
     },
   });
 
