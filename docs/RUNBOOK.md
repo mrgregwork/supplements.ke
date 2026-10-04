@@ -200,6 +200,49 @@ live:
 - If something looks stale or broken, check the Railway dashboard's
   Deployments tab for the build/deploy log before assuming it's a code bug.
 
+### 5a. Cloning this repo into a brand new Railway project (template use)
+
+This codebase is meant to be clone-worthy (see `CLAUDE.md` → "Template
+principles") — but a clone's very first build can fail with a Railway error
+that has nothing to do with the code itself. **Found live 04/10/2026** when
+`proteinpowder.co.ke` was cloned from this repo:
+
+> Railpack failed to prepare the build... Check that the repo root contains
+> your app source and a manifest file such as package.json, or set the Root
+> Directory if the app lives in a subfolder, then redeploy.
+
+**Root cause, found and fixed 04/10/2026:** Railway's `builder` value in
+`railway.toml` is case-sensitive and must be written in capitals
+(`"DOCKERFILE"`) — this repo's file had it as `"dockerfile"` (lowercase).
+Railway silently treats an unrecognised value as if the field weren't set at
+all, so it falls back to its own auto-detect builder, **Railpack**, instead
+of the `Dockerfile` this repo actually needs. This was invisible on the
+live `supplements.ke` service because someone had also set the Builder by
+hand in the Railway dashboard at some point, and a dashboard setting quietly
+overrides the file — but a **brand-new** service created by cloning this
+repo has no such dashboard setting yet, so it reads the file fresh, doesn't
+recognise the lowercase value, and fails exactly like this. The file is now
+fixed (`builder = "DOCKERFILE"`), so this specific cause should no longer
+hit the next clone.
+
+**Even so, don't assume the builder is correct on a brand-new clone without
+checking** — Railway has other, separately-reported cases where it picks
+Railpack over an existing Dockerfile regardless of config, so treat the fix
+above as reducing the odds, not eliminating them. On the new (cloned)
+project, not this one:
+
+1. Open the new project's web service → **Settings → Build**.
+2. Confirm **Builder** actually shows **Dockerfile**. If it doesn't, set it
+   explicitly rather than trusting auto-detection.
+3. Confirm **Root Directory** is blank — this repo's `Dockerfile` and
+   `package.json` both live at the repo root, not in a subfolder.
+4. Redeploy.
+
+If it still fails after that, double-check the new project's GitHub repo
+actually has `Dockerfile` and `package.json` sitting at its top level — a
+"clone" done by downloading and re-uploading a zip can occasionally drop a
+file like that.
+
 ---
 
 ## 6. Testing & cleanup — recognisable test data

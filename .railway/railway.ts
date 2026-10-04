@@ -9,7 +9,7 @@ export default defineRailway(() => {
     replicas: { "us-west2": 1 },
     domains: [{ domain: "supplements.ke", port: 5000 }],
     networking: { privateNetworkEndpoint: "supplementske" },
-    env: { DATABASE_URL: preserve(), EPAYMENTS_API_KEY: preserve(), EPAYMENTS_API_URL: preserve(), EPAYMENTS_WEBHOOK_SECRET: preserve(), RESEND_API_KEY: preserve(), SESSION_SECRET: preserve() },
+    env: { DATABASE_URL: ref(Postgres, "DATABASE_URL"), EPAYMENTS_API_KEY: preserve(), EPAYMENTS_API_URL: preserve(), EPAYMENTS_WEBHOOK_SECRET: preserve(), RESEND_API_KEY: preserve(), SESSION_SECRET: preserve() },
   });
 
   // Reconciles stuck M-Pesa/Card checkouts -- E-Payments' webhook makes
