@@ -62,6 +62,13 @@ export default function CartView({ initialItems, initialSubtotal }: CartViewProp
     try {
       const res = await fetch(`/api/cart/${itemId}`, {
         method: 'DELETE',
+        // Astro's built-in CSRF origin-check (astro/dist/core/app/middlewares.js)
+        // blocks any non-GET request that has neither a matching Origin header
+        // nor a Content-Type header at all -- a bodyless DELETE sends neither,
+        // so every one of these calls 403'd in production regardless of
+        // same-origin, real-browser traffic. A Content-Type on its own (as
+        // long as it's not a form-like one) is enough to satisfy the check.
+        headers: { 'Content-Type': 'application/json' },
       });
 
       if (res.ok) {

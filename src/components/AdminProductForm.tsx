@@ -423,7 +423,7 @@ export default function AdminProductForm({ product, isNew }: AdminProductFormPro
     if (!confirm("Are you sure you want to delete this product? This action cannot be undone.")) return;
     setLoading(true);
     try {
-      const response = await fetch(`/api/admin/products/${product!.id}`, { method: "DELETE" });
+      const response = await fetch(`/api/admin/products/${product!.id}`, { method: "DELETE", headers: { "Content-Type": "application/json" } });
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || "Failed to delete product");

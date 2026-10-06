@@ -154,7 +154,7 @@ function formatDate(d: Date | null | undefined) {
     deleteConfirm.disabled = true;
     deleteConfirm.textContent = 'Deleting...';
     try {
-      const res = await fetch(`/api/admin/blog/${pendingDeleteId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/admin/blog/${pendingDeleteId}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } });
       if (res.ok) {
         window.location.reload();
       } else {

@@ -452,7 +452,7 @@ const categoriesJson = JSON.stringify(categories.map(c => ({
     deleteConfirm.disabled = true;
     deleteConfirm.textContent = 'Deleting...';
     try {
-      const res = await fetch(`/api/admin/blog/categories/${pendingDeleteId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/admin/blog/categories/${pendingDeleteId}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } });
       if (res.ok) {
         window.location.reload();
       } else {

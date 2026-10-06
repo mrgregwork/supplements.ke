@@ -340,7 +340,7 @@ const allAttributes = await getAllAttributeDefinitions();
       if (!confirm('Are you sure you want to delete this attribute?')) return;
       
       try {
-        const res = await fetch(`/api/admin/attributes/${id}`, { method: 'DELETE' });
+        const res = await fetch(`/api/admin/attributes/${id}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } });
         if (res.ok) {
           window.location.reload();
         } else {

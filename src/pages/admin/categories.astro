@@ -238,7 +238,7 @@ const categoryTree = allCategories.map(cat => ({
         ? `/api/admin/categories/${pendingDeleteId}` 
         : `/api/admin/subcategories/${pendingDeleteId}`;
         
-      const res = await fetch(endpoint, { method: 'DELETE' });
+      const res = await fetch(endpoint, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } });
       
       if (res.ok) {
         window.location.reload();
