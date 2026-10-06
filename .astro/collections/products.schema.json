@@ -30,7 +30,7 @@
         },
         "currency": {
           "type": "string",
-          "default": "USD"
+          "default": "KES"
         },
         "images": {
           "type": "array",
