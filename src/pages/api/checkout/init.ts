@@ -7,6 +7,8 @@ import { getCartSessionId, getCartItems, clearCart } from "@lib/cart";
 import { initiateMpesaStkPush, initiatePaystackCharge } from "@lib/epayments";
 import { generateOrderCode } from "@lib/orderCode";
 import { buildOrderDescription } from "@lib/orderDescription";
+import { isDisposableEmail } from "@lib/disposableEmailDomains";
+import { checkCheckoutRateLimit, getClientIp } from "@lib/checkoutRateLimit";
 import siteSettings from "@config/siteSettings.json";
 
 // Real checkout entry point -- replaces the "Demo Mode" flow in the old
@@ -99,6 +101,17 @@ async function insertGuestCustomer(email: string, phone: string | null) {
 
 export const POST: APIRoute = async ({ request }) => {
   try {
+    // Velocity check first, before even parsing the body -- cheapest
+    // possible rejection for a bot hammering this endpoint.
+    const clientIp = getClientIp(request);
+    const rateLimitResult = checkCheckoutRateLimit(clientIp);
+    if (!rateLimitResult.allowed) {
+      return new Response(
+        JSON.stringify({ error: "Too many checkout attempts. Please wait a few minutes and try again." }),
+        { status: 429, headers: { "Content-Type": "application/json", "Retry-After": String(rateLimitResult.retryAfterSeconds) } },
+      );
+    }
+
     const body = await request.json();
     const parseResult = initSchema.safeParse(body);
     if (!parseResult.success) {
@@ -107,6 +120,13 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     const { email, phone, shippingAddress, notes, customerId, paymentMethod } = parseResult.data;
+
+    if (isDisposableEmail(email)) {
+      return new Response(
+        JSON.stringify({ error: "Please use a permanent email address to complete checkout." }),
+        { status: 400, headers: { "Content-Type": "application/json" } },
+      );
+    }
 
     if (paymentMethod === "mpesa" && !phone) {
       return new Response(JSON.stringify({ error: "Phone number is required for M-Pesa" }), { status: 400, headers: { "Content-Type": "application/json" } });
