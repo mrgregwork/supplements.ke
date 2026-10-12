@@ -416,3 +416,49 @@ read only — this repo never edits that codebase) state
 fix used the longer `ORD-...` format and would have silently exceeded that
 cap. Same fix ported to cosmetics.ke the same day; see its own
 `docs/PAYMENT_INTEGRATION.md` §6.7.
+
+---
+
+## 7. Common gateway decline reasons and how to respond
+
+E-Payments surfaces the underlying card network's decline reason more or
+less verbatim in its response/webhook message. These aren't bugs in this
+codebase — they're real decisions made by the card network, the issuing
+bank, or the cardholder's own 3DS enrollment status, and no code change
+here can fix them. The right response is almost always "tell the customer
+to contact their bank," not a debugging session. Recognising the pattern
+quickly avoids wasting time treating a normal decline as an integration
+bug.
+
+### 7.1 "The card holder was not authorised" — 3-D Secure (3DS) failure
+
+Full example message seen from E-Payments:
+
+> The transaction failed due to the error: The card holder was not
+> authorised. This is related to 3-D Secure Authentication (3DS). In this
+> case, 3DS authentication was attempted, but the customer's card isn't
+> enrolled.
+
+**What this means**: 3DS (3-D Secure, branded as "Verified by Visa" or
+"Mastercard SecureCode"/"Mastercard Identity Check") is an extra
+authentication step card networks require for card-not-present
+transactions, specifically to reduce fraud. Paystack (the card rail behind
+E-Payments' card checkout) attempted 3DS authentication for this card, but
+the card itself isn't enrolled in its network's 3DS programme, so the bank
+rejected the authentication step and declined the charge. This is not a
+Paystack/E-Payments/this codebase problem, a wrong amount, or a bad
+integration — it's the card's own enrollment status.
+
+**How to respond, if a customer or admin reports this**: advise the
+customer to contact their card-issuing bank and ask to be enrolled in
+Verified by Visa (Visa cards) or Mastercard SecureCode / Identity Check
+(Mastercard cards). Once their bank enrols the card, 3DS-required
+transactions should complete normally. Alternatively, the customer can try
+a different card, or use M-Pesa instead if that fits the order.
+
+**Nothing to fix in code for this.** The normal checkout-finalize failure
+path already handles it like any other declined/failed charge — the
+pending-order row gets marked failed with E-Payments' message preserved,
+no real order row is created, and the customer can simply retry checkout
+(subject to the checkout rate limiter, see the disposable-email/bot-
+protection notes in the main `CLAUDE.md`).
