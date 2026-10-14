@@ -3,6 +3,7 @@ import BaseLayout from '@layouts/BaseLayout.astro';
 import { getCustomer, getSessionByToken, getCustomerOrders } from '@lib/auth';
 import siteSettings from '@config/siteSettings.json';
 import { generateBreadcrumbSchema } from '@lib/schema';
+import { formatPrice } from '@lib/currency';
 
 const sessionToken = Astro.cookies.get('session')?.value;
 let customer = null;
@@ -154,7 +155,7 @@ const structuredData = {
                     </span>
                   </td>
                   <td class="py-3 px-2 text-right font-medium">
-                    {order.currency} {order.total.toFixed(2)}
+                    {formatPrice(order.total, order.currency)}
                   </td>
                 </tr>
               ))}

@@ -2,6 +2,7 @@
 import BaseLayout from "@layouts/BaseLayout.astro";
 import AdminSidebar from "@components/AdminSidebar.astro";
 import { getAdminSessionToken, verifyAdminSession, getAllProducts } from "@lib/admin";
+import { formatPrice } from "@lib/currency";
 
 const sessionToken = getAdminSessionToken(Astro.request);
 const sessionData = await verifyAdminSession(sessionToken);
@@ -111,7 +112,7 @@ const products = await getAllProducts();
                   />
                   <div class="flex-1 min-w-0">
                     <p class="font-medium truncate">{product.name}</p>
-                    <p class="text-sm text-muted-foreground">${product.price.toFixed(2)}</p>
+                    <p class="text-sm text-muted-foreground">{formatPrice(product.price, product.currency)}</p>
                     <div class="flex gap-1.5 mt-1">
                       <span class={`inline-block px-2 py-0.5 text-xs rounded-full ${
                         (product as any).status === 'draft' 
@@ -181,10 +182,10 @@ const products = await getAllProducts();
                         <span class="text-muted-foreground">{product.categorySlug}</span> / {product.subcategorySlug}
                       </td>
                       <td class="py-4 px-4 lg:px-6">
-                        <span class="font-medium">${product.price.toFixed(2)}</span>
+                        <span class="font-medium">{formatPrice(product.price, product.currency)}</span>
                         {product.originalPrice && (
                           <span class="text-xs text-muted-foreground line-through ml-2">
-                            ${product.originalPrice.toFixed(2)}
+                            {formatPrice(product.originalPrice, product.currency)}
                           </span>
                         )}
                       </td>

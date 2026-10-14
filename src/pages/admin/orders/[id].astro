@@ -1,6 +1,7 @@
 ---
 import BaseLayout from "@layouts/BaseLayout.astro";
 import AdminSidebar from "@components/AdminSidebar.astro";
+import { formatPrice } from "@lib/currency";
 import AdminOrderStatusForm from "@components/AdminOrderStatusForm";
 import { getAdminSessionToken, verifyAdminSession, getOrderWithItems } from "@lib/admin";
 
@@ -79,10 +80,10 @@ const statusColors: Record<string, string> = {
                   <div class="flex-1">
                     <p class="font-medium">{item.productName}</p>
                     <p class="text-sm text-muted-foreground">
-                      {order.currency} {item.unitPrice.toFixed(2)} × {item.quantity}
+                      {formatPrice(item.unitPrice, order.currency)} × {item.quantity}
                     </p>
                   </div>
-                  <p class="font-medium">{order.currency} {item.totalPrice.toFixed(2)}</p>
+                  <p class="font-medium">{formatPrice(item.totalPrice, order.currency)}</p>
                 </div>
               ))}
             </div>
@@ -90,19 +91,19 @@ const statusColors: Record<string, string> = {
               <div class="space-y-1">
                 <div class="flex justify-between text-sm">
                   <span>Subtotal</span>
-                  <span>{order.currency} {order.subtotal.toFixed(2)}</span>
+                  <span>{formatPrice(order.subtotal, order.currency)}</span>
                 </div>
                 <div class="flex justify-between text-sm">
                   <span>Shipping</span>
-                  <span>{order.currency} {order.shipping.toFixed(2)}</span>
+                  <span>{formatPrice(order.shipping, order.currency)}</span>
                 </div>
                 <div class="flex justify-between text-sm">
                   <span>Tax</span>
-                  <span>{order.currency} {order.tax.toFixed(2)}</span>
+                  <span>{formatPrice(order.tax, order.currency)}</span>
                 </div>
                 <div class="flex justify-between font-semibold text-lg pt-2 border-t">
                   <span>Total</span>
-                  <span>{order.currency} {order.total.toFixed(2)}</span>
+                  <span>{formatPrice(order.total, order.currency)}</span>
                 </div>
               </div>
             </div>
@@ -139,7 +140,7 @@ const statusColors: Record<string, string> = {
                   <span class="text-muted-foreground shrink-0">
                     {order.mpesaReceiptNumber ? "M-Pesa code" : order.cardReference ? "Card reference" : "Gateway reference"}
                   </span>
-                  <span class="font-mono text-xs break-all text-right">
+                  <span class="break-all text-right text-sm">
                     {order.mpesaReceiptNumber || order.cardReference || order.gatewayTransactionId}
                   </span>
                 </div>
