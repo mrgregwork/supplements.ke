@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "@layouts/BaseLayout.astro";
+import AdminSidebar from "@components/AdminSidebar.astro";
 import AdminOrderStatusForm from "@components/AdminOrderStatusForm";
 import { getAdminSessionToken, verifyAdminSession, getOrderWithItems } from "@lib/admin";
 
@@ -35,36 +36,10 @@ const statusColors: Record<string, string> = {
   title={`Order ${order.orderNumber} - Admin`}
   description="View order details"
 >
-  <div class="min-h-screen flex">
-    <aside class="w-64 bg-card border-r p-6">
-      <div class="mb-8">
-        <h1 class="text-xl font-bold">Admin Panel</h1>
-        <p class="text-sm text-muted-foreground">{adminEmail}</p>
-      </div>
-      
-      <nav class="space-y-2">
-        <a href="/admin" class="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-muted transition">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-          </svg>
-          Dashboard
-        </a>
-        <a href="/admin/orders" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary font-medium">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-          </svg>
-          Orders
-        </a>
-        <a href="/admin/products" class="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-muted transition">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-          </svg>
-          Products
-        </a>
-      </nav>
-    </aside>
-    
-    <main class="flex-1 p-8">
+  <div class="min-h-screen flex flex-col md:flex-row">
+    <AdminSidebar adminEmail={adminEmail} currentPage="orders" />
+
+    <main class="flex-1 p-4 md:p-8">
       <div class="mb-6">
         <a href="/admin/orders" class="text-primary hover:underline text-sm">
           ← Back to Orders
