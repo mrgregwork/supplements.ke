@@ -2,6 +2,7 @@
 import BaseLayout from "@layouts/BaseLayout.astro";
 import AdminLoginForm from "@components/AdminLoginForm";
 import { getAdminSessionToken, verifyAdminSession } from "@lib/admin";
+import { getSiteSettings } from "@lib/settings";
 
 const sessionToken = getAdminSessionToken(Astro.request);
 const sessionData = await verifyAdminSession(sessionToken);
@@ -9,16 +10,21 @@ const sessionData = await verifyAdminSession(sessionToken);
 if (sessionData) {
   return Astro.redirect("/admin");
 }
+
+// Same siteName source as AdminSidebar.astro/HeaderMega.astro, so a clone's
+// own branding shows up here too instead of a generic "Admin Login" --
+// matches the branded login heading pattern other properties already use.
+const siteSettings = await getSiteSettings();
 ---
 
 <BaseLayout 
-  title="Admin Login" 
+  title={`${siteSettings.siteName} Admin`}
   description="Login to the admin panel"
 >
   <main class="min-h-screen flex items-center justify-center bg-muted/30">
     <div class="bg-card rounded-lg border p-8 w-full max-w-md">
       <div class="text-center mb-6">
-        <h1 class="text-2xl font-bold">Admin Login</h1>
+        <h1 class="text-2xl font-bold">{siteSettings.siteName} <span class="text-primary">Admin</span></h1>
         <p class="text-muted-foreground">Sign in to manage your store</p>
       </div>
       
