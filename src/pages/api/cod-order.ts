@@ -71,6 +71,7 @@ export const POST: APIRoute = async ({ request }) => {
       orderId: order.id,
       productId: product.id,
       productName: product.name,
+      productImage: Array.isArray(product.images) ? (product.images[0] as string | undefined) ?? null : null,
       quantity: qty,
       unitPrice: parseFloat(unitPrice),
       totalPrice: subtotal,
