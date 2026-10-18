@@ -1,5 +1,5 @@
 import { Resend } from "resend";
-import { renderOtpEmailHtml, renderOrderConfirmationEmailHtml, type OrderConfirmationItem } from "../src/lib/emailTemplate";
+import { renderOtpEmailHtml, renderOrderConfirmationEmailHtml, renderOrderNotificationEmailHtml, type OrderConfirmationItem, type OrderNotificationAddress } from "../src/lib/emailTemplate";
 
 // Resend's constructor throws when no API key is present. Building it at module
 // scope meant a missing RESEND_API_KEY made this whole module fail to import,
@@ -18,6 +18,12 @@ function getResend(): Resend {
 
 const FROM_ADDRESS = "Supplements Kenya <noreply@supplements.ke>";
 
+// Sales inbox that should see every order placed on this store, in addition
+// to the customer's own confirmation. Specific to this business (not a
+// template default) -- not read from /admin/settings since it was requested
+// as a fixed address rather than an admin-configurable one.
+const SALES_NOTIFICATION_EMAIL = "sales@westerncosmetics.com";
+
 export async function sendOtpEmail(to: string, code: string): Promise<void> {
   const { error } = await getResend().emails.send({
     from: FROM_ADDRESS,
@@ -25,6 +31,33 @@ export async function sendOtpEmail(to: string, code: string): Promise<void> {
     subject: "Your Supplements Kenya Login Code",
     html: renderOtpEmailHtml(code),
     text: `Your Supplements Kenya login code is: ${code}\n\nThis code expires in 10 minutes. Do not share it with anyone.`,
+  });
+
+  if (error) {
+    throw new Error(`Resend email error: ${error.message}`);
+  }
+}
+
+export async function sendOrderNotificationEmail(params: {
+  orderNumber: string;
+  currency: string;
+  total: number;
+  items: OrderConfirmationItem[];
+  paymentMethod: string | null;
+  paymentStatus: string;
+  mpesaReceiptNumber: string | null;
+  cardReference: string | null;
+  customerEmail: string;
+  customerPhone: string | null;
+  shippingAddress: OrderNotificationAddress | null;
+  notes: string | null;
+}): Promise<void> {
+  const { error } = await getResend().emails.send({
+    from: FROM_ADDRESS,
+    to: SALES_NOTIFICATION_EMAIL,
+    subject: `New order - ${params.orderNumber}`,
+    html: renderOrderNotificationEmailHtml(params),
+    text: `New order: ${params.orderNumber}\nTotal: ${params.currency} ${params.total.toLocaleString()}\nCustomer: ${params.customerEmail}${params.customerPhone ? ` / ${params.customerPhone}` : ""}`,
   });
 
   if (error) {

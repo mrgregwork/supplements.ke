@@ -6,6 +6,7 @@ import type { APIRoute } from 'astro';
 import { db } from '../../../server/db';
 import { orders, orderItems, products } from '../../../shared/schema';
 import { eq } from 'drizzle-orm';
+import { sendOrderNotificationEmail } from '../../../server/email';
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -45,24 +46,28 @@ export const POST: APIRoute = async ({ request }) => {
     const firstName = nameParts[0] ?? name;
     const lastName = nameParts.slice(1).join(' ') || '-';
 
+    const shippingAddress = {
+      firstName,
+      lastName,
+      address1: address,
+      city,
+      postalCode: '',
+      country: 'Kenya',
+    };
+
     // Create order
     const [order] = await db.insert(orders).values({
       orderNumber,
       email: `cod+${phone.replace(/\D/g, '')}@supplements.ke`, // placeholder email for COD
       phone,
       status: 'pending',
+      paymentMethod: 'cod',
       subtotal,
       tax: 0,
       shipping,
       total,
       currency: cur,
-      shippingAddress: {
-        firstName,
-        lastName,
-        address1: address,
-        city,
-        country: 'Kenya',
-      },
+      shippingAddress,
       notes: whatsapp ? `WhatsApp: ${whatsapp}` : undefined,
     }).returning();
 
@@ -75,6 +80,26 @@ export const POST: APIRoute = async ({ request }) => {
       quantity: qty,
       unitPrice: parseFloat(unitPrice),
       totalPrice: subtotal,
+    });
+
+    // Best-effort -- a COD order has no real customer email to send a
+    // receipt to, but sales still needs to see it to arrange delivery.
+    sendOrderNotificationEmail({
+      orderNumber: order.orderNumber,
+      currency: cur,
+      total,
+      items: [{ productName: product.name, quantity: qty, totalPrice: subtotal }],
+      paymentMethod: 'cod',
+      paymentStatus: 'awaiting_payment',
+      mpesaReceiptNumber: null,
+      cardReference: null,
+      customerEmail: order.email,
+      customerPhone: phone,
+      shippingAddress,
+      notes: whatsapp ? `WhatsApp: ${whatsapp}` : null,
+    }).catch(() => {
+      // Deliberately swallowed -- an unconfigured/failing Resend send must
+      // never fail order placement.
     });
 
     return new Response(JSON.stringify({

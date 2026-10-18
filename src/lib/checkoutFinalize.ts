@@ -1,7 +1,7 @@
 import { db } from "../../server/db";
 import { orders, orderItems, pendingOrders } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
-import { sendOrderConfirmationEmail } from "../../server/email";
+import { sendOrderConfirmationEmail, sendOrderNotificationEmail } from "../../server/email";
 import { generateOrderCode } from "./orderCode";
 
 // The single place a checkout attempt gets turned into a real order. Called
@@ -172,6 +172,24 @@ export async function finalizePendingOrder(
   }).catch(() => {
     // Deliberately swallowed -- see comment above. A missing/unconfigured
     // RESEND_API_KEY must never fail an already-paid checkout.
+  });
+
+  // So the sales inbox sees every order as it's placed, not just the customer.
+  sendOrderNotificationEmail({
+    orderNumber: order.orderNumber,
+    currency: order.currency,
+    total: order.total,
+    items: itemsSnapshot,
+    paymentMethod: order.paymentMethod,
+    paymentStatus: "paid",
+    mpesaReceiptNumber: order.mpesaReceiptNumber,
+    cardReference: order.cardReference,
+    customerEmail: order.email,
+    customerPhone: order.phone,
+    shippingAddress: order.shippingAddress,
+    notes: order.notes,
+  }).catch(() => {
+    // Deliberately swallowed -- see comment above.
   });
 
   return {

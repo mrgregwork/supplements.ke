@@ -219,3 +219,87 @@ ${methodLabel ? `<p style="margin:20px 0 0; color:#6f6f78; font-size:13px; text-
 
   return shell(body);
 }
+
+// Internal "a new order came in" alert for the store's own sales inbox --
+// distinct from renderOrderConfirmationEmailHtml above, which is addressed
+// to the customer and deliberately omits their own contact/shipping details.
+// Sales needs exactly those details to act on the order (including a COD
+// order, which has no real customer email to send a receipt to at all), so
+// this is a separate template rather than just BCC-ing the customer-facing
+// one. Ported from cosmetics.ke's src/lib/emailTemplate.ts.
+export interface OrderNotificationAddress {
+  firstName: string;
+  lastName: string;
+  address1: string;
+  address2?: string;
+  city: string;
+  state?: string;
+  postalCode?: string;
+  country: string;
+}
+
+export interface OrderNotificationData extends OrderConfirmationData {
+  customerEmail: string;
+  customerPhone: string | null;
+  shippingAddress: OrderNotificationAddress | null;
+  notes: string | null;
+  paymentStatus: string;
+}
+
+function paymentStatusLabel(status: string): string {
+  if (status === "paid") return "Paid";
+  if (status === "awaiting_payment") return "Awaiting payment (cash on delivery)";
+  if (status === "failed") return "Payment failed";
+  return status;
+}
+
+export function renderOrderNotificationEmailHtml(order: OrderNotificationData): string {
+  const { colors } = BRAND;
+  const foregroundHex = hslToHex(colors.foreground);
+  const primaryHex = hslToHex(colors.primary);
+  const accentTintHex = hslToHex(withLightness(colors.accent, 95));
+
+  const methodLabel = paymentMethodLabel(order.paymentMethod);
+  const receiptLine = order.mpesaReceiptNumber
+    ? `M-Pesa Receipt: <strong style="color:${foregroundHex};">${escapeHtml(order.mpesaReceiptNumber)}</strong>`
+    : order.cardReference
+      ? `Reference: <strong style="color:${foregroundHex};">${escapeHtml(order.cardReference)}</strong>`
+      : null;
+
+  const address = order.shippingAddress;
+  const addressLines = address
+    ? [
+        `${escapeHtml(address.firstName)} ${escapeHtml(address.lastName)}`,
+        escapeHtml(address.address1),
+        address.address2 ? escapeHtml(address.address2) : null,
+        `${escapeHtml(address.city)}${address.state ? `, ${escapeHtml(address.state)}` : ""}${address.postalCode ? ` ${escapeHtml(address.postalCode)}` : ""}`,
+        escapeHtml(address.country),
+      ].filter(Boolean)
+    : [];
+
+  const body = `
+<table role="presentation" align="center" cellpadding="0" cellspacing="0" style="margin:0 auto 20px;">
+<tr>
+<td style="background-color:#e9f0fb; border-radius:20px; padding:8px 18px;" bgcolor="#e9f0fb">
+<span style="color:#1d4ed8; font-size:14px; font-weight:bold; font-family:${FONT};">New order received</span>
+</td>
+</tr>
+</table>
+<p style="margin:0 0 24px; color:${foregroundHex}; font-size:15px; text-align:center; font-family:${FONT};">Order <strong>${escapeHtml(order.orderNumber)}</strong></p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
+${itemRows(order.items, order.currency, foregroundHex)}
+</table>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:${accentTintHex}; border-radius:8px; margin-bottom:20px;" bgcolor="${accentTintHex}">
+<tr>
+<td style="padding:14px 16px; color:${primaryHex}; font-size:15px; font-weight:bold; font-family:${FONT};">Total</td>
+<td style="padding:14px 16px; color:${primaryHex}; font-size:15px; font-weight:bold; font-family:${FONT}; text-align:right;">${escapeHtml(order.currency)} ${order.total.toLocaleString()}</td>
+</tr>
+</table>
+<p style="margin:0 0 4px; color:${foregroundHex}; font-size:13px; font-family:${FONT};"><strong>Payment:</strong> ${escapeHtml(paymentStatusLabel(order.paymentStatus))}${methodLabel ? ` via ${escapeHtml(methodLabel)}` : ""}</p>
+${receiptLine ? `<p style="margin:0 0 16px; color:${foregroundHex}; font-size:13px; font-family:${FONT};">${receiptLine}</p>` : ""}
+<p style="margin:16px 0 4px; color:${foregroundHex}; font-size:13px; font-family:${FONT};"><strong>Customer:</strong> ${escapeHtml(order.customerEmail)}${order.customerPhone ? ` &middot; ${escapeHtml(order.customerPhone)}` : ""}</p>
+${addressLines.length ? `<p style="margin:0 0 16px; color:#6f6f78; font-size:13px; font-family:${FONT}; line-height:1.5;">${addressLines.join("<br>")}</p>` : ""}
+${order.notes ? `<p style="margin:0; color:#6f6f78; font-size:13px; font-family:${FONT};"><strong>Notes:</strong> ${escapeHtml(order.notes)}</p>` : ""}`;
+
+  return shell(body);
+}
