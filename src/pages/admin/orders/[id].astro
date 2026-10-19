@@ -3,7 +3,9 @@ import BaseLayout from "@layouts/BaseLayout.astro";
 import AdminSidebar from "@components/AdminSidebar.astro";
 import { formatPrice } from "@lib/currency";
 import AdminOrderStatusForm from "@components/AdminOrderStatusForm";
+import AdminRefundPanel from "@components/AdminRefundPanel";
 import { getAdminSessionToken, verifyAdminSession, getOrderWithItems } from "@lib/admin";
+import { getRefundRequestsForOrder } from "@lib/refunds";
 import { getOrderCustomerDisplay } from "@lib/customerDisplay";
 
 const sessionToken = getAdminSessionToken(Astro.request);
@@ -21,6 +23,8 @@ const order = await getOrderWithItems(id!);
 if (!order) {
   return Astro.redirect("/admin/orders");
 }
+
+const refundRequests = await getRefundRequestsForOrder(order.id);
 
 const adminEmail = sessionData?.admin?.email || "Dev Mode";
 const customer = getOrderCustomerDisplay(order);
@@ -150,6 +154,15 @@ const statusColors: Record<string, string> = {
             </div>
           </div>
           )}
+
+          <AdminRefundPanel
+            client:load
+            orderId={order.id}
+            orderTotal={order.total}
+            currency={order.currency}
+            items={order.items}
+            refundRequests={refundRequests}
+          />
 
           <div class="bg-card border rounded-lg p-4">
             <h3 class="font-semibold mb-2">Customer</h3>

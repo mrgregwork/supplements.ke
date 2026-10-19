@@ -450,6 +450,53 @@ export type InsertOrderItem = z.infer<typeof insertOrderItemSchema>;
 export type OrderItem = typeof orderItems.$inferSelect;
 
 // ============================================
+// REFUND REQUESTS (manual request-and-track workflow)
+// ============================================
+// E-Payments has no API-key-authenticated refund endpoint for this merchant
+// (only a dashboard-session one) and no M-Pesa B2C disbursement is
+// configured, so this is deliberately NOT a gateway integration -- no code
+// here ever calls out to E-Payments to move money. It is a bookkeeping and
+// accountability tool: staff request a refund, send the money back
+// themselves out of band (M-Pesa, bank transfer, etc.), then mark the
+// request fulfilled with proof. Ported from shopusa.co.ke's own refund
+// workflow, which uses the identical model for the identical reason.
+export const refundRequests = pgTable("refund_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  orderId: varchar("order_id").notNull().references(() => orders.id, { onDelete: "cascade" }),
+  amount: real("amount").notNull(),
+  reason: text("reason").notNull(),
+  // Null means "whole order" / a custom amount not tied to specific line
+  // items. Snapshotted from order_items at request time rather than storing
+  // live references, so this stays accurate even if an item is later edited.
+  items: jsonb("items").$type<{
+    orderItemId: string;
+    productName: string;
+    quantity: number;
+    totalPrice: number;
+  }[]>(),
+  status: text("status").notNull().default("requested"), // requested | fulfilled | cancelled
+  requestedByEmail: text("requested_by_email").notNull(),
+  fulfilledByEmail: text("fulfilled_by_email"),
+  fulfilledAt: timestamp("fulfilled_at"),
+  fulfillmentReference: text("fulfillment_reference"),
+  fulfillmentNote: text("fulfillment_note"),
+  cancelledByEmail: text("cancelled_by_email"),
+  cancelledAt: timestamp("cancelled_at"),
+  cancellationReason: text("cancellation_reason"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertRefundRequestSchema = createInsertSchema(refundRequests).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertRefundRequest = z.infer<typeof insertRefundRequestSchema>;
+export type RefundRequest = typeof refundRequests.$inferSelect;
+
+// ============================================
 // RELATIONS
 // ============================================
 export const categoriesRelations = relations(categories, ({ many }) => ({
