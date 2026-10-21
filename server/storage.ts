@@ -2,6 +2,7 @@ import {
   users, customers, otpCodes, sessions, adminUsers,
   products, cartItems, orders, orderItems,
   categories, subcategories, attributeDefinitions, siteSettings,
+  brandSubcategories,
   navigationItems, homepageContent,
   blogPosts, blogCategories, contentPages,
   type User, type InsertUser,
@@ -15,6 +16,7 @@ import {
   type OrderItem, type InsertOrderItem,
   type Category, type InsertCategory,
   type Subcategory, type InsertSubcategory,
+  type BrandSubcategory, type InsertBrandSubcategory,
   type AttributeDefinition, type InsertAttributeDefinition,
   type SiteSetting, type InsertSiteSetting,
   type NavigationItem, type InsertNavigationItem,
@@ -313,6 +315,236 @@ export class DatabaseStorage implements IStorage {
       )
     ).orderBy(asc(products.name));
     return result;
+  }
+
+  async getAllBrands(): Promise<{ name: string; slug: string; count: number }[]> {
+    const rows = await db.execute(
+      sql`SELECT brand, COUNT(*)::int AS count
+          FROM products
+          WHERE status = 'active' AND brand IS NOT NULL AND brand != ''
+          GROUP BY brand
+          ORDER BY brand ASC`
+    );
+    return (rows.rows as { brand: string; count: number }[]).map(r => ({
+      name: r.brand,
+      slug: r.brand.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
+      count: r.count,
+    }));
+  }
+
+  // ── Duplicate detection ────────────────────────────────────────────────────
+  // Finds categories/subcategories that collide once case and punctuation are
+  // ignored, which is how the brand duplicates got in ("Dove" vs "DOVE"). Slug
+  // collisions are reported separately because the database permits duplicate
+  // subcategory slugs across different parents, which is legal but often a
+  // mistake worth seeing.
+  async findDuplicateCollections(): Promise<{
+    categoryGroups: Array<{ key: string; kind: 'name' | 'slug'; items: Array<{ id: string; name: string; slug: string; productCount: number }> }>;
+    subcategoryGroups: Array<{ key: string; kind: 'name' | 'slug'; items: Array<{ id: string; name: string; slug: string; parentName: string; productCount: number }> }>;
+  }> {
+    const normalise = (v: string) => (v || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+    const allCategories = await db.select().from(categories);
+    const allSubcategories = await db.select().from(subcategories);
+
+    const countsByCategory = await db.execute(
+      sql`SELECT category_id, COUNT(*)::int AS n FROM products WHERE category_id IS NOT NULL GROUP BY category_id`
+    );
+    const countsBySubcategory = await db.execute(
+      sql`SELECT subcategory_id, COUNT(*)::int AS n FROM products WHERE subcategory_id IS NOT NULL GROUP BY subcategory_id`
+    );
+    const catCount = new Map((countsByCategory.rows as any[]).map(r => [r.category_id, r.n]));
+    const subCount = new Map((countsBySubcategory.rows as any[]).map(r => [r.subcategory_id, r.n]));
+    const parentName = new Map(allCategories.map(c => [c.id, c.name]));
+
+    function groupBy<T>(items: T[], keyFn: (item: T) => string) {
+      const map = new Map<string, T[]>();
+      for (const item of items) {
+        const key = keyFn(item);
+        if (!key) continue;
+        if (!map.has(key)) map.set(key, []);
+        map.get(key)!.push(item);
+      }
+      return [...map.entries()].filter(([, group]) => group.length > 1);
+    }
+
+    const categoryGroups: any[] = [];
+    for (const [key, group] of groupBy(allCategories, c => normalise(c.name))) {
+      categoryGroups.push({
+        key, kind: 'name',
+        items: group.map(c => ({ id: c.id, name: c.name, slug: c.slug, productCount: catCount.get(c.id) || 0 })),
+      });
+    }
+    for (const [key, group] of groupBy(allCategories, c => normalise(c.slug))) {
+      // Skip if the same set was already reported as a name clash.
+      if (categoryGroups.some(g => g.items.every((i: any) => group.find(c => c.id === i.id)))) continue;
+      categoryGroups.push({
+        key, kind: 'slug',
+        items: group.map(c => ({ id: c.id, name: c.name, slug: c.slug, productCount: catCount.get(c.id) || 0 })),
+      });
+    }
+
+    const subcategoryGroups: any[] = [];
+    // Name clashes are only meaningful within the same parent category —
+    // "Serums" under Skincare and under Body Care are different collections.
+    for (const [key, group] of groupBy(allSubcategories, s => `${s.categoryId}::${normalise(s.name)}`)) {
+      subcategoryGroups.push({
+        key, kind: 'name',
+        items: group.map(s => ({
+          id: s.id, name: s.name, slug: s.slug,
+          parentName: parentName.get(s.categoryId) || 'Unknown',
+          productCount: subCount.get(s.id) || 0,
+        })),
+      });
+    }
+    for (const [key, group] of groupBy(allSubcategories, s => `${s.categoryId}::${normalise(s.slug)}`)) {
+      if (subcategoryGroups.some(g => g.items.every((i: any) => group.find(s => s.id === i.id)))) continue;
+      subcategoryGroups.push({
+        key, kind: 'slug',
+        items: group.map(s => ({
+          id: s.id, name: s.name, slug: s.slug,
+          parentName: parentName.get(s.categoryId) || 'Unknown',
+          productCount: subCount.get(s.id) || 0,
+        })),
+      });
+    }
+
+    return { categoryGroups, subcategoryGroups };
+  }
+
+  // ── Brand subcategories ────────────────────────────────────────────────────
+  // Candidate brand+subcategory pages. Most come from the catalogue automatically
+  // (derived rather than hand-maintained, so new combinations appear as products
+  // are imported), but a row created manually via setBrandSubcategoryActive
+  // (e.g. to publish ahead of inventory, or for a single product) must stay
+  // visible here too even if it never reaches minProducts — otherwise a manual
+  // entry becomes unmanageable the moment it's created. `enabled` reflects
+  // whether a page is actually live.
+  async getBrandSubcategoryCandidates(minProducts = 2): Promise<Array<{
+    brandName: string; brandSlug: string; subcategoryName: string; subcategorySlug: string;
+    count: number; enabled: boolean; manual: boolean;
+  }>> {
+    const rows = await db.execute(
+      sql`SELECT p.brand,
+                 p.subcategory_slug,
+                 COALESCE(s.name, p.subcategory_slug) AS subcategory_name,
+                 COUNT(*)::int AS count
+            FROM products p
+            LEFT JOIN subcategories s ON s.slug = p.subcategory_slug
+           WHERE p.status = 'active'
+             AND p.brand IS NOT NULL AND p.brand != ''
+             AND p.subcategory_slug IS NOT NULL AND p.subcategory_slug != ''
+           GROUP BY p.brand, p.subcategory_slug, s.name
+           ORDER BY p.brand ASC, COUNT(*) DESC`
+    );
+
+    const existing = await db.select().from(brandSubcategories);
+    const existingByKey = new Map(existing.map(e => [`${e.brandSlug}::${e.subcategorySlug}`, e]));
+
+    const byKey = new Map<string, {
+      brandName: string; brandSlug: string; subcategoryName: string; subcategorySlug: string;
+      count: number; enabled: boolean; manual: boolean;
+    }>();
+
+    for (const r of rows.rows as any[]) {
+      const brandSlug = String(r.brand).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      const key = `${brandSlug}::${r.subcategory_slug}`;
+      const row = existingByKey.get(key);
+      byKey.set(key, {
+        brandName: r.brand,
+        brandSlug,
+        subcategoryName: r.subcategory_name,
+        subcategorySlug: r.subcategory_slug,
+        count: r.count,
+        enabled: Boolean(row?.isActive),
+        manual: false,
+      });
+    }
+
+    // A row that exists in brand_subcategories but has no matching products yet
+    // (created manually, or products not tagged yet) isn't in the query above at
+    // all — surface it anyway with count 0 so it can still be seen and toggled.
+    for (const row of existing) {
+      const key = `${row.brandSlug}::${row.subcategorySlug}`;
+      if (!byKey.has(key)) {
+        byKey.set(key, {
+          brandName: row.brandName,
+          brandSlug: row.brandSlug,
+          subcategoryName: row.subcategoryName,
+          subcategorySlug: row.subcategorySlug,
+          count: 0,
+          enabled: row.isActive,
+          manual: true,
+        });
+      }
+    }
+
+    return [...byKey.values()]
+      .filter(c => c.count >= minProducts || c.manual || c.enabled)
+      .sort((a, b) => a.brandName.localeCompare(b.brandName) || b.count - a.count);
+  }
+
+  // Live (enabled) subcategories for one brand, for the brand page's own nav.
+  async getActiveBrandSubcategories(brandSlug: string): Promise<BrandSubcategory[]> {
+    return db.select().from(brandSubcategories)
+      .where(and(eq(brandSubcategories.brandSlug, brandSlug), eq(brandSubcategories.isActive, true)))
+      .orderBy(asc(brandSubcategories.sortOrder), asc(brandSubcategories.subcategoryName));
+  }
+
+  async getBrandSubcategory(brandSlug: string, subcategorySlug: string): Promise<BrandSubcategory | undefined> {
+    const [row] = await db.select().from(brandSubcategories)
+      .where(and(
+        eq(brandSubcategories.brandSlug, brandSlug),
+        eq(brandSubcategories.subcategorySlug, subcategorySlug),
+      ));
+    return row || undefined;
+  }
+
+  // Upsert on the (brandSlug, subcategorySlug) unique constraint so toggling is
+  // idempotent whether or not a row already exists.
+  async setBrandSubcategoryActive(data: InsertBrandSubcategory): Promise<BrandSubcategory> {
+    const [row] = await db.insert(brandSubcategories).values(data as any)
+      .onConflictDoUpdate({
+        target: [brandSubcategories.brandSlug, brandSubcategories.subcategorySlug],
+        set: {
+          isActive: data.isActive ?? false,
+          brandName: data.brandName,
+          subcategoryName: data.subcategoryName,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return row;
+  }
+
+  async updateBrandSubcategory(id: string, data: Partial<InsertBrandSubcategory>): Promise<BrandSubcategory | undefined> {
+    const [row] = await db.update(brandSubcategories)
+      .set({ ...data, updatedAt: new Date() } as any)
+      .where(eq(brandSubcategories.id, id))
+      .returning();
+    return row || undefined;
+  }
+
+  // Permanently removes a brand subcategory row (not just switching it off), so
+  // a mistake or test entry doesn't linger in the admin list forever.
+  async deleteBrandSubcategory(brandSlug: string, subcategorySlug: string): Promise<void> {
+    await db.delete(brandSubcategories).where(and(
+      eq(brandSubcategories.brandSlug, brandSlug),
+      eq(brandSubcategories.subcategorySlug, subcategorySlug),
+    ));
+  }
+
+  async getProductsByBrandAndSubcategory(brandSlug: string, subcategorySlug: string): Promise<Product[]> {
+    // Brand match mirrors getProductsByBrandSlug: compare with all
+    // non-alphanumerics stripped so "palmer-s" matches "Palmer's".
+    const normalized = brandSlug.replace(/[^a-z0-9]/g, '');
+    const rows = await db.select().from(products).where(
+      and(
+        sql`regexp_replace(lower(${products.brand}), '[^a-z0-9]', '', 'g') = ${normalized}`,
+        eq(products.subcategorySlug, subcategorySlug),
+      )
+    ).orderBy(asc(products.name));
+    return rows;
   }
 
   async getRelatedProducts(product: Product, limit = 4): Promise<Product[]> {

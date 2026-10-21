@@ -1,0 +1,377 @@
+---
+import BaseLayout from "@layouts/BaseLayout.astro";
+import AdminSidebar from "@components/AdminSidebar.astro";
+import { getAdminSessionToken, verifyAdminSession } from "@lib/admin";
+import { storage } from "@lib/storage";
+
+const sessionToken = getAdminSessionToken(Astro.request);
+const sessionData = await verifyAdminSession(sessionToken);
+
+const isDev = import.meta.env.DEV;
+if (!isDev && !sessionData) {
+  return Astro.redirect("/admin/login");
+}
+
+const adminEmail = sessionData?.admin?.email || "Dev Mode";
+
+// Candidates are derived from the catalogue, so this list grows on its own as
+// products are imported. Each row is off until switched on here.
+const candidates = await storage.getBrandSubcategoryCandidates(2);
+
+const grouped = new Map<string, typeof candidates>();
+for (const c of candidates) {
+  if (!grouped.has(c.brandName)) grouped.set(c.brandName, []);
+  grouped.get(c.brandName)!.push(c);
+}
+const brands = [...grouped.keys()].sort((a, b) => a.localeCompare(b));
+const enabledCount = candidates.filter(c => c.enabled).length;
+
+// Suggestions for the manual-create form. Not a constraint — this is completely
+// independent of the site's Categories/Subcategories taxonomy and of the product
+// catalogue, so any brand and any subcategory name can be typed freely, whether
+// or not either exists anywhere else on the site.
+const [allBrands, allSubcategories] = await Promise.all([
+  storage.getAllBrands(),
+  storage.getSubcategories(),
+]);
+const subcategoryNames = [...new Set(allSubcategories.map(s => s.name))].sort((a, b) => a.localeCompare(b));
+---
+
+<BaseLayout title="Brand Subcategories - Admin" description="Enable brand subcategory pages">
+  <div class="min-h-screen md:flex">
+    <AdminSidebar adminEmail={adminEmail} currentPage="brand-subcategories" />
+
+    <main class="flex-1 px-4 py-6 md:p-8 w-full overflow-x-hidden">
+      <h2 class="text-2xl font-bold mb-2">Brand Subcategories</h2>
+      <p class="text-sm text-muted-foreground mb-6 max-w-3xl">
+        Brand and subcategory combinations that can have a page at
+        <code class="text-xs">/brand/&lt;brand&gt;/&lt;subcategory&gt;/</code>. Most appear automatically
+        once your catalogue has 2+ matching products; use the form below to add one manually — ahead
+        of inventory, for a single product, or for a niche where this doesn't map to "brand" at all.
+        Pages that are off return 404, so nothing reaches Google until you enable it.
+      </p>
+
+      <div class="mb-6 text-sm">
+        <span class="font-medium" id="enabled-count">{enabledCount}</span>
+        <span class="text-muted-foreground">of {candidates.length} pages live</span>
+        <span id="save-status" class="ml-3 text-xs text-muted-foreground"></span>
+      </div>
+
+      <div class="bg-card border rounded-lg p-4 md:p-6 mb-8">
+        <h3 class="font-semibold mb-1">Add a brand</h3>
+        <p class="text-xs text-muted-foreground mb-4 max-w-2xl">
+          Fully manual, independent of the product catalogue and of this site's Categories/Subcategories
+          taxonomy — nothing needs to exist first. Type any brand name, then add as many subcategories
+          under it as you like (e.g. brand "ELF" with subcategories "Lipsticks", "Mascara", "Eyeliner").
+          Every page publishes immediately at <code class="text-xs">/brand/&lt;brand&gt;/&lt;subcategory&gt;/</code>,
+          and renders "no products found" until you tag matching products with this brand and subcategory —
+          it does not 404.
+        </p>
+        <form id="manual-create-form">
+          <div class="mb-4 max-w-sm">
+            <label class="block text-xs font-medium mb-1" for="manual-brand">Brand name</label>
+            <input
+              id="manual-brand"
+              name="brand"
+              type="text"
+              required
+              list="known-brands"
+              placeholder="e.g. ELF"
+              class="w-full border rounded-md px-3 py-2 text-sm bg-background"
+            />
+            <datalist id="known-brands">
+              {allBrands.map(b => <option value={b.name} />)}
+            </datalist>
+          </div>
+
+          <label class="block text-xs font-medium mb-1">Subcategories</label>
+          <div id="subcategory-rows" class="space-y-2 mb-2">
+            <div class="subcategory-row flex gap-2">
+              <input
+                type="text"
+                class="row-subcategory flex-1 min-w-[160px] border rounded-md px-3 py-2 text-sm bg-background"
+                list="known-subcategories"
+                placeholder="e.g. Lipsticks"
+              />
+              <button type="button" class="remove-row shrink-0 text-xs text-muted-foreground hover:text-red-500 px-2" aria-label="Remove">✕</button>
+            </div>
+            <datalist id="known-subcategories">
+              {subcategoryNames.map(name => <option value={name} />)}
+            </datalist>
+          </div>
+          <button type="button" id="add-subcategory-row" class="text-xs text-primary hover:underline mb-4">
+            + Add another subcategory
+          </button>
+
+          <div>
+            <button
+              type="submit"
+              class="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium hover:opacity-90"
+            >
+              Create &amp; publish
+            </button>
+          </div>
+        </form>
+        <p id="manual-create-status" class="text-xs mt-2"></p>
+      </div>
+
+      {candidates.length === 0 ? (
+        <div class="bg-card border rounded-lg p-8 text-center text-muted-foreground">
+          No brand subcategory combinations found yet. Import products with a brand and subcategory first.
+        </div>
+      ) : (
+        <div class="space-y-6">
+          {brands.map(brandName => (
+            <div class="bg-card border rounded-lg p-4 md:p-6">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="font-semibold">{brandName}</h3>
+                <button
+                  type="button"
+                  class="enable-all text-xs text-primary hover:underline"
+                  data-brand={brandName}
+                >
+                  Enable all
+                </button>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {grouped.get(brandName)!.map(c => (
+                  <label class="flex items-center gap-3 p-3 border rounded-md hover:bg-muted/40 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      class="brand-sub-toggle w-5 h-5 rounded border-gray-300"
+                      checked={c.enabled}
+                      data-brand-slug={c.brandSlug}
+                      data-brand-name={c.brandName}
+                      data-sub-slug={c.subcategorySlug}
+                      data-sub-name={c.subcategoryName}
+                    />
+                    <span class="flex-1 min-w-0">
+                      <span class="block text-sm font-medium truncate">
+                        {c.subcategoryName}
+                        {c.manual && <span class="ml-1 text-[10px] uppercase tracking-wide text-primary/80">manual</span>}
+                      </span>
+                      <span class="block text-xs text-muted-foreground">
+                        {c.count} product{c.count === 1 ? '' : 's'} · /brand/{c.brandSlug}/{c.subcategorySlug}/
+                      </span>
+                    </span>
+                    <a
+                      href={`/brand/${c.brandSlug}/${c.subcategorySlug}/`}
+                      target="_blank"
+                      rel="noopener"
+                      class="view-link text-xs text-primary hover:underline shrink-0"
+                      style={c.enabled ? '' : 'display:none'}
+                    >View</a>
+                    <button
+                      type="button"
+                      class="delete-row text-xs text-muted-foreground hover:text-red-500 shrink-0"
+                      data-brand-slug={c.brandSlug}
+                      data-sub-slug={c.subcategorySlug}
+                      data-sub-name={c.subcategoryName}
+                    >Delete</button>
+                  </label>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </main>
+  </div>
+</BaseLayout>
+
+<script>
+  const saveStatus = document.getElementById('save-status');
+  const enabledCountEl = document.getElementById('enabled-count');
+
+  function refreshCount() {
+    if (enabledCountEl) {
+      enabledCountEl.textContent = String(document.querySelectorAll('.brand-sub-toggle:checked').length);
+    }
+  }
+
+  function setStatus(text, isError) {
+    if (!saveStatus) return;
+    saveStatus.textContent = text;
+    saveStatus.className = isError ? 'ml-3 text-xs text-red-500' : 'ml-3 text-xs text-green-600';
+    if (!isError) setTimeout(() => { saveStatus.textContent = ''; }, 2500);
+  }
+
+  async function persist(checkbox) {
+    const body = {
+      brandSlug: checkbox.dataset.brandSlug,
+      brandName: checkbox.dataset.brandName,
+      subcategorySlug: checkbox.dataset.subSlug,
+      subcategoryName: checkbox.dataset.subName,
+      isActive: checkbox.checked,
+    };
+    const res = await fetch('/api/admin/brand-subcategories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || 'Save failed');
+    }
+    // Only reveal the View link once the page is actually live.
+    const link = checkbox.closest('label')?.querySelector('.view-link');
+    if (link) link.style.display = checkbox.checked ? '' : 'none';
+  }
+
+  document.querySelectorAll('.brand-sub-toggle').forEach(cb => {
+    cb.addEventListener('change', async () => {
+      const previous = !cb.checked;
+      try {
+        await persist(cb);
+        refreshCount();
+        setStatus('Saved', false);
+      } catch (err) {
+        // Roll the switch back so the UI never claims a state that wasn't stored.
+        cb.checked = previous;
+        refreshCount();
+        setStatus(err.message || 'Could not save', true);
+      }
+    });
+  });
+
+  function slugify(name) {
+    return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  }
+
+  document.querySelectorAll('.delete-row').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const brandSlug = btn.dataset.brandSlug;
+      const subcategorySlug = btn.dataset.subSlug;
+      const subcategoryName = btn.dataset.subName;
+      if (!confirm(`Delete "${subcategoryName}"? This removes the page entirely -- not just unpublishes it.`)) return;
+
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/admin/brand-subcategories', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ brandSlug, subcategorySlug }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || 'Delete failed');
+        }
+        const row = btn.closest('label');
+        const brandCard = row.closest('.bg-card');
+        row.remove();
+        refreshCount();
+        // Remove the whole brand card once it has no subcategories left.
+        if (brandCard && brandCard.querySelectorAll('.brand-sub-toggle').length === 0) {
+          brandCard.remove();
+        }
+      } catch (err) {
+        btn.disabled = false;
+        setStatus(err.message || 'Could not delete', true);
+      }
+    });
+  });
+
+  const manualForm = document.getElementById('manual-create-form');
+  const manualStatus = document.getElementById('manual-create-status');
+  const subcategoryRows = document.getElementById('subcategory-rows');
+  const addRowBtn = document.getElementById('add-subcategory-row');
+
+  function addSubcategoryRow() {
+    const row = document.createElement('div');
+    row.className = 'subcategory-row flex gap-2';
+    row.innerHTML = `
+      <input type="text" class="row-subcategory flex-1 min-w-[160px] border rounded-md px-3 py-2 text-sm bg-background" list="known-subcategories" placeholder="e.g. Mascara" />
+      <button type="button" class="remove-row shrink-0 text-xs text-muted-foreground hover:text-red-500 px-2" aria-label="Remove">✕</button>
+    `;
+    subcategoryRows.appendChild(row);
+    row.querySelector('.row-subcategory').focus();
+  }
+
+  addRowBtn?.addEventListener('click', addSubcategoryRow);
+
+  subcategoryRows?.addEventListener('click', (e) => {
+    if (!e.target.classList.contains('remove-row')) return;
+    const rows = subcategoryRows.querySelectorAll('.subcategory-row');
+    // Always leave at least one row so there's somewhere to type.
+    if (rows.length > 1) e.target.closest('.subcategory-row').remove();
+    else e.target.closest('.subcategory-row').querySelector('.row-subcategory').value = '';
+  });
+
+  manualForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const brandInput = document.getElementById('manual-brand');
+    const brandName = brandInput.value.trim();
+    const brandSlug = slugify(brandName);
+    const subcategoryNames = [...subcategoryRows.querySelectorAll('.row-subcategory')]
+      .map(i => i.value.trim())
+      .filter(Boolean);
+
+    if (!brandSlug) {
+      manualStatus.textContent = 'Enter a brand name.';
+      manualStatus.className = 'text-xs mt-2 text-red-500';
+      return;
+    }
+    if (subcategoryNames.length === 0) {
+      manualStatus.textContent = 'Add at least one subcategory.';
+      manualStatus.className = 'text-xs mt-2 text-red-500';
+      return;
+    }
+
+    const submitBtn = manualForm.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    manualStatus.className = 'text-xs mt-2 text-muted-foreground';
+
+    const created = [];
+    const failed = [];
+    for (const subcategoryName of subcategoryNames) {
+      const subcategorySlug = slugify(subcategoryName);
+      if (!subcategorySlug) continue;
+      manualStatus.textContent = `Creating ${brandName} / ${subcategoryName}...`;
+      try {
+        const res = await fetch('/api/admin/brand-subcategories', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ brandSlug, brandName, subcategorySlug, subcategoryName, isActive: true }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || 'Save failed');
+        }
+        created.push(subcategoryName);
+      } catch (err) {
+        failed.push(`${subcategoryName} (${err.message || 'failed'})`);
+      }
+    }
+
+    if (failed.length === 0) {
+      manualStatus.textContent = `Created ${created.length} page${created.length === 1 ? '' : 's'} for ${brandName} — reloading...`;
+      manualStatus.className = 'text-xs mt-2 text-green-600';
+      window.location.reload();
+    } else {
+      manualStatus.textContent = created.length > 0
+        ? `Created ${created.join(', ')}. Failed: ${failed.join(', ')}`
+        : `Failed: ${failed.join(', ')}`;
+      manualStatus.className = 'text-xs mt-2 text-red-500';
+      submitBtn.disabled = false;
+    }
+  });
+
+  document.querySelectorAll('.enable-all').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const card = btn.closest('.bg-card');
+      const boxes = [...card.querySelectorAll('.brand-sub-toggle')].filter(cb => !cb.checked);
+      if (boxes.length === 0) return;
+      btn.disabled = true;
+      let failed = 0;
+      for (const cb of boxes) {
+        cb.checked = true;
+        try { await persist(cb); } catch { cb.checked = false; failed++; }
+      }
+      refreshCount();
+      btn.disabled = false;
+      setStatus(failed ? `${failed} could not be saved` : 'Saved', Boolean(failed));
+    });
+  });
+</script>

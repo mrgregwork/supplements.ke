@@ -9,16 +9,20 @@ const { slug } = Astro.params;
 
 if (!slug) return Astro.redirect('/404');
 
-const [brandProducts, siteSettings] = await Promise.all([
+const [brandProducts, siteSettings, brandSubcategoryLinks] = await Promise.all([
   storage.getProductsByBrandSlug(slug),
   getSiteSettings(),
+  // Live subcategory pages for this brand (see /admin/brand-subcategories),
+  // so this page works like a category page: it links down into its own
+  // subcategories once an admin has published them.
+  storage.getActiveBrandSubcategories(slug),
 ]);
 
 if (brandProducts.length === 0) {
   return Astro.redirect('/404');
 }
 
-const brandName = brandProducts[0].brand ?? brandSearchName;
+const brandName = brandProducts[0].brand ?? slug;
 
 const breadcrumbItems = [
   { name: 'Home', href: '/' },
@@ -68,6 +72,19 @@ const structuredData = {
         Showing {brandProducts.length} {brandProducts.length === 1 ? 'product' : 'products'}
       </p>
     </div>
+
+    {brandSubcategoryLinks.length > 0 && (
+      <div class="mb-6 flex flex-wrap gap-2">
+        {brandSubcategoryLinks.map((sub) => (
+          <a
+            href={`/brand/${slug}/${sub.subcategorySlug}/`}
+            class="text-sm border rounded-full px-3 py-1 text-foreground hover:bg-muted transition"
+          >
+            {sub.heading || sub.subcategoryName}
+          </a>
+        ))}
+      </div>
+    )}
 
     <ProductGrid products={brandProducts} columns={4} />
 

@@ -1,0 +1,68 @@
+---
+interface Props {
+  count: number;
+  noun?: string;
+}
+const { count, noun = 'products' } = Astro.props;
+const label = count === 1 ? noun.replace(/s$/, '') : noun;
+const pills = [
+  { key: 'featured',   label: 'Featured' },
+  { key: 'price-asc',  label: 'Price ↑' },
+  { key: 'price-desc', label: 'Price ↓' },
+  { key: 'name-asc',   label: 'A–Z' },
+];
+---
+
+<div class="flex items-center justify-end gap-4 mb-6 flex-wrap sm:flex-nowrap">
+  <div class="flex gap-2 overflow-x-auto scrollbar-hide pb-0.5 -mx-4 px-4 sm:mx-0 sm:px-0 w-full sm:w-auto">
+    {pills.map(({ key, label: pLabel }) => (
+      <button
+        class:list={[
+          'sort-pill shrink-0 px-3 py-1.5 min-h-[40px] text-xs font-semibold uppercase tracking-widest border transition-colors',
+          key === 'featured'
+            ? 'bg-black text-white border-black'
+            : 'bg-white text-foreground border-neutral-300 hover:bg-black hover:text-white hover:border-black',
+        ]}
+        data-sort={key}
+        aria-pressed={key === 'featured' ? 'true' : 'false'}
+      >
+        {pLabel}
+      </button>
+    ))}
+  </div>
+</div>
+
+<script>
+  (() => {
+    const pills = document.querySelectorAll('.sort-pill');
+    const grid = document.getElementById('product-grid');
+    if (!grid) return;
+
+    pills.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const sort = btn.dataset.sort;
+
+        pills.forEach(b => {
+          b.setAttribute('aria-pressed', 'false');
+          b.classList.remove('bg-black', 'text-white', 'border-black');
+          b.classList.add('bg-white', 'text-foreground', 'border-neutral-300');
+        });
+        btn.setAttribute('aria-pressed', 'true');
+        btn.classList.add('bg-black', 'text-white', 'border-black');
+        btn.classList.remove('bg-white', 'text-foreground', 'border-neutral-300');
+
+        const cards = Array.from(grid.querySelectorAll('article[data-price]'));
+        cards.sort((a, b) => {
+          const pa = Number(a.dataset.price), pb = Number(b.dataset.price);
+          const na = (a.dataset.name || ''), nb = (b.dataset.name || '');
+          const fa = Number(a.dataset.featured), fb = Number(b.dataset.featured);
+          if (sort === 'price-asc')  return pa - pb;
+          if (sort === 'price-desc') return pb - pa;
+          if (sort === 'name-asc')   return na.localeCompare(nb);
+          return fb - fa || pa - pb;
+        });
+        cards.forEach(c => grid.appendChild(c));
+      });
+    });
+  })();
+</script>

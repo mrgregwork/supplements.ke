@@ -38,3 +38,12 @@ export async function getSiteSettings(): Promise<SiteSettingsConfig> {
     licenseStatus: settingsMap.licenseStatus || 'inactive',
   };
 }
+
+// Canonical public origin for building absolute URLs (structured data,
+// canonical links, sitemaps). Prefers Railway's own domain when deployed
+// there, since that's live immediately on a fresh deploy without needing the
+// custom domain to be configured in siteSettings.json yet.
+export function getPublicOrigin(): string {
+  const domain = process.env.RAILWAY_PUBLIC_DOMAIN;
+  return domain ? `https://${domain}` : configDefaults.siteUrl;
+}

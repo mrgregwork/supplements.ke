@@ -1,0 +1,200 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Breadcrumbs from '@components/Breadcrumbs.astro';
+import ProductGrid from '@components/ProductGrid.astro';
+import SortBar from '@components/SortBar.astro';
+import { storage } from '@lib/storage';
+import { BRAND_SPOKES } from '@config/brandSpokes';
+import { BRAND_SLUG_REDIRECTS } from '@config/brandRedirects';
+import { getSiteSettings, getPublicOrigin } from '@lib/settings';
+
+const { brandSlug, keyword } = Astro.params;
+
+if (!brandSlug || !keyword) return Astro.redirect('/404');
+
+if (BRAND_SLUG_REDIRECTS[brandSlug]) {
+  return Astro.redirect(`/brand/${BRAND_SLUG_REDIRECTS[brandSlug]}/${keyword}/`, 301);
+}
+
+// From Settings, not hardcoded -- a clone of this template for another region
+// (or with regional SEO turned off entirely) gets copy that matches its own
+// niche instead of this store's original market.
+const liveSettings = await getSiteSettings();
+const targetRegion = liveSettings.targetRegion || 'Kenya';
+const siteUrl = getPublicOrigin();
+
+// This route serves two kinds of page through one render path:
+//   1. Hand-written spokes in BRAND_SPOKES (e.g. /brand/olay/olay-body-washes),
+//      which keep their bespoke SEO copy and curated related links.
+//   2. Brand subcategories (e.g. /brand/olay/serums), derived from the catalogue
+//      but only live once enabled in admin, so unreviewed combinations stay out
+//      of the index.
+// Spokes are checked first so nothing already published changes behaviour.
+const brandSpokes = BRAND_SPOKES[brandSlug];
+const spokeConfig = brandSpokes?.[keyword];
+
+let heading = '';
+let pageTitle = '';
+let metaDescription = '';
+let seoContent: string | null = null;
+let filteredProducts: any[] = [];
+let brandName = '';
+let relatedLinks: Array<{ href: string; label: string }> = [];
+
+if (spokeConfig) {
+  const brandProducts = await storage.getProductsByBrandSlug(brandSlug);
+  if (brandProducts.length === 0) return Astro.redirect('/404');
+
+  brandName = brandProducts[0].brand ?? brandSlug;
+  filteredProducts = brandProducts.filter(p =>
+    spokeConfig.filter({
+      name: p.name,
+      subcategorySlug: p.subcategorySlug ?? null,
+      categorySlug: p.categorySlug ?? null,
+    })
+  );
+
+  heading = spokeConfig.h1;
+  pageTitle = spokeConfig.title;
+  metaDescription = spokeConfig.metaDescription;
+  seoContent = spokeConfig.seoContent;
+  relatedLinks = spokeConfig.related
+    .map(slug => brandSpokes![slug])
+    .filter(Boolean)
+    .map(s => ({ href: `/brand/${brandSlug}/${s.slug}/`, label: s.h1 }));
+} else {
+  const brandSub = await storage.getBrandSubcategory(brandSlug, keyword);
+  // Not enabled (or doesn't exist) means the page is not published yet.
+  if (!brandSub || !brandSub.isActive) return Astro.redirect('/404');
+
+  // No 404 here even with zero products: manual creation (see admin/brand-
+  // subcategories) exists precisely to publish a brand's structure ahead of
+  // inventory, and the template below already has a "no products found" state
+  // for exactly this case.
+  filteredProducts = await storage.getProductsByBrandAndSubcategory(brandSlug, keyword);
+
+  brandName = brandSub.brandName || filteredProducts[0]?.brand || brandSlug;
+  const subName = brandSub.subcategoryName || keyword;
+
+  // Admin overrides win; otherwise generate sensible copy from the names.
+  // BaseLayout already appends the site name to the title, so this stays plain.
+  heading = brandSub.heading || `${brandName} ${subName} in ${targetRegion}`;
+  pageTitle = brandSub.seoTitle || `${brandName} ${subName} in ${targetRegion}`;
+  metaDescription = brandSub.seoDescription
+    || `Shop authentic ${brandName} ${subName.toLowerCase()} in ${targetRegion} with fast delivery direct to your door.`;
+  seoContent = brandSub.longDescription || null;
+
+  // Link to the brand's other live subcategories so these pages interlink.
+  const siblings = await storage.getActiveBrandSubcategories(brandSlug);
+  relatedLinks = siblings
+    .filter(s => s.subcategorySlug !== keyword)
+    .slice(0, 4)
+    .map(s => ({
+      href: `/brand/${brandSlug}/${s.subcategorySlug}/`,
+      label: s.heading || `${brandName} ${s.subcategoryName}`,
+    }));
+}
+
+const breadcrumbItems = [
+  { name: 'Brands', href: '/brands/' },
+  { name: brandName, href: `/brand/${brandSlug}/` },
+  { name: heading, href: `/brand/${brandSlug}/${keyword}/` },
+];
+
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'CollectionPage',
+      '@id': `${siteUrl}/brand/${brandSlug}/${keyword}/`,
+      name: heading,
+      description: metaDescription,
+      url: `${siteUrl}/brand/${brandSlug}/${keyword}/`,
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: siteUrl },
+        { '@type': 'ListItem', position: 2, name: 'Brands', item: `${siteUrl}/brands/` },
+        { '@type': 'ListItem', position: 3, name: brandName, item: `${siteUrl}/brand/${brandSlug}/` },
+        { '@type': 'ListItem', position: 4, name: heading, item: `${siteUrl}/brand/${brandSlug}/${keyword}/` },
+      ],
+    },
+  ],
+};
+---
+
+<BaseLayout
+  title={pageTitle}
+  description={metaDescription}
+  structuredData={structuredData}
+  canonicalUrl={`${siteUrl}/brand/${brandSlug}/${keyword}/`}
+>
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+    <Breadcrumbs items={breadcrumbItems} />
+
+    <div class="mb-6">
+      <h1 class="text-3xl font-bold tracking-tight">{heading}</h1>
+      <p class="text-muted-foreground mt-1 max-w-2xl">{metaDescription}</p>
+    </div>
+
+    {filteredProducts.length > 0 ? (
+      <>
+        <SortBar count={filteredProducts.length} />
+        <ProductGrid
+          products={filteredProducts.map(p => ({
+            ...p,
+            images: p.images || [],
+            attributes: p.attributes || [],
+          }))}
+          columns={4}
+        />
+      </>
+    ) : (
+      <div class="py-16 text-center text-muted-foreground">
+        <p>No products found in this category. <a href={`/brand/${brandSlug}/`} class="text-primary underline">View all {brandName} products</a>.</p>
+      </div>
+    )}
+
+    <!-- SEO Content Block: only for pages that actually have copy -->
+    {seoContent && (
+      <section class="mt-16 pt-8 border-t max-w-3xl">
+        <div
+          class="prose prose-sm sm:prose-base dark:prose-invert max-w-none
+                 [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:mt-6 [&_h2]:mb-2
+                 [&_p]:text-muted-foreground [&_p]:leading-relaxed [&_p]:mb-3"
+          set:html={seoContent}
+        />
+      </section>
+    )}
+
+    <!-- Contextual internal links -->
+    <section class="mt-8 pt-6 border-t max-w-3xl">
+      <p class="text-sm text-muted-foreground leading-relaxed">
+        {relatedLinks.length > 0 && (
+          <>
+            Also in the {brandName} range:{' '}
+            {relatedLinks.map((link, i) => (
+              <>
+                <a
+                  href={link.href}
+                  class="text-foreground underline underline-offset-2 hover:text-primary transition-colors"
+                >
+                  {link.label}
+                </a>
+                {i < relatedLinks.length - 1 ? ', ' : '. '}
+              </>
+            ))}
+          </>
+        )}
+        Browse the full{' '}
+        <a
+          href={`/brand/${brandSlug}/`}
+          class="text-foreground underline underline-offset-2 hover:text-primary transition-colors"
+        >
+          {brandName} products in {targetRegion}
+        </a>.
+      </p>
+    </section>
+  </div>
+</BaseLayout>

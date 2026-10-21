@@ -1,5 +1,5 @@
 import { sql, relations } from "drizzle-orm";
-import { pgTable, text, varchar, integer, real, timestamp, boolean, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, real, timestamp, boolean, jsonb, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -229,6 +229,44 @@ export const insertSubcategorySchema = createInsertSchema(subcategories).omit({
 
 export type InsertSubcategory = z.infer<typeof insertSubcategorySchema>;
 export type Subcategory = typeof subcategories.$inferSelect;
+
+// ============================================
+// BRAND SUBCATEGORIES
+// ============================================
+// Brand pages behave like category pages, so they can have subcategory pages
+// beneath them (e.g. /brand/olay/serums/). The candidate pages are derived
+// automatically from the catalogue (any brand + subcategory pair that has
+// products), so nothing has to be created by hand — but a page only goes live
+// once there's a row here with isActive, which keeps unreviewed combinations out
+// of the index. Optional overrides let a specific page get its own copy and SEO.
+export const brandSubcategories = pgTable("brand_subcategories", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  brandSlug: text("brand_slug").notNull(),
+  brandName: text("brand_name").notNull(),
+  subcategorySlug: text("subcategory_slug").notNull(),
+  subcategoryName: text("subcategory_name").notNull(),
+  // Overrides — all optional; the page falls back to generated copy when unset
+  heading: text("heading"),
+  description: text("description"),
+  longDescription: text("long_description"),
+  seoTitle: text("seo_title"),
+  seoDescription: text("seo_description"),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  isActive: boolean("is_active").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  brandSubUnique: unique().on(table.brandSlug, table.subcategorySlug),
+}));
+
+export const insertBrandSubcategorySchema = createInsertSchema(brandSubcategories).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertBrandSubcategory = z.infer<typeof insertBrandSubcategorySchema>;
+export type BrandSubcategory = typeof brandSubcategories.$inferSelect;
 
 // ============================================
 // ATTRIBUTE DEFINITIONS (admin-defined specs)
