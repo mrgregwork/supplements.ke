@@ -300,69 +300,42 @@ export const POST: APIRoute = async ({ request }) => {
       searchUrl.searchParams.set('amazon_domain', 'amazon.com');
       searchUrl.searchParams.set('search_term', query);
       searchUrl.searchParams.set('include_refinements', 'true'); // Request refinements
-      
-      // Add Prime filter refinement if enabled
-      if (primeOnly) {
-        searchUrl.searchParams.set('refinements', 'p_85/2470955011'); // Amazon Prime refinement ID
-      }
-      
+
       // If a refinement URL was provided, use it for filtered search
       if (refinementUrl) {
         searchUrl.searchParams.set('url', refinementUrl);
       }
-      
+
       const response = await fetch(searchUrl.toString());
       console.log('Rainforest API response status:', response.status);
-      
+
       if (!response.ok) {
         console.error('Rainforest API error:', response.status);
-        return new Response(JSON.stringify({ 
-          success: false, 
+        return new Response(JSON.stringify({
+          success: false,
           message: 'Product search service error. Please try again.'
         }), {
           status: 500,
           headers: { 'Content-Type': 'application/json' }
         });
       }
-      
+
       const data = await response.json();
-      
+
       // Log the refinements for debugging
       console.log('Rainforest refinements available:', data.refinements ? data.refinements.length : 0);
-      
+
       if (!data.search_results || !Array.isArray(data.search_results) || data.search_results.length === 0) {
-        // If Prime filter returned no results, try without it
-        if (primeOnly) {
-          console.log('No Prime results, retrying without Prime filter');
-          const retryUrl = new URL('https://api.rainforestapi.com/request');
-          retryUrl.searchParams.set('api_key', rainforestApiKey);
-          retryUrl.searchParams.set('type', 'search');
-          retryUrl.searchParams.set('amazon_domain', 'amazon.com');
-          retryUrl.searchParams.set('search_term', query);
-          retryUrl.searchParams.set('include_refinements', 'true');
-          
-          const retryResponse = await fetch(retryUrl.toString());
-          if (retryResponse.ok) {
-            const retryData = await retryResponse.json();
-            if (retryData.search_results && retryData.search_results.length > 0) {
-              // Use the retry data
-              Object.assign(data, retryData);
-            }
-          }
-        }
-        
-        if (!data.search_results || data.search_results.length === 0) {
-          return new Response(JSON.stringify({ 
-            success: true, 
-            products: [],
-            facets: {},
-            message: 'No products found for this search',
-            source: 'rainforest'
-          }), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' }
-          });
-        }
+        return new Response(JSON.stringify({
+          success: true,
+          products: [],
+          facets: {},
+          message: primeOnly ? 'No Amazon Prime products found for this search' : 'No products found for this search',
+          source: 'rainforest'
+        }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
       }
       
       // Get pricing settings for landed cost calculation
@@ -379,8 +352,10 @@ export const POST: APIRoute = async ({ request }) => {
       // Parse Rainforest refinements into our facet format
       const apiRefinements = parseRainforestRefinements(data.refinements || []);
       
-      // Map Rainforest API response to our product format
-      const products = data.search_results.slice(0, 30).map((item: any) => {
+      // Map Rainforest API response to our product format. Not capped here --
+      // the cap is applied below, after sorting Prime-flagged results first, so
+      // trimming to a limit doesn't throw away the likely-Prime items.
+      const products = data.search_results.map((item: any) => {
         const amazonPrice = item.price?.value || item.prices?.[0]?.value || 0;
         
         let landedCost = null;
@@ -412,9 +387,23 @@ export const POST: APIRoute = async ({ request }) => {
         };
       });
       
-      // Apply client-side filters if any
-      const filteredProducts = applyFilters(products, filters);
-      
+      // Prime status is NOT determined here. The search endpoint's is_prime field
+      // is unreliable, and verifying it server-side needs one detail lookup per
+      // result, which is too slow to do for every result up front. The client
+      // instead calls /api/admin/import/check-prime once per result and only
+      // allows importing products that come back verified, so search stays fast
+      // and no single request depends on dozens of upstream calls.
+
+      // Apply client-side filters if any, then sort Prime-flagged results first
+      // before capping -- it's only a hint (the client still verifies each one),
+      // but it means the cap is more likely to keep the results that will
+      // actually pass verification. Capped to 12: every visible result costs one
+      // extra Prime-verification call once selected, so a larger cap just means
+      // more wasted upstream calls for results nobody picks.
+      const filteredProducts = applyFilters(products, filters)
+        .sort((a: any, b: any) => (a.isPrime === true ? 0 : 1) - (b.isPrime === true ? 0 : 1))
+        .slice(0, 12);
+
       // Extract product-based facets as fallback/supplement to API refinements
       const productFacets = extractFilterFacets(products);
       
@@ -442,11 +431,14 @@ export const POST: APIRoute = async ({ request }) => {
         }
       }
       
-      return new Response(JSON.stringify({ 
-        success: true, 
+      return new Response(JSON.stringify({
+        success: true,
         products: filteredProducts,
         facets: mergedFacets,
         totalResults: data.search_results.length,
+        // Tells the client these results are unverified and must each be checked
+        // via /api/admin/import/check-prime before being shown as importable.
+        primeVerificationRequired: primeOnly,
         source: 'rainforest'
       }), {
         status: 200,

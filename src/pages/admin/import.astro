@@ -499,62 +499,93 @@ const subcategories = await storage.getSubcategories();
     performSearch();
   });
   
+  // Verifies one product's Prime eligibility. Called when a product is selected
+  // rather than for every search result, so search stays fast while nothing
+  // non-Prime can be selected for import.
+  async function verifyPrimeForProduct(product) {
+    try {
+      const res = await fetch('/api/admin/import/check-prime', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ asin: product.asin }),
+      });
+      const data = await res.json();
+      // Same call returns the full image gallery, so stash it for the review
+      // step rather than fetching the product again later.
+      if (Array.isArray(data.images) && data.images.length > 0) {
+        product.galleryImages = data.images;
+        // Everything starts selected; the admin prunes from here.
+        product.selectedImages = data.images.slice();
+      }
+      return Boolean(data.isPrime);
+    } catch (err) {
+      return false; // unverified is treated as not Prime
+    }
+  }
+
   function renderSearchResults(products) {
     if (!searchResults) return;
-    
+
     searchResults.innerHTML = products.map((product, index) => {
       const isSelected = selectedProducts.has(product.id);
       const lc = product.landedCost;
       const attrs = product.attributes || {};
-      
+
       // Build attributes display
       const attrDisplay = [];
       if (attrs.processor) attrDisplay.push(attrs.processor);
       if (attrs.ram) attrDisplay.push(attrs.ram);
       if (attrs.storage) attrDisplay.push(attrs.storage);
       if (attrs.screenSize) attrDisplay.push(attrs.screenSize);
-      
+
       const landedCostHtml = lc ? `
         <div class="mt-1">
           <span class="text-xs text-muted-foreground">Landed:</span>
           <span class="text-sm font-semibold text-green-600 dark:text-green-400">${lc.formatted.landedCostLocal}</span>
         </div>
       ` : '';
-      
-      const primeHtml = attrs.isPrime ? `
-        <span class="inline-flex items-center gap-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded">
-          <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
-          Prime
-        </span>
-      ` : '';
-      
+
+      // Prime badge reflects per-product verification, which happens on select:
+      // unverified shows nothing, pending shows a spinner, confirmed shows Prime,
+      // and a confirmed non-Prime product is flagged and locked out of selection.
+      const pending = product.primeStatus === 'pending';
+      const notPrime = product.primeStatus === 'no';
+      const primeHtml = pending
+        ? `<span class="inline-flex items-center gap-1 text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded"><svg class="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="4" class="opacity-25"></circle><path class="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Checking Prime</span>`
+        : notPrime
+          ? `<span class="inline-flex items-center gap-1 text-xs bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 px-2 py-0.5 rounded">Not Prime eligible</span>`
+          : product.primeStatus === 'yes'
+            ? `<span class="inline-flex items-center gap-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded"><svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg> Prime verified</span>`
+            : '';
+
       return `
-        <div class="border rounded-lg p-3 md:p-4 hover:bg-muted/50 transition ${isSelected ? 'ring-2 ring-primary bg-primary/5' : ''}" data-product-id="${product.id}">
+        <div class="border rounded-lg p-3 md:p-4 hover:bg-muted/50 transition ${pending || notPrime ? 'opacity-60' : ''} ${isSelected ? 'ring-2 ring-primary bg-primary/5' : ''}" data-product-id="${product.id}">
           <div class="flex gap-3 md:gap-4">
             <!-- Checkbox -->
             <label class="flex-shrink-0 flex items-start pt-1">
-              <input 
-                type="checkbox" 
-                class="product-checkbox w-6 h-6 rounded border-gray-300 cursor-pointer"
+              <input
+                type="checkbox"
+                class="product-checkbox w-6 h-6 rounded border-gray-300 ${pending || notPrime ? 'cursor-not-allowed' : 'cursor-pointer'}"
                 data-product-index="${index}"
                 ${isSelected ? 'checked' : ''}
+                ${pending || notPrime ? 'disabled' : ''}
                 data-testid="checkbox-product-${index}"
               />
             </label>
-            
+
             <!-- Image -->
             <div class="w-16 h-16 md:w-20 md:h-20 bg-muted rounded-md flex-shrink-0 overflow-hidden">
               ${product.image ? `<img src="${product.image}" alt="${product.title}" class="w-full h-full object-cover" />` : ''}
             </div>
-            
+
             <!-- Content -->
             <div class="flex-1 min-w-0">
               <h4 class="font-medium text-sm md:text-base line-clamp-2">${product.title}</h4>
-              
+
               ${attrDisplay.length > 0 ? `
                 <p class="text-xs text-muted-foreground mt-1">${attrDisplay.join(' • ')}</p>
               ` : ''}
-              
+
               <div class="flex items-center gap-2 md:gap-3 mt-2 flex-wrap">
                 <span class="font-semibold">${product.currency || '$'}${product.price || 'N/A'}</span>
                 ${product.rating ? `<span class="text-xs text-muted-foreground">${product.rating}★ (${product.reviewCount || 0})</span>` : ''}
@@ -566,20 +597,36 @@ const subcategories = await storage.getSubcategories();
         </div>
       `;
     }).join('');
-    
+
     // Add event listeners for checkboxes
     document.querySelectorAll('.product-checkbox').forEach(checkbox => {
-      checkbox.addEventListener('change', (e) => {
+      checkbox.addEventListener('change', async (e) => {
         const index = parseInt(e.target.dataset.productIndex);
         const product = allProducts[index];
-        
-        if (e.target.checked) {
-          selectedProducts.set(product.id, product);
-        } else {
+
+        if (!e.target.checked) {
           selectedProducts.delete(product.id);
+          updateSelectionUI();
+          return;
         }
-        
+
+        selectedProducts.set(product.id, product);
         updateSelectionUI();
+
+        // Confirm Prime eligibility for this one product now that it's actually
+        // wanted. Only selected products cost a verification call, instead of
+        // every search result.
+        if (product.primeStatus !== 'yes') {
+          product.primeStatus = 'pending';
+          renderSearchResults(allProducts);
+          const isPrime = await verifyPrimeForProduct(product);
+          product.primeStatus = isPrime ? 'yes' : 'no';
+          product.isPrime = isPrime;
+          if (product.attributes) product.attributes.isPrime = isPrime;
+          if (!isPrime) selectedProducts.delete(product.id);
+          renderSearchResults(allProducts);
+          updateSelectionUI();
+        }
       });
     });
   }
@@ -616,6 +663,14 @@ const subcategories = await storage.getSubcategories();
   importSelectedBtn?.addEventListener('click', () => {
     if (selectedProducts.size === 0) {
       alert('Please select at least one product');
+      return;
+    }
+
+    // Belt and braces: only Prime-verified products may proceed, even if a
+    // verification call was still in flight when Next was clicked.
+    const unverified = [...selectedProducts.values()].filter(p => p.primeStatus !== 'yes');
+    if (unverified.length > 0) {
+      alert(`Still confirming Amazon Prime eligibility for ${unverified.length} product(s). Please wait a moment and try again.`);
       return;
     }
     
