@@ -459,6 +459,18 @@ export const pendingOrders = pgTable("pending_orders", {
   status: text("status").notNull().default("pending"), // pending | confirmed | failed
   gatewayMessage: text("gateway_message"),
   orderId: varchar("order_id").references(() => orders.id),
+  // A row that's still 'pending' with no order_id after a while is an
+  // abandoned pre-order -- added to cart, never paid for -- has no name, phone or
+  // notes of its own, so these two track staff follow-up directly on it (see
+  // src/lib/abandonedCheckouts.ts). Both independent: contacted doesn't imply
+  // dismissed, and either can be undone.
+  // Set when staff manually resolve an abandoned pre-order that didn't convert
+  // (drops it off the active list without deleting the record).
+  abandonedDismissedAt: timestamp("abandoned_dismissed_at"),
+  // Set when staff have already reached out about this abandoned pre-order --
+  // separate from abandonedDismissedAt: this one keeps the item showing (it is
+  // just a note), until it's actually dismissed or converts.
+  abandonedContactedAt: timestamp("abandoned_contacted_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

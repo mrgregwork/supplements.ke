@@ -1,0 +1,148 @@
+---
+import BaseLayout from "@layouts/BaseLayout.astro";
+import AdminSidebar from "@components/AdminSidebar.astro";
+import { getAdminSessionToken, verifyAdminSession } from "@lib/admin";
+import { formatPrice } from "@lib/currency";
+import { getAbandonedCheckouts } from "@lib/abandonedCheckouts";
+
+const sessionToken = getAdminSessionToken(Astro.request);
+const sessionData = await verifyAdminSession(sessionToken);
+
+const isDev = import.meta.env.DEV;
+if (!isDev && !sessionData) {
+  return Astro.redirect("/admin/login");
+}
+
+const adminEmail = sessionData?.admin?.email || "Dev Mode";
+
+const filterParam = Astro.url.searchParams.get("filter");
+const filter: "active" | "dismissed" | "all" =
+  filterParam === "dismissed" || filterParam === "all" ? filterParam : "active";
+
+const checkouts = await getAbandonedCheckouts(filter);
+
+function timeAgo(date: Date): string {
+  const minutes = Math.floor((Date.now() - new Date(date).getTime()) / 60000);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
+const methodLabels: Record<string, string> = { mpesa: "M-Pesa", card: "Card" };
+---
+
+<BaseLayout
+  title="Abandoned Checkouts - Admin"
+  description="Checkouts started but never completed"
+>
+  <div class="min-h-screen flex flex-col md:flex-row">
+    <AdminSidebar adminEmail={adminEmail} currentPage="abandoned-checkouts" />
+
+    <main class="flex-1 p-4 md:p-8">
+      <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+        <h2 class="text-2xl font-bold">Abandoned Checkouts</h2>
+        <a href="/admin/orders" class="text-sm text-primary hover:underline">&larr; Back to Orders</a>
+      </div>
+      <p class="text-sm text-muted-foreground mb-6">
+        Checkouts a customer started but never finished paying for, for at least 30 minutes. Nothing here has been paid.
+      </p>
+
+      <div class="flex gap-2 mb-4">
+        <a href="?filter=active" class={`px-3 py-1.5 text-sm rounded-md border ${filter === "active" ? "bg-primary text-primary-foreground border-primary" : "bg-card hover:bg-muted"}`}>Active</a>
+        <a href="?filter=dismissed" class={`px-3 py-1.5 text-sm rounded-md border ${filter === "dismissed" ? "bg-primary text-primary-foreground border-primary" : "bg-card hover:bg-muted"}`}>Dismissed</a>
+        <a href="?filter=all" class={`px-3 py-1.5 text-sm rounded-md border ${filter === "all" ? "bg-primary text-primary-foreground border-primary" : "bg-card hover:bg-muted"}`}>All</a>
+      </div>
+
+      <div class="bg-card border rounded-lg overflow-hidden">
+        {checkouts.length === 0 ? (
+          <div class="p-8 text-center text-muted-foreground">
+            {filter === "active"
+              ? "No abandoned checkouts right now — every recent checkout either completed, failed, or is still in progress."
+              : "Nothing here."}
+          </div>
+        ) : (
+          <div class="divide-y">
+            {checkouts.map((c) => {
+              const items = (c.items as { productName: string; quantity: number }[]) ?? [];
+              const summary = items.map((i) => `${i.productName} ×${i.quantity}`).join(", ");
+              return (
+                <div class="p-4 flex flex-col md:flex-row md:items-center gap-3 md:gap-6" data-row-id={c.id}>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <p class="font-medium">{c.email}</p>
+                      {c.phone && <span class="text-sm text-muted-foreground">{c.phone}</span>}
+                      {c.abandonedContactedAt && (
+                        <span class="inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">Contacted</span>
+                      )}
+                      {c.abandonedDismissedAt && (
+                        <span class="inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-muted text-muted-foreground">Dismissed</span>
+                      )}
+                    </div>
+                    <p class="text-sm text-muted-foreground truncate mt-0.5">{summary || "No items"}</p>
+                    <p class="text-xs text-muted-foreground mt-0.5">
+                      {timeAgo(c.createdAt)} · tried {methodLabels[c.paymentMethod] || c.paymentMethod}
+                    </p>
+                  </div>
+                  <div class="text-right flex-shrink-0">
+                    <p class="font-bold">{formatPrice(c.total, c.currency)}</p>
+                  </div>
+                  <div class="flex gap-2 flex-shrink-0">
+                    {!c.abandonedContactedAt && (
+                      <button class="mark-contacted-btn px-3 py-1.5 text-sm rounded-md border bg-card hover:bg-muted" data-id={c.id}>
+                        Mark Contacted
+                      </button>
+                    )}
+                    {!c.abandonedDismissedAt ? (
+                      <button class="dismiss-btn px-3 py-1.5 text-sm rounded-md border bg-card hover:bg-muted" data-id={c.id}>
+                        Dismiss
+                      </button>
+                    ) : (
+                      <button class="restore-btn px-3 py-1.5 text-sm rounded-md border bg-card hover:bg-muted" data-id={c.id}>
+                        Restore
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </main>
+  </div>
+</BaseLayout>
+
+<script>
+  async function post(path: string) {
+    const res = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" } });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      alert(data.error || "Something went wrong");
+      return false;
+    }
+    return true;
+  }
+
+  document.querySelectorAll(".mark-contacted-btn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = (btn as HTMLElement).dataset.id;
+      if (id && (await post(`/api/admin/abandoned-checkouts/${id}/contact`))) location.reload();
+    });
+  });
+
+  document.querySelectorAll(".dismiss-btn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = (btn as HTMLElement).dataset.id;
+      if (id && (await post(`/api/admin/abandoned-checkouts/${id}/dismiss`))) location.reload();
+    });
+  });
+
+  document.querySelectorAll(".restore-btn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = (btn as HTMLElement).dataset.id;
+      if (id && (await post(`/api/admin/abandoned-checkouts/${id}/restore`))) location.reload();
+    });
+  });
+</script>
