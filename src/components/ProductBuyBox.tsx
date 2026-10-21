@@ -9,13 +9,12 @@
  *  2. Bundle selector (visible, selectable)
  *  3. Savings summary strip
  *  4. Stock / urgency signal
- *  5. CTA button → opens DeliveryModal
+ *  5. CTA button → adds to cart, then goes to the real checkout (M-Pesa/Card)
  *  6. Trust badges
  *  7. Guarantee
  */
 
 import { useState } from 'react';
-import DeliveryModal from './DeliveryModal';
 
 interface Props {
   productId: string;
@@ -41,8 +40,9 @@ export default function ProductBuyBox({
     { qty: 5, label: '5 Bottles', discount: discounts?.[2] ?? 15, badge: 'Best Value',   badgeClass: '' },
   ];
 
-  const [qty, setQty]         = useState(2);
-  const [modalOpen, setModal] = useState(false);
+  const [qty, setQty]     = useState(2);
+  const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
 
   const tier      = TIERS_EFFECTIVE.find(t => t.qty === qty)!;
   const unitPrice = Math.round(price * (1 - tier.discount / 100));
@@ -51,6 +51,24 @@ export default function ProductBuyBox({
   const saving    = anchor - subtotal;
 
   const singleAnchor = originalPrice && originalPrice > price ? originalPrice : null;
+
+  const handleBuyNow = async () => {
+    setAdding(true);
+    setAddError(null);
+    try {
+      const res = await fetch('/api/cart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId, quantity: qty }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to add to cart');
+      window.location.href = '/cart';
+    } catch (err) {
+      setAddError(err instanceof Error ? err.message : 'Something went wrong');
+      setAdding(false);
+    }
+  };
 
   return (
     <>
@@ -171,16 +189,22 @@ export default function ProductBuyBox({
 
         {/* 5 ── CTA */}
         <button
-          onClick={() => setModal(true)}
-          className="btn-cta w-full py-4 text-white font-extrabold rounded-xl text-lg flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98]"
+          onClick={handleBuyNow}
+          disabled={adding}
+          className="btn-cta w-full py-4 text-white font-extrabold rounded-xl text-lg flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98] disabled:opacity-50"
         >
-          <svg className="h-5 w-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/>
-            <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
-          </svg>
-          Order Now — {fmt(subtotal, currency)}
+          {adding ? (
+            <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>
+          ) : (
+            <svg className="h-5 w-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/>
+              <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
+            </svg>
+          )}
+          {adding ? 'Adding...' : `Buy Now — ${fmt(subtotal, currency)}`}
         </button>
-        <p className="text-center text-xs text-muted-foreground -mt-1">Pay cash on delivery · No upfront payment required</p>
+        {addError && <p className="text-center text-xs text-destructive -mt-1">{addError}</p>}
+        <p className="text-center text-xs text-muted-foreground -mt-1">Pay securely by M-Pesa or Card at checkout</p>
 
         {/* 6 ── Trust badges */}
         <div className="grid grid-cols-3 gap-2 text-center">
@@ -190,7 +214,7 @@ export default function ProductBuyBox({
                 <path d="M5 12h14M12 5l7 7-7 7"/>
               </svg>
             </div>
-            <span className="text-[11px] font-semibold leading-tight">Free<br/>Delivery</span>
+            <span className="text-[11px] font-semibold leading-tight">Fast<br/>Delivery</span>
           </div>
           <div className="flex flex-col items-center gap-1.5 px-2 py-3 bg-card border border-border/60 rounded-xl shadow-sm">
             <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
@@ -198,7 +222,7 @@ export default function ProductBuyBox({
                 <rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/>
               </svg>
             </div>
-            <span className="text-[11px] font-semibold leading-tight">Pay on<br/>Delivery</span>
+            <span className="text-[11px] font-semibold leading-tight">Secure<br/>Payment</span>
           </div>
           <div className="flex flex-col items-center gap-1.5 px-2 py-3 bg-card border border-border/60 rounded-xl shadow-sm">
             <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
@@ -225,17 +249,6 @@ export default function ProductBuyBox({
         </div>
 
       </div>
-
-      <DeliveryModal
-        open={modalOpen}
-        onClose={() => setModal(false)}
-        productId={productId}
-        productName={productName}
-        qty={qty}
-        unitPrice={unitPrice}
-        total={subtotal}
-        currency={currency}
-      />
     </>
   );
 }
