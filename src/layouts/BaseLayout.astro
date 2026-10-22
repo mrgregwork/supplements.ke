@@ -144,5 +144,22 @@ const isAdminRoute = Astro.url.pathname.startsWith('/admin');
         </div>
       </>
     )}
+    {!isAdminRoute && (
+      <script is:inline>
+        // Every wa.me link on the site (floating button, footer, contact page,
+        // etc.) gets the current page's title and URL pre-filled as the
+        // opening message, so whoever replies -- and the customer themselves,
+        // re-reading the chat later -- can tell at a glance what it was
+        // about, without retyping it. A link that already has its own
+        // ?text= (e.g. a one-off hardcoded product promo) is left alone
+        // rather than overwritten.
+        document.querySelectorAll('a[href^="https://wa.me/"]').forEach((a) => {
+          const url = new URL(a.href);
+          if (url.searchParams.has('text')) return;
+          url.searchParams.set('text', `Hi, I have a question about: ${document.title}\n${window.location.href}`);
+          a.href = url.toString();
+        });
+      </script>
+    )}
   </body>
 </html>
