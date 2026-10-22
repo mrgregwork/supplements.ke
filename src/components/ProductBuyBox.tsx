@@ -42,6 +42,8 @@ export default function ProductBuyBox({
 
   const [qty, setQty]     = useState(2);
   const [adding, setAdding] = useState(false);
+  const [addingToCart, setAddingToCart] = useState(false);
+  const [addedToCart, setAddedToCart] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
 
   const tier      = TIERS_EFFECTIVE.find(t => t.qty === qty)!;
@@ -52,17 +54,35 @@ export default function ProductBuyBox({
 
   const singleAnchor = originalPrice && originalPrice > price ? originalPrice : null;
 
+  async function addToCart() {
+    const res = await fetch('/api/cart', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ productId, quantity: qty }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to add to cart');
+  }
+
+  const handleAddToCart = async () => {
+    setAddingToCart(true);
+    setAddError(null);
+    try {
+      await addToCart();
+      setAddedToCart(true);
+      setTimeout(() => setAddedToCart(false), 2500);
+    } catch (err) {
+      setAddError(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      setAddingToCart(false);
+    }
+  };
+
   const handleBuyNow = async () => {
     setAdding(true);
     setAddError(null);
     try {
-      const res = await fetch('/api/cart', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productId, quantity: qty }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to add to cart');
+      await addToCart();
       window.location.href = '/cart';
     } catch (err) {
       setAddError(err instanceof Error ? err.message : 'Something went wrong');
@@ -72,22 +92,20 @@ export default function ProductBuyBox({
 
   return (
     <>
-      <div className="space-y-4">
+      <div className="space-y-3">
 
         {/* 1 ── Price anchor */}
-        <div>
-          <div className="flex items-baseline gap-3 flex-wrap">
-            {singleAnchor && (
-              <span className="text-xl text-muted-foreground line-through">{fmt(singleAnchor, currency)}</span>
-            )}
-            <span className="text-4xl font-extrabold tracking-tight">{fmt(price, currency)}</span>
-            {singleAnchor && (
-              <span className="text-sm font-bold text-white bg-red-500 px-2.5 py-0.5 rounded-full shadow-sm">
-                -{Math.round((1 - price / singleAnchor) * 100)}% OFF
-              </span>
-            )}
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">per bottle · price increases with demand</p>
+        <div className="flex items-baseline gap-2.5 flex-wrap">
+          {singleAnchor && (
+            <span className="text-xl text-muted-foreground line-through">{fmt(singleAnchor, currency)}</span>
+          )}
+          <span className="text-4xl font-extrabold tracking-tight">{fmt(price, currency)}</span>
+          {singleAnchor && (
+            <span className="text-sm font-bold text-white bg-red-500 px-2.5 py-0.5 rounded-full shadow-sm">
+              -{Math.round((1 - price / singleAnchor) * 100)}% OFF
+            </span>
+          )}
+          <span className="text-xs text-muted-foreground">per bottle · price increases with demand</span>
         </div>
 
         {/* 2 ── Bundle selector */}
@@ -188,22 +206,40 @@ export default function ProductBuyBox({
         </div>
 
         {/* 5 ── CTA */}
-        <button
-          onClick={handleBuyNow}
-          disabled={adding}
-          className="btn-cta w-full py-4 text-white font-extrabold rounded-xl text-lg flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98] disabled:opacity-50"
-        >
-          {adding ? (
-            <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>
-          ) : (
-            <svg className="h-5 w-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/>
-              <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
-            </svg>
-          )}
-          {adding ? 'Adding...' : `Buy Now — ${fmt(subtotal, currency)}`}
-        </button>
         {addError && <p className="text-center text-xs text-destructive -mt-1">{addError}</p>}
+        <div className="flex gap-2">
+          <button
+            onClick={handleAddToCart}
+            disabled={addingToCart || adding}
+            className="flex-1 py-4 bg-card border-2 border-foreground/20 text-foreground hover:bg-muted font-bold rounded-xl text-sm sm:text-base flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98] disabled:opacity-50"
+          >
+            {addedToCart ? (
+              <>
+                <svg className="h-5 w-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6 9 17l-5-5"/></svg>
+                Added
+              </>
+            ) : addingToCart ? (
+              'Adding...'
+            ) : (
+              'Add to Cart'
+            )}
+          </button>
+          <button
+            onClick={handleBuyNow}
+            disabled={adding || addingToCart}
+            className="btn-cta flex-1 py-4 text-white font-extrabold rounded-xl text-sm sm:text-base flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98] disabled:opacity-50"
+          >
+            {adding ? (
+              <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>
+            ) : (
+              <svg className="h-5 w-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/>
+                <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
+              </svg>
+            )}
+            {adding ? 'Adding...' : `Buy Now — ${fmt(subtotal, currency)}`}
+          </button>
+        </div>
         <p className="text-center text-xs text-muted-foreground -mt-1">Pay securely by M-Pesa or Card at checkout</p>
 
         {/* 6 ── Trust badges */}

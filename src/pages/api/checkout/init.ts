@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import { db } from "../../../../server/db";
 import { customers, pendingOrders } from "@shared/schema";
+import { DELIVERY_FEE_KES } from "@shared/deliveryFee";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { getCartSessionId, getCartItems, clearCart } from "@lib/cart";
@@ -154,7 +155,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     const subtotal = cartItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
     const tax = 0;
-    const shipping = 0;
+    const shipping = DELIVERY_FEE_KES;
     const total = subtotal + tax + shipping;
 
     // A typed email is never matched against an existing customer to

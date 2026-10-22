@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { DELIVERY_FEE_KES } from '@shared/deliveryFee';
 
 interface CartItem {
   id: string;
@@ -201,13 +202,13 @@ export default function CartView({ initialItems, initialSubtotal }: CartViewProp
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Shipping</span>
-              <span className="text-green-600">Calculated at checkout</span>
+              <span>{currency} {DELIVERY_FEE_KES.toLocaleString()}</span>
             </div>
           </div>
 
           <div className="flex justify-between py-4 font-semibold text-lg">
             <span>Total</span>
-            <span data-testid="text-cart-total">{currency} {subtotal.toLocaleString()}</span>
+            <span data-testid="text-cart-total">{currency} {(subtotal + DELIVERY_FEE_KES).toLocaleString()}</span>
           </div>
 
           <a
