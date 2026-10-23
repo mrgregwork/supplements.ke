@@ -74,10 +74,14 @@ let cachedRates: { rates: Record<string, number>; timestamp: number } | null = n
 const CACHE_DURATION = 60 * 60 * 1000; // 1 hour
 
 export async function getExchangeRates(baseCurrency: string = 'USD'): Promise<Record<string, number> | null> {
-  const apiKey = process.env.EXCHANGERATE_API_KEY;
-  
+  // Accept both env var spellings: different sites' Railway variables for
+  // this key have been set up under either EXCHANGE_RATE_API_KEY or
+  // EXCHANGERATE_API_KEY -- this code previously only checked the latter, so
+  // a site using the former silently fell back to raw USD pricing.
+  const apiKey = process.env.EXCHANGE_RATE_API_KEY || process.env.EXCHANGERATE_API_KEY;
+
   if (!apiKey) {
-    console.warn('EXCHANGERATE_API_KEY not set - currency conversion disabled');
+    console.warn('No exchange rate API key configured (EXCHANGE_RATE_API_KEY or EXCHANGERATE_API_KEY) - currency conversion disabled');
     return null;
   }
 

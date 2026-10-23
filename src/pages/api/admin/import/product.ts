@@ -20,7 +20,14 @@ export const POST: APIRoute = async ({ request }) => {
     }
     
     const body = await request.json();
-    const { title, description, price, image, categoryId, subcategoryId, attributes, sourceData } = body;
+    const { title, description, price, currency, image, categoryId, subcategoryId, attributes, sourceData } = body;
+
+    // Trust the currency the client actually computed the price in, rather
+    // than letting it fall through to the schema default (USD): when a real
+    // landed-cost conversion ran, the price here is actually KES (or whatever
+    // the target currency is), and defaulting the label to USD would
+    // mislabel it just as the opposite hardcoded-KES bug did on other sites.
+    const productCurrency = typeof currency === 'string' && currency.trim() ? currency.trim() : 'USD';
     
     // Validate required fields - subcategory is now optional
     if (!title || !categoryId) {
@@ -85,6 +92,7 @@ export const POST: APIRoute = async ({ request }) => {
       slug,
       description: description || '',
       price: parseFloat(price) || 0,
+      currency: productCurrency,
       categoryId: String(categoryId),
       subcategoryId: subcategoryId ? String(subcategoryId) : null,
       categorySlug: category.slug,

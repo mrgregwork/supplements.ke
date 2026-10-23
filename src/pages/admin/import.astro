@@ -718,11 +718,16 @@ const subcategories = await storage.getSubcategories();
       try {
         const lc = product.landedCost;
         const priceToUse = lc ? lc.landedCostLocal : product.price;
+        // Only genuinely the target currency when a real landed-cost conversion
+        // actually ran; otherwise this is the raw Amazon USD price and must be
+        // labelled as such (see server-side product.ts, which trusts this field).
+        const priceCurrency = lc ? lc.currencyCode : 'USD';
         
         const importData = {
           title: product.title,
           description: product.description || '',
           price: priceToUse || 0,
+          currency: priceCurrency,
           image: product.image || '',
           categoryId: categoryId,
           subcategoryId: subcategoryId,
