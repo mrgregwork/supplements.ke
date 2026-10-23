@@ -24,6 +24,9 @@ export const POST: APIRoute = async ({ request }) => {
       const isValid = licenseKey.length >= 10;
       
       await storage.setSiteSetting('licenseStatus', isValid ? 'active' : 'inactive');
+      if (isValid) {
+        await storage.setSiteSetting('licenseKey', licenseKey, 'Product import license key');
+      }
       
       return new Response(JSON.stringify({ 
         valid: isValid,
@@ -46,6 +49,9 @@ export const POST: APIRoute = async ({ request }) => {
       const isValid = result.valid === true;
       
       await storage.setSiteSetting('licenseStatus', isValid ? 'active' : 'inactive');
+      if (isValid) {
+        await storage.setSiteSetting('licenseKey', licenseKey, 'Product import license key');
+      }
       
       return new Response(JSON.stringify({ 
         valid: isValid,
