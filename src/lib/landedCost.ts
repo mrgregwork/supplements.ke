@@ -7,6 +7,12 @@ export interface PricingSettings {
   shippingCostUSD: number;
   commissionPercent: number;
   targetCurrencyCode: string | null;
+  // Real, weight/size-based shipping (see @lib/shippingWeight). Opt-in: null
+  // until an admin sets a rate in Settings, so `shippingCostUSD` above keeps
+  // working exactly as before for any site that hasn't configured this.
+  airRateUsdPerKg: number | null;
+  airVolumetricDivisor: number;
+  airMinimumChargeableKg: number;
 }
 
 export interface LandedCostResult {
@@ -44,6 +50,11 @@ export async function getPricingSettings(): Promise<PricingSettings> {
     shippingCostUSD: parseFloat(settingsMap.shippingCostUSD) || 25,
     commissionPercent: parseFloat(settingsMap.commissionPercent) || 10,
     targetCurrencyCode: currencyCode,
+    airRateUsdPerKg: settingsMap.airRateUsdPerKg ? parseFloat(settingsMap.airRateUsdPerKg) : null,
+    airVolumetricDivisor: settingsMap.airVolumetricDivisor ? parseFloat(settingsMap.airVolumetricDivisor) : 306,
+    airMinimumChargeableKg: settingsMap.airMinimumChargeableKg !== undefined && settingsMap.airMinimumChargeableKg !== ''
+      ? parseFloat(settingsMap.airMinimumChargeableKg)
+      : 0.5,
   };
 }
 

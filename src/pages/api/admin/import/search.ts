@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import { storage } from "@lib/storage";
 import { getPricingSettings, calculateLandedCostSync } from "@lib/landedCost";
+import { extractMeasurements, calculateShippingCostUSD } from "@lib/shippingWeight";
 import { getExchangeRates } from "@lib/currency";
 import { getAdminSessionToken, verifyAdminSession } from "@lib/admin";
 
@@ -357,20 +358,27 @@ export const POST: APIRoute = async ({ request }) => {
       // trimming to a limit doesn't throw away the likely-Prime items.
       const products = data.search_results.map((item: any) => {
         const amazonPrice = item.price?.value || item.prices?.[0]?.value || 0;
-        
+
+        // Real, weight/size-based shipping when the admin has configured a
+        // per-kg rate and Rainforest published usable weight/dimensions for
+        // this item; otherwise this is just the flat shippingCostUSD, exactly
+        // as before (see @lib/shippingWeight for the opt-in/fallback rules).
+        const measurements = extractMeasurements(item);
+        const shipping = calculateShippingCostUSD(measurements, pricingSettings);
+
         let landedCost = null;
         if (exchangeRate && pricingSettings.targetCurrencyCode) {
           landedCost = calculateLandedCostSync(amazonPrice, exchangeRate, {
             exchangeRateMarkup: pricingSettings.exchangeRateMarkup,
-            shippingCostUSD: pricingSettings.shippingCostUSD,
+            shippingCostUSD: shipping.shippingCostUSD,
             commissionPercent: pricingSettings.commissionPercent,
             currencyCode: pricingSettings.targetCurrencyCode,
           });
         }
-        
+
         // Extract attributes from search result item
         const attributes = extractProductAttributes(item);
-        
+
         return {
           id: item.asin,
           asin: item.asin,
@@ -382,6 +390,11 @@ export const POST: APIRoute = async ({ request }) => {
           rating: item.rating || 0,
           reviewCount: item.ratings_total || 0,
           landedCost: landedCost,
+          // Surfaced for the review step, not required to import: lets the
+          // admin see whether a price used a real measured weight or the
+          // flat fallback, and what that weight was.
+          shippingBasis: shipping.basis,
+          shippingChargeableKg: shipping.chargeableKg,
           isPrime: item.is_prime || false,
           attributes: attributes
         };

@@ -53,7 +53,10 @@ export const POST: APIRoute = async ({ request }) => {
       { key: 'defaultCurrency', value: body.defaultCurrency || 'KES', description: 'Default currency' },
       { key: 'exchangeRate', value: body.exchangeRate || '', description: 'Manual exchange rate override' },
       { key: 'exchangeRateMarkup', value: body.exchangeRateMarkup || '1.05', description: 'Exchange rate markup multiplier' },
-      { key: 'shippingCostUSD', value: body.shippingCostUSD || '25', description: 'Shipping cost in USD' },
+      { key: 'shippingCostUSD', value: body.shippingCostUSD || '25', description: 'Flat shipping cost in USD, used when the real weight-based rate below is unset or unusable for an item' },
+      { key: 'airRateUsdPerKg', value: (body.airRateUsdPerKg || '').trim(), description: 'Air freight rate in USD per kg for real weight-based shipping. Empty keeps the flat shipping cost above' },
+      { key: 'airVolumetricDivisor', value: body.airVolumetricDivisor || '306', description: 'Volumetric divisor (cubic inches to kg) for weight-based shipping' },
+      { key: 'airMinimumChargeableKg', value: body.airMinimumChargeableKg !== undefined ? String(body.airMinimumChargeableKg) : '0.5', description: 'Minimum chargeable weight in kg for weight-based shipping' },
       { key: 'commissionPercent', value: body.commissionPercent || '10', description: 'Commission/profit margin percentage' },
     ];
     

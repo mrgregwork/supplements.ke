@@ -507,7 +507,7 @@ const subcategories = await storage.getSubcategories();
       const res = await fetch('/api/admin/import/check-prime', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ asin: product.asin }),
+        body: JSON.stringify({ asin: product.asin, amazonPriceUSD: product.price }),
       });
       const data = await res.json();
       // Same call returns the full image gallery, so stash it for the review
@@ -516,6 +516,14 @@ const subcategories = await storage.getSubcategories();
         product.galleryImages = data.images;
         // Everything starts selected; the admin prunes from here.
         product.selectedImages = data.images.slice();
+      }
+      // The search step could only show the flat-shipping estimate (Rainforest's
+      // lightweight search results don't carry weight/dimensions); this detail
+      // call does, so replace it with the real, weight-based figure once known.
+      if (data.landedCost) {
+        product.landedCost = data.landedCost;
+        product.shippingBasis = data.shippingBasis;
+        product.shippingChargeableKg = data.shippingChargeableKg;
       }
       return Boolean(data.isPrime);
     } catch (err) {
@@ -538,10 +546,18 @@ const subcategories = await storage.getSubcategories();
       if (attrs.storage) attrDisplay.push(attrs.storage);
       if (attrs.screenSize) attrDisplay.push(attrs.screenSize);
 
+      // Lets the admin see at a glance whether this price used Amazon's real
+      // published weight/size for shipping, or the flat per-site fallback (see
+      // @lib/shippingWeight) -- the whole point of weight-based shipping is
+      // trust that the margin is accurate, which a silent number can't give.
+      const shippingNote = product.shippingBasis === 'actual_weight' || product.shippingBasis === 'volumetric_weight'
+        ? ` <span class="text-muted-foreground">(by weight${product.shippingChargeableKg ? `, ${product.shippingChargeableKg.toFixed(1)}kg` : ''})</span>`
+        : product.shippingBasis === 'flat_fallback' ? ` <span class="text-muted-foreground">(flat shipping)</span>` : '';
       const landedCostHtml = lc ? `
         <div class="mt-1">
           <span class="text-xs text-muted-foreground">Landed:</span>
           <span class="text-sm font-semibold text-green-600 dark:text-green-400">${lc.formatted.landedCostLocal}</span>
+          <span class="text-xs">${shippingNote}</span>
         </div>
       ` : '';
 
