@@ -705,6 +705,21 @@ export default function AdminProductForm({ product, isNew }: AdminProductFormPro
             <label className={labelCls} htmlFor="sku">SKU</label>
             <input id="sku" type="text" value={formData.sku} onChange={(e) => updateField("sku", e.target.value)}
               className={inputCls} data-testid="input-sku" />
+            {/* Amazon-imported products store the real ASIN here (see
+                import/product.ts). Staff-only: lets whoever is fulfilling an
+                order click straight through to buy the item on Amazon.
+                Never shown anywhere on the customer-facing storefront. */}
+            {/^[A-Z0-9]{10}$/i.test(formData.sku.trim()) && (
+              <a
+                href={`https://www.amazon.com/dp/${formData.sku.trim()}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-sm text-primary hover:underline mt-1"
+                data-testid="link-view-on-amazon"
+              >
+                View on Amazon (staff only) →
+              </a>
+            )}
           </div>
         </div>
         <div className="flex flex-wrap gap-6">
