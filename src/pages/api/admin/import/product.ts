@@ -28,7 +28,13 @@ export const POST: APIRoute = async ({ request }) => {
     // the target currency is), and defaulting the label to USD would
     // mislabel it just as the opposite hardcoded-KES bug did on other sites.
     const productCurrency = typeof currency === 'string' && currency.trim() ? currency.trim() : 'USD';
-    
+
+    // Amazon's ASIN, carried over from the search result the admin selected.
+    // Stored in the otherwise-unused `sku` column so a later search can tell
+    // this product has already been imported and leave it out of new results
+    // (see import/search.ts's getExistingSkus exclusion).
+    const asin = (sourceData && typeof sourceData.asin === 'string') ? sourceData.asin.trim() : '';
+
     // Validate required fields - subcategory is now optional
     if (!title || !categoryId) {
       return new Response(JSON.stringify({ 
@@ -93,6 +99,10 @@ export const POST: APIRoute = async ({ request }) => {
       description: description || '',
       price: parseFloat(price) || 0,
       currency: productCurrency,
+      // Amazon's ASIN (see `asin` above) so a later search can recognise this
+      // product as already imported and skip it (getExistingSkus exclusion
+      // in import/search.ts).
+      sku: asin || null,
       categoryId: String(categoryId),
       subcategoryId: subcategoryId ? String(subcategoryId) : null,
       categorySlug: category.slug,

@@ -184,8 +184,12 @@ export const POST: APIRoute = async ({ request }) => {
     }
     
     const body = await request.json();
-    const { query, primeOnly = true, filters = {}, refinementUrl } = body;
-    
+    const { query, primeOnly = true, filters = {}, refinementUrl, excludeAsins } = body;
+    // Which page of Amazon's own search results to fetch -- lets the wizard's
+    // "Load next batch" ask for genuinely different results instead of
+    // re-showing the same first page every time.
+    const page = Math.min(Math.max(Number(body.page) || 1, 1), 20);
+
     if (!query || typeof query !== 'string') {
       return new Response(JSON.stringify({ 
         success: false, 
@@ -301,6 +305,7 @@ export const POST: APIRoute = async ({ request }) => {
       searchUrl.searchParams.set('amazon_domain', 'amazon.com');
       searchUrl.searchParams.set('search_term', query);
       searchUrl.searchParams.set('include_refinements', 'true'); // Request refinements
+      searchUrl.searchParams.set('page', String(page));
 
       // If a refinement URL was provided, use it for filtered search
       if (refinementUrl) {
@@ -332,6 +337,10 @@ export const POST: APIRoute = async ({ request }) => {
           products: [],
           facets: {},
           message: primeOnly ? 'No Amazon Prime products found for this search' : 'No products found for this search',
+          // Amazon itself returned nothing for this page -- distinct from "this
+          // page's results were all duplicates/already imported" below, so the
+          // client knows there's no point asking for a further page.
+          noMoreAmazonResults: page > 1,
           source: 'rainforest'
         }), {
           status: 200,
@@ -407,18 +416,39 @@ export const POST: APIRoute = async ({ request }) => {
       // allows importing products that come back verified, so search stays fast
       // and no single request depends on dozens of upstream calls.
 
+      // Exclude anything the client has already shown in this search session
+      // (guards against Amazon repeating a result across adjacent pages) and
+      // anything that's already a real product in this store's catalogue
+      // (matched by ASIN, stored in `sku` at import time) -- otherwise "Load
+      // next batch" could hand back a product already imported or on screen.
+      const clientSeenAsins = new Set(
+        Array.isArray(excludeAsins)
+          ? excludeAsins.filter((a: unknown): a is string => typeof a === 'string').slice(0, 300)
+          : []
+      );
+      const notAlreadyShown = products.filter((p: any) => !p.asin || !clientSeenAsins.has(p.asin));
+      const candidateAsins = notAlreadyShown.map((p: any) => p.asin).filter(Boolean);
+      const existingSkus = candidateAsins.length > 0 ? await storage.getExistingSkus(candidateAsins) : [];
+      const existingSkuSet = new Set(existingSkus);
+      const candidateProducts = notAlreadyShown.filter((p: any) => !existingSkuSet.has(p.asin));
+
       // Apply client-side filters if any, then sort Prime-flagged results first
       // before capping -- it's only a hint (the client still verifies each one),
       // but it means the cap is more likely to keep the results that will
       // actually pass verification. Capped to 12: every visible result costs one
       // extra Prime-verification call once selected, so a larger cap just means
       // more wasted upstream calls for results nobody picks.
-      const filteredProducts = applyFilters(products, filters)
+      const filteredProducts = applyFilters(candidateProducts, filters)
         .sort((a: any, b: any) => (a.isPrime === true ? 0 : 1) - (b.isPrime === true ? 0 : 1))
         .slice(0, 12);
 
+      let emptyReason = '';
+      if (filteredProducts.length === 0 && products.length > 0 && candidateProducts.length === 0) {
+        emptyReason = `Amazon returned ${products.length} result${products.length === 1 ? '' : 's'} on this page, but every one is already in your catalogue or already shown. Try loading the next batch, or search a more specific term.`;
+      }
+
       // Extract product-based facets as fallback/supplement to API refinements
-      const productFacets = extractFilterFacets(products);
+      const productFacets = extractFilterFacets(candidateProducts);
       
       // Merge API refinements with product-extracted facets
       // API refinements take priority as they're more comprehensive
@@ -449,6 +479,8 @@ export const POST: APIRoute = async ({ request }) => {
         products: filteredProducts,
         facets: mergedFacets,
         totalResults: data.search_results.length,
+        page,
+        ...(emptyReason ? { message: emptyReason } : {}),
         // Tells the client these results are unverified and must each be checked
         // via /api/admin/import/check-prime before being shown as importable.
         primeVerificationRequired: primeOnly,

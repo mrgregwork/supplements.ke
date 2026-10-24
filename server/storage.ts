@@ -26,7 +26,7 @@ import {
   type ContentPage, type InsertContentPage,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gt, or, desc, asc, ilike, sql } from "drizzle-orm";
+import { eq, and, gt, or, desc, asc, ilike, sql, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // Users (legacy)
@@ -60,6 +60,7 @@ export interface IStorage {
   getProducts(): Promise<Product[]>;
   getProduct(id: string): Promise<Product | undefined>;
   getProductBySlug(slug: string): Promise<Product | undefined>;
+  getExistingSkus(skus: string[]): Promise<string[]>;
   getProductsByCategory(categoryId: string): Promise<Product[]>;
   getProductsBySubcategory(subcategoryId: string): Promise<Product[]>;
   getProductsByBrand(brand: string): Promise<Product[]>;
@@ -271,6 +272,15 @@ export class DatabaseStorage implements IStorage {
   async getProductBySlug(slug: string): Promise<Product | undefined> {
     const [product] = await db.select().from(products).where(eq(products.slug, slug));
     return product || undefined;
+  }
+
+  // Returns whichever of the given ASINs (stored in `sku` at import time, see
+  // import/product.ts) already exist as real products, so the Amazon import
+  // search can skip them instead of offering a duplicate.
+  async getExistingSkus(skus: string[]): Promise<string[]> {
+    if (skus.length === 0) return [];
+    const rows = await db.select({ sku: products.sku }).from(products).where(inArray(products.sku, skus));
+    return rows.map(r => r.sku).filter((s): s is string => !!s);
   }
 
   async getProductsByCategory(categoryId: string): Promise<Product[]> {

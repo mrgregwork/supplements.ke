@@ -162,6 +162,21 @@ const subcategories = await storage.getSubcategories();
                 Enter a search term above to find products to import.
               </p>
             </div>
+
+            <!-- Fetches the next page of the same Amazon search, skipping
+                 anything already shown or already imported (see getExistingSkus
+                 in server/storage.ts). Hidden until a search has results. -->
+            <div id="load-more-container" class="hidden mt-4 text-center">
+              <button
+                type="button"
+                id="load-more-btn"
+                class="px-5 py-3 min-h-[48px] border rounded-md hover:bg-muted transition text-sm font-medium"
+                data-testid="button-load-more"
+              >
+                Load next batch
+              </button>
+              <p id="load-more-status" class="text-xs text-muted-foreground mt-2 hidden"></p>
+            </div>
           </div>
           
           <!-- Bulk Import Panel -->
@@ -245,6 +260,9 @@ const subcategories = await storage.getSubcategories();
   const searchBtn = document.getElementById('search-btn');
   const searchStatus = document.getElementById('search-status');
   const searchResults = document.getElementById('search-results');
+  const loadMoreContainer = document.getElementById('load-more-container');
+  const loadMoreBtn = document.getElementById('load-more-btn');
+  const loadMoreStatus = document.getElementById('load-more-status');
   const filtersPanel = document.getElementById('filters-panel');
   const toggleFiltersBtn = document.getElementById('toggle-filters');
   const filtersContent = document.getElementById('filters-content');
@@ -273,7 +291,13 @@ const subcategories = await storage.getSubcategories();
   let currentFacets = {};
   let activeFilters = {};
   let filtersExpanded = false;
-  
+  // Pagination for "Load next batch": which Amazon results page the current
+  // query is on, and every ASIN already shown this search so a later page
+  // can't hand back a duplicate.
+  let currentPage = 1;
+  let currentRefinementUrl = undefined;
+  let seenAsins = new Set();
+
   // Filter label mapping (fallback for simple string arrays)
   const filterLabels = {
     brand: 'Brand',
@@ -315,45 +339,74 @@ const subcategories = await storage.getSubcategories();
     if (e.key === 'Enter') performSearch();
   });
   
-  async function performSearch() {
+  // `opts.append` distinguishes a brand-new search (replaces the list, resets
+  // to page 1) from "Load next batch" (adds to the list, keeps the page
+  // counter and the set of ASINs already shown so the server can skip them).
+  async function performSearch(opts = {}) {
+    const { append = false } = opts;
     const query = searchInput?.value?.trim();
     if (!query) {
       alert('Please enter a search term');
       return;
     }
-    
-    searchBtn.disabled = true;
-    searchBtn.innerHTML = '<svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="4" class="opacity-25"></circle><path class="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Searching...';
-    
+
+    if (!append) {
+      currentPage = 1;
+      seenAsins = new Set();
+    }
+
+    if (append) {
+      if (loadMoreBtn) { loadMoreBtn.disabled = true; loadMoreBtn.textContent = 'Loading...'; }
+      if (loadMoreStatus) loadMoreStatus.classList.add('hidden');
+    } else {
+      searchBtn.disabled = true;
+      searchBtn.innerHTML = '<svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="4" class="opacity-25"></circle><path class="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Searching...';
+      if (searchResults) {
+        searchResults.innerHTML = '<p class="text-center py-8 text-muted-foreground">Loading products...</p>';
+      }
+      loadMoreContainer?.classList.add('hidden');
+    }
+
     if (searchStatus) {
-      searchStatus.textContent = 'Searching Amazon products... This may take a few seconds.';
+      searchStatus.textContent = append ? 'Loading the next batch...' : 'Searching Amazon products... This may take a few seconds.';
       searchStatus.classList.remove('hidden');
     }
-    
-    if (searchResults) {
-      searchResults.innerHTML = '<p class="text-center py-8 text-muted-foreground">Loading products...</p>';
-    }
-    
+
     try {
       const response = await fetch('/api/admin/import/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, primeOnly: true, filters: activeFilters }),
+        body: JSON.stringify({
+          query, primeOnly: true, filters: activeFilters,
+          page: currentPage,
+          excludeAsins: Array.from(seenAsins),
+        }),
       });
-      
+
       const result = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(result.message || 'Search failed');
       }
-      
+
       if (searchStatus) searchStatus.classList.add('hidden');
-      
-      allProducts = result.products || [];
-      currentFacets = result.facets || {};
-      
+
+      const rawProducts = result.products || [];
+
+      if (!append) {
+        allProducts = rawProducts;
+        currentFacets = result.facets || {};
+      } else {
+        // Append newly-seen products to the existing list rather than
+        // replacing it, so "Load next batch" grows the results instead of
+        // discarding what's already rendered/selected. Facets are left as
+        // they were for the first page.
+        allProducts = allProducts.concat(rawProducts);
+      }
+      allProducts.forEach(p => { if (p.asin) seenAsins.add(p.asin); });
+
       // If we have products but few/no facets, use AI to generate smart filters
-      if (allProducts.length > 0 && Object.keys(currentFacets).length < 3) {
+      if (!append && allProducts.length > 0 && Object.keys(currentFacets).length < 3) {
         try {
           const aiResponse = await fetch('/api/admin/import/ai-filters', {
             method: 'POST',
@@ -369,25 +422,47 @@ const subcategories = await storage.getSubcategories();
           console.log('AI filters not available, using standard filters');
         }
       }
-      
+
       // Show filters panel if we have facets
-      if (Object.keys(currentFacets).length > 0) {
-        filtersPanel?.classList.remove('hidden');
-        renderFilters();
-      } else {
-        filtersPanel?.classList.add('hidden');
+      if (!append) {
+        if (Object.keys(currentFacets).length > 0) {
+          filtersPanel?.classList.remove('hidden');
+          renderFilters();
+        } else {
+          filtersPanel?.classList.add('hidden');
+        }
       }
-      
+
       if (allProducts.length > 0) {
         renderSearchResults(allProducts);
+
+        loadMoreContainer?.classList.remove('hidden');
+        if (loadMoreBtn) {
+          if (result.noMoreAmazonResults) {
+            loadMoreBtn.disabled = true;
+            loadMoreBtn.textContent = 'No more results from Amazon';
+          } else {
+            loadMoreBtn.disabled = false;
+            loadMoreBtn.textContent = 'Load next batch';
+          }
+        }
+        if (loadMoreStatus) {
+          if (append && rawProducts.length === 0) {
+            loadMoreStatus.textContent = result.message || 'No new results on this page — try again for the next page, or search a more specific term.';
+            loadMoreStatus.classList.remove('hidden');
+          } else {
+            loadMoreStatus.classList.add('hidden');
+          }
+        }
       } else {
         if (searchResults) {
           searchResults.innerHTML = `
             <p class="text-muted-foreground text-center py-8">
-              No products found for "${query}". Try a different search term.
+              ${result.message || `No products found for "${query}". Try a different search term.`}
             </p>
           `;
         }
+        loadMoreContainer?.classList.add('hidden');
       }
     } catch (error) {
       console.error('Search error:', error);
@@ -395,7 +470,12 @@ const subcategories = await storage.getSubcategories();
         searchStatus.textContent = error.message || 'Search failed. Please try again.';
         searchStatus.classList.remove('hidden');
       }
-      if (searchResults) {
+      if (append) {
+        // Roll back the page bump so a retry asks for the same page again
+        // instead of silently skipping it.
+        currentPage -= 1;
+        if (loadMoreBtn) { loadMoreBtn.disabled = false; loadMoreBtn.textContent = 'Load next batch'; }
+      } else if (searchResults) {
         searchResults.innerHTML = '';
       }
     } finally {
@@ -403,6 +483,11 @@ const subcategories = await storage.getSubcategories();
       searchBtn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg> Search';
     }
   }
+
+  loadMoreBtn?.addEventListener('click', () => {
+    currentPage += 1;
+    performSearch({ append: true });
+  });
   
   function renderFilters() {
     if (!dynamicFilters) return;
