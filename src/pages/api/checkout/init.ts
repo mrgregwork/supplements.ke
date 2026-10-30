@@ -180,7 +180,9 @@ export const POST: APIRoute = async ({ request }) => {
     const description = buildOrderDescription(itemsSnapshot);
     const gatewayMetadata = {
       orderCode,
-      items: itemsSnapshot.map((i) => ({ name: i.productName, qty: i.quantity, total: i.totalPrice })),
+      // {name, quantity, price} -- matches what E-Payments' own merchant UI
+      // actually reads; see store-template's docs/PAYMENT_INTEGRATION.md.
+      items: itemsSnapshot.map((i) => ({ name: i.productName, quantity: i.quantity, price: i.unitPrice })),
     };
 
     const [pending] = await db

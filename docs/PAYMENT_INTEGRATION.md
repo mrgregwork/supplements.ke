@@ -417,6 +417,22 @@ fix used the longer `ORD-...` format and would have silently exceeded that
 cap. Same fix ported to cosmetics.ke the same day; see its own
 `docs/PAYMENT_INTEGRATION.md` §6.7.
 
+### `metadata.items` must be `{name, quantity, price}` — never `{name, qty, total}`
+
+**Found live 30/10/2026** on a real cosmetics.ke order (`CK-1001`): it
+showed "KES 0" for its item in E-Payments' own "Transaction Details"
+dashboard, despite `checkout/init.ts` sending a full `metadata.items`
+array. E-Payments' `/docs` page claims two shapes are accepted —
+`{name, quantity, price}` or `{name, qty, total}` — but its actual
+dashboard component only ever reads `item.price`/`item.quantity`
+(`price × quantity`, computed client-side); `qty`/`total` are silently
+ignored. This repo's `checkout/init.ts` was sending the `{qty, total}`
+shape. **Fixed 30/10/2026** to send `{name, quantity, price}` instead — the
+shape ShopUSA's own POS integration already confirmed works. This is now
+the mandatory convention for every site in the template family, including
+any future clone — see `store-template`'s own `docs/PAYMENT_INTEGRATION.md`
+§6.9 for the full write-up.
+
 ---
 
 ## 7. Common gateway decline reasons and how to respond
