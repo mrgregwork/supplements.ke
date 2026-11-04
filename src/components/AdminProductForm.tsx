@@ -409,6 +409,16 @@ export default function AdminProductForm({ product, isNew }: AdminProductFormPro
       if (isNew) {
         window.location.href = `/admin/products/${data.id || data.product?.id}`;
       } else {
+        // The "Preview" link lives in the surrounding .astro page, rendered
+        // once from the product data at the initial GET -- it never refreshes
+        // on its own, so a save that changes the slug or category/subcategory
+        // left it pointing at the old (sometimes now-404ing) URL. Patch its
+        // href directly from what was just saved.
+        const previewLink = document.querySelector<HTMLAnchorElement>('[data-testid="link-preview"]');
+        if (previewLink) {
+          const sub = formData.subcategorySlug ? `${formData.subcategorySlug}/` : "";
+          previewLink.href = `/${formData.categorySlug}/${sub}${formData.slug}/`;
+        }
         setSuccess(true);
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
