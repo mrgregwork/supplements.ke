@@ -344,7 +344,22 @@ const subcategories = await storage.getSubcategories();
   // counter and the set of ASINs already shown so the server can skip them).
   async function performSearch(opts = {}) {
     const { append = false } = opts;
-    const query = searchInput?.value?.trim();
+    let query = searchInput?.value?.trim();
+
+    // Checking a filter (brand, product type, ...) and clicking "Apply Filters"
+    // without having typed a search term is a valid search on its own -- the
+    // picked value *is* the search, so fall back to it instead of blocking with
+    // an error. Brand is preferred since it's the most search-friendly value;
+    // only applies to a fresh search, never to "Load next batch" continuing one.
+    if (!query && !append) {
+      const fallbackValue = (activeFilters.brand && activeFilters.brand[0])
+        || Object.values(activeFilters).flat().find(Boolean);
+      if (fallbackValue) {
+        query = fallbackValue;
+        if (searchInput) searchInput.value = query;
+      }
+    }
+
     if (!query) {
       alert('Please enter a search term');
       return;

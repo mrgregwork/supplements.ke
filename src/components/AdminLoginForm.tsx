@@ -102,7 +102,19 @@ export default function AdminLoginForm() {
               pattern="[0-9]{6}"
               maxLength={6}
               value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              onPaste={(e) => {
+                // The native maxLength only caps raw pasted characters -- if the
+                // clipboard text carries even one stray non-digit (picked up from
+                // a manual click-drag selection, a copied trailing space, etc.),
+                // that cap can truncate away a real digit before onChange ever
+                // gets a chance to strip it. Read the full clipboard text
+                // ourselves, strip non-digits first, then cap -- so a stray
+                // character can never cost a genuine digit of the code.
+                e.preventDefault();
+                const digits = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+                setCode(digits);
+              }}
               className="w-full px-4 py-3 rounded-lg border bg-background focus:outline-none focus:ring-2 focus:ring-primary text-center text-2xl tracking-[0.5em] font-mono"
               placeholder="000000"
               required

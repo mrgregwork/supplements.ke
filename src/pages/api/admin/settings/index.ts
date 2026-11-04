@@ -63,9 +63,14 @@ export const POST: APIRoute = async ({ request }) => {
     // Only update license key if a new one is provided (not empty)
     const newLicenseKey = (body.licenseKey || '').trim();
     if (newLicenseKey.length > 0) {
+      const currentLicenseKey = (await storage.getSiteSetting('licenseKey'))?.value || '';
       settingsToUpdate.push({ key: 'licenseKey', value: newLicenseKey, description: 'Product import license key' });
-      // Reset license status when key changes - user needs to verify again
-      settingsToUpdate.push({ key: 'licenseStatus', value: 'inactive', description: 'License validation status' });
+      // Reset license status only when the key actually changes -- resubmitting
+      // the same already-verified key (e.g. alongside an unrelated setting)
+      // must not silently flip a verified licence back to Inactive.
+      if (newLicenseKey !== currentLicenseKey) {
+        settingsToUpdate.push({ key: 'licenseStatus', value: 'inactive', description: 'License validation status' });
+      }
     }
     
     for (const setting of settingsToUpdate) {
