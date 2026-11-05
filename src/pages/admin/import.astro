@@ -36,6 +36,12 @@ const subcategories = await storage.getSubcategories();
     <AdminSidebar adminEmail={adminEmail} currentPage="import" />
     
     <main class="flex-1 px-4 py-6 md:p-8 w-full overflow-x-hidden">
+      <!-- Replaces the native alert() popups this page used to show for
+           validation/status messages -- those block the whole browser tab
+           until dismissed, which reads as dated next to the rest of the
+           admin. This page has no destructive confirm() of its own; where
+           the admin does (e.g. deleting a product), it stays native. -->
+      <div id="toast-stack" class="fixed top-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none max-w-sm"></div>
       <h2 class="text-2xl font-bold mb-6">Import Products</h2>
       
       {!hasValidLicense ? (
@@ -285,6 +291,30 @@ const subcategories = await storage.getSubcategories();
   const importProgressBar = document.getElementById('import-progress-bar');
   const importProgressText = document.getElementById('import-progress-text');
   
+  // Small dependency-free replacement for alert() -- a tab-blocking native
+  // popup for routine validation/status messages reads as dated next to the
+  // rest of this admin (shopusa.co.ke made the same change 13/10/2026).
+  // Destructive confirmations still use the native confirm(), unchanged.
+  function showToast(message, kind = 'info') {
+    const stack = document.getElementById('toast-stack');
+    if (!stack) { if (kind === 'error') console.error(message); return; }
+    const colors = {
+      success: 'bg-green-600 text-white',
+      error: 'bg-red-600 text-white',
+      info: 'bg-foreground text-background',
+    };
+    const toast = document.createElement('div');
+    toast.className = `pointer-events-auto px-4 py-3 rounded-md shadow-lg text-sm ${colors[kind] || colors.info}`;
+    toast.textContent = message;
+    toast.setAttribute('role', 'status');
+    stack.appendChild(toast);
+    setTimeout(() => {
+      toast.style.transition = 'opacity 0.3s';
+      toast.style.opacity = '0';
+      setTimeout(() => toast.remove(), 300);
+    }, 4000);
+  }
+
   // State
   let allProducts = [];
   let selectedProducts = new Map();
@@ -361,7 +391,7 @@ const subcategories = await storage.getSubcategories();
     }
 
     if (!query) {
-      alert('Please enter a search term');
+      showToast('Please enter a search term', 'error');
       return;
     }
 
@@ -778,7 +808,7 @@ const subcategories = await storage.getSubcategories();
   // Import selected - show bulk import panel
   importSelectedBtn?.addEventListener('click', () => {
     if (selectedProducts.size === 0) {
-      alert('Please select at least one product');
+      showToast('Please select at least one product', 'error');
       return;
     }
 
@@ -786,7 +816,7 @@ const subcategories = await storage.getSubcategories();
     // verification call was still in flight when Next was clicked.
     const unverified = [...selectedProducts.values()].filter(p => p.primeStatus !== 'yes');
     if (unverified.length > 0) {
-      alert(`Still confirming Amazon Prime eligibility for ${unverified.length} product(s). Please wait a moment and try again.`);
+      showToast(`Still confirming Amazon Prime eligibility for ${unverified.length} product(s). Please wait a moment and try again.`, 'error');
       return;
     }
     
@@ -817,7 +847,7 @@ const subcategories = await storage.getSubcategories();
     const subcategoryId = bulkSubcategorySelect?.value || null; // Subcategory is now optional
     
     if (!categoryId) {
-      alert('Please select a category');
+      showToast('Please select a category', 'error');
       return;
     }
     
@@ -877,9 +907,9 @@ const subcategories = await storage.getSubcategories();
     cancelBulkImportBtn.disabled = false;
     
     if (failed > 0) {
-      alert(`Import complete: ${imported} succeeded, ${failed} failed`);
+      showToast(`Import complete: ${imported} succeeded, ${failed} failed`, 'error');
     } else {
-      alert(`Successfully imported ${imported} products!`);
+      showToast(`Successfully imported ${imported} products!`, 'success');
     }
     
     // Clear selection and redirect
