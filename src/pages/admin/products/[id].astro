@@ -20,7 +20,13 @@ if (id !== "new" && !product) {
 }
 
 const adminEmail = sessionData?.admin?.email || "Dev Mode";
+const adminRole = sessionData?.admin?.role || "admin";
 const isNew = id === "new";
+// Staff can edit any product, but only delete the ones they personally
+// added -- see the DELETE handler in api/admin/products/[id].ts, which is
+// what actually enforces this; this just keeps the button from being shown
+// when it would just 403.
+const canDelete = adminRole !== "staff" || (!!product && (product as any).createdBy === sessionData?.admin?.id);
 ---
 
 <BaseLayout 
@@ -28,7 +34,7 @@ const isNew = id === "new";
   description={isNew ? "Add a new product" : "Edit product"}
 >
   <div class="min-h-screen md:flex">
-    <AdminSidebar adminEmail={adminEmail} currentPage="products" />
+    <AdminSidebar adminEmail={adminEmail} adminRole={adminRole} currentPage="products" />
     
     <main class="flex-1 px-4 py-6 md:p-8 w-full overflow-x-hidden">
       <div class="mb-6 flex items-center gap-4 flex-wrap">
@@ -53,10 +59,11 @@ const isNew = id === "new";
       </h2>
       
       <div class="w-full max-w-3xl">
-        <AdminProductForm 
-          client:load 
+        <AdminProductForm
+          client:load
           product={product}
           isNew={isNew}
+          canDelete={canDelete}
         />
       </div>
     </main>

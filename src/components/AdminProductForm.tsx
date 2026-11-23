@@ -206,9 +206,13 @@ interface AttributeDefinition {
 interface AdminProductFormProps {
   product: Product | null;
   isNew: boolean;
+  // Defaults true so nothing changes for the main admin or for callers that
+  // don't pass it; only [id].astro computes a real false for a staff account
+  // viewing a product it didn't create.
+  canDelete?: boolean;
 }
 
-export default function AdminProductForm({ product, isNew }: AdminProductFormProps) {
+export default function AdminProductForm({ product, isNew, canDelete = true }: AdminProductFormProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -787,7 +791,7 @@ export default function AdminProductForm({ product, isNew }: AdminProductFormPro
           className="px-6 py-3 min-h-[48px] border rounded-lg font-medium hover:bg-muted transition text-center flex items-center justify-center">
           Cancel
         </a>
-        {!isNew && (
+        {!isNew && canDelete && (
           <button type="button" onClick={handleDelete} disabled={loading}
             className="sm:ml-auto px-6 py-3 min-h-[48px] text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg font-medium transition disabled:opacity-50"
             data-testid="button-delete">

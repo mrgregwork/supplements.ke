@@ -48,7 +48,7 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
     
-    const product = await createProduct(parseResult.data);
+    const product = await createProduct({ ...parseResult.data, createdBy: sessionData?.admin?.id ?? null });
     
     return new Response(
       JSON.stringify({ success: true, product }),

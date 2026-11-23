@@ -1,0 +1,216 @@
+---
+import BaseLayout from "@layouts/BaseLayout.astro";
+import AdminSidebar from "@components/AdminSidebar.astro";
+import { getAdminSessionToken, verifyAdminSession, getAllAdminUsers } from "@lib/admin";
+
+const sessionToken = getAdminSessionToken(Astro.request);
+const sessionData = await verifyAdminSession(sessionToken);
+
+const isDev = import.meta.env.DEV;
+if (!isDev && !sessionData) {
+  return Astro.redirect("/admin/login");
+}
+// Defense in depth -- src/middleware.ts already keeps a 'staff' session from
+// reaching this page at all (it only has Products).
+if (sessionData?.admin.role === "staff") {
+  return Astro.redirect("/admin/products");
+}
+
+const adminEmail = sessionData?.admin?.email || "Dev Mode";
+const adminRole = sessionData?.admin?.role || "admin";
+const admins = await getAllAdminUsers();
+---
+
+<BaseLayout
+  title="Staff Accounts - Admin"
+  description="Manage staff login accounts"
+>
+  <div class="min-h-screen flex flex-col md:flex-row">
+    <AdminSidebar adminEmail={adminEmail} adminRole={adminRole} currentPage="settings" />
+
+    <main class="flex-1 p-4 md:p-8">
+      <div id="toast-stack" class="fixed top-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none max-w-sm"></div>
+
+      <a href="/admin/settings" class="text-primary hover:underline text-sm inline-flex items-center mb-4" data-testid="link-back-settings">
+        ← Back to Settings
+      </a>
+
+      <h2 class="text-2xl font-bold mb-2">Staff Accounts</h2>
+      <p class="text-sm text-muted-foreground mb-6">
+        A staff account can log in and add products, but only sees the Products section --
+        and can only delete products it personally added. Everything else in the admin panel
+        stays limited to full admin accounts.
+      </p>
+
+      <div class="bg-card border rounded-lg p-6 mb-6">
+        <h3 class="text-lg font-semibold mb-4">Add a Staff Account</h3>
+        <form id="add-staff-form" class="flex flex-col sm:flex-row gap-3">
+          <input
+            type="text"
+            id="staff-name"
+            name="name"
+            placeholder="Name"
+            required
+            class="flex-1 px-4 py-3 min-h-[48px] text-base border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+            data-testid="input-staff-name"
+          />
+          <input
+            type="email"
+            id="staff-email"
+            name="email"
+            placeholder="Email address"
+            required
+            class="flex-1 px-4 py-3 min-h-[48px] text-base border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+            data-testid="input-staff-email"
+          />
+          <button
+            type="submit"
+            class="px-6 py-3 min-h-[48px] bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition"
+            data-testid="button-add-staff"
+          >
+            Add
+          </button>
+        </form>
+        <p class="text-xs text-muted-foreground mt-3">
+          They'll log in at /admin/login the same way you do -- a 6-digit code emailed to that address, no password.
+        </p>
+      </div>
+
+      <div class="bg-card border rounded-lg overflow-hidden">
+        <table class="w-full">
+          <thead>
+            <tr class="border-b bg-muted/50">
+              <th class="text-left py-3 px-4 font-medium">Name</th>
+              <th class="text-left py-3 px-4 font-medium">Email</th>
+              <th class="text-left py-3 px-4 font-medium">Role</th>
+              <th class="text-right py-3 px-4 font-medium">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y" id="staff-table-body">
+            {admins.map((admin) => (
+              <tr data-admin-row={admin.id}>
+                <td class="py-3 px-4">{admin.name}</td>
+                <td class="py-3 px-4 text-sm text-muted-foreground">{admin.email}</td>
+                <td class="py-3 px-4">
+                  <span class={`inline-block px-2 py-0.5 text-xs rounded-full ${
+                    admin.role === "staff"
+                      ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                      : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                  }`}>
+                    {admin.role === "staff" ? "Staff" : "Admin"}
+                  </span>
+                </td>
+                <td class="py-3 px-4 text-right">
+                  {admin.role === "staff" && (
+                    <button
+                      type="button"
+                      class="remove-staff-btn px-3 py-2 min-h-[40px] text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition"
+                      data-admin-id={admin.id}
+                      data-admin-name={admin.name}
+                      data-testid={`button-remove-staff-${admin.id}`}
+                    >
+                      Remove
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</BaseLayout>
+
+<script>
+  function init() {
+    const form = document.getElementById('add-staff-form') as HTMLFormElement | null;
+    const tableBody = document.getElementById('staff-table-body');
+
+    function showToast(message: string, kind: 'info' | 'success' | 'error' = 'info') {
+      const stack = document.getElementById('toast-stack');
+      if (!stack) { if (kind === 'error') console.error(message); return; }
+      const colors: Record<string, string> = {
+        success: 'bg-green-600 text-white',
+        error: 'bg-red-600 text-white',
+        info: 'bg-foreground text-background',
+      };
+      const toast = document.createElement('div');
+      toast.className = `pointer-events-auto px-4 py-3 rounded-md shadow-lg text-sm ${colors[kind] || colors.info}`;
+      toast.textContent = message;
+      toast.setAttribute('role', 'status');
+      stack.appendChild(toast);
+      setTimeout(() => {
+        toast.style.transition = 'opacity 0.3s';
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+      }, 5000);
+    }
+
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = (document.getElementById('staff-email') as HTMLInputElement)?.value.trim();
+      const name = (document.getElementById('staff-name') as HTMLInputElement)?.value.trim();
+      if (!email || !name) return;
+
+      const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+      if (submitBtn) submitBtn.disabled = true;
+
+      try {
+        const res = await fetch('/api/admin/staff', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, name }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error || 'Failed to add staff account');
+
+        showToast(`Added ${name} as a staff account.`, 'success');
+        const row = document.createElement('tr');
+        row.dataset.adminRow = data.admin.id;
+        row.innerHTML = `
+          <td class="py-3 px-4"></td>
+          <td class="py-3 px-4 text-sm text-muted-foreground"></td>
+          <td class="py-3 px-4"><span class="inline-block px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">Staff</span></td>
+          <td class="py-3 px-4 text-right"><button type="button" class="remove-staff-btn px-3 py-2 min-h-[40px] text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition" data-admin-id="${data.admin.id}" data-admin-name="${name}">Remove</button></td>
+        `;
+        (row.children[0] as HTMLElement).textContent = data.admin.name;
+        (row.children[1] as HTMLElement).textContent = data.admin.email;
+        tableBody?.appendChild(row);
+        attachRemoveHandler(row.querySelector('.remove-staff-btn') as HTMLButtonElement);
+
+        form.reset();
+      } catch (err) {
+        showToast(err instanceof Error ? err.message : 'Failed to add staff account', 'error');
+      } finally {
+        if (submitBtn) submitBtn.disabled = false;
+      }
+    });
+
+    function attachRemoveHandler(btn: HTMLButtonElement | null) {
+      btn?.addEventListener('click', async () => {
+        const id = btn.dataset.adminId!;
+        const name = btn.dataset.adminName;
+        if (!confirm(`Remove staff access for ${name}? They'll no longer be able to log in.`)) return;
+
+        btn.disabled = true;
+        try {
+          const res = await fetch(`/api/admin/staff/${id}`, { method: 'DELETE' });
+          const data = await res.json();
+          if (!res.ok || !data.success) throw new Error(data.error || 'Failed to remove staff account');
+          document.querySelector(`[data-admin-row="${id}"]`)?.remove();
+          showToast(`Removed ${name}.`, 'success');
+        } catch (err) {
+          showToast(err instanceof Error ? err.message : 'Failed to remove staff account', 'error');
+          btn.disabled = false;
+        }
+      });
+    }
+
+    document.querySelectorAll<HTMLButtonElement>('.remove-staff-btn').forEach(attachRemoveHandler);
+  }
+
+  // This project doesn't use Astro View Transitions (no ClientRouter in
+  // BaseLayout.astro), so a plain direct call is correct here.
+  init();
+</script>

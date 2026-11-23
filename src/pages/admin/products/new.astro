@@ -13,6 +13,7 @@ if (!isDev && !sessionData) {
 }
 
 const adminEmail = sessionData?.admin?.email || "Dev Mode";
+const adminRole = sessionData?.admin?.role || "admin";
 ---
 
 <BaseLayout 
@@ -20,7 +21,7 @@ const adminEmail = sessionData?.admin?.email || "Dev Mode";
   description="Add a new product"
 >
   <div class="min-h-screen md:flex">
-    <AdminSidebar adminEmail={adminEmail} currentPage="products" />
+    <AdminSidebar adminEmail={adminEmail} adminRole={adminRole} currentPage="products" />
     
     <main class="flex-1 px-4 py-6 md:p-8 w-full overflow-x-hidden">
       <div class="mb-6">

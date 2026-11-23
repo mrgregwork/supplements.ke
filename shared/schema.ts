@@ -73,6 +73,9 @@ export const adminUsers = pgTable("admin_users", {
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   name: text("name").notNull(),
+  // 'admin' (default, full access) or 'staff' (Products-only, see
+  // src/middleware.ts -- the one place that actually enforces this).
+  role: text("role").default("admin").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -329,6 +332,11 @@ export const products = pgTable("products", {
   indexable: boolean("indexable").default(false).notNull(),
   seoTitle: text("seo_title"),
   seoDescription: text("seo_description"),
+  // Who added this product -- null for everything that existed before this
+  // column did. This is what lets a 'staff' admin_users row delete only the
+  // products it personally created (enforced in the products API routes,
+  // not here); staff can still edit any product regardless of this field.
+  createdBy: varchar("created_by").references(() => adminUsers.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

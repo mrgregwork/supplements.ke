@@ -95,16 +95,35 @@ export const DELETE: APIRoute = async ({ params, request }) => {
     }
     
     const { id } = params;
-    
+
     if (!id) {
       return new Response(
         JSON.stringify({ error: "Product ID is required" }),
         { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
-    
+
+    // Staff may only delete products they personally added -- see
+    // shared/schema.ts's products.createdBy comment. The main admin (and
+    // dev mode, where sessionData is null) has no such restriction.
+    if (sessionData?.admin.role === "staff") {
+      const existing = await getProductById(id);
+      if (!existing) {
+        return new Response(
+          JSON.stringify({ error: "Product not found" }),
+          { status: 404, headers: { "Content-Type": "application/json" } }
+        );
+      }
+      if ((existing as any).createdBy !== sessionData.admin.id) {
+        return new Response(
+          JSON.stringify({ error: "You can only delete products you added." }),
+          { status: 403, headers: { "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     await deleteProduct(id);
-    
+
     return new Response(
       JSON.stringify({ success: true }),
       { status: 200, headers: { "Content-Type": "application/json" } }

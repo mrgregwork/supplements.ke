@@ -34,6 +34,31 @@ export async function createAdmin(email: string, password: string, name: string)
   return admin;
 }
 
+// Staff accounts (see /admin/staff): a restricted admin_users row, Products-
+// only in the admin panel (enforced in src/middleware.ts). Login is the same
+// OTP-by-email flow as the main admin -- there's no password UI anywhere for
+// this, so passwordHash just needs to satisfy the NOT NULL column and is
+// never used to authenticate.
+export async function getAllAdminUsers() {
+  return db.select().from(adminUsers).orderBy(asc(adminUsers.createdAt));
+}
+
+export async function createStaffAdmin(email: string, name: string) {
+  const passwordHash = await hashPassword(crypto.randomBytes(32).toString("hex"));
+  const [admin] = await db
+    .insert(adminUsers)
+    .values({ email, passwordHash, name, role: "staff" })
+    .returning();
+  return admin;
+}
+
+// adminSessions.adminId has no ON DELETE clause, so a staff account with any
+// session on record would otherwise fail to delete with a raw FK error.
+export async function deleteStaffAdmin(id: string) {
+  await db.delete(adminSessions).where(eq(adminSessions.adminId, id));
+  await db.delete(adminUsers).where(and(eq(adminUsers.id, id), eq(adminUsers.role, "staff")));
+}
+
 export async function createAdminSession(adminId: string): Promise<string> {
   const token = generateSecureToken();
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days

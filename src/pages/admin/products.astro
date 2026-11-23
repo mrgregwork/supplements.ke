@@ -13,6 +13,7 @@ if (!isDev && !sessionData) {
 }
 
 const adminEmail = sessionData?.admin?.email || "Dev Mode";
+const adminRole = sessionData?.admin?.role || "admin";
 const products = await getAllProducts();
 ---
 
@@ -21,7 +22,7 @@ const products = await getAllProducts();
   description="Manage products"
 >
   <div class="min-h-screen flex flex-col md:flex-row">
-    <AdminSidebar adminEmail={adminEmail} currentPage="products" />
+    <AdminSidebar adminEmail={adminEmail} adminRole={adminRole} currentPage="products" />
     
     <main class="flex-1 p-4 md:p-6 lg:p-8">
       <div class="flex items-center justify-between mb-6">

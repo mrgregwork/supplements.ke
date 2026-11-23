@@ -174,6 +174,7 @@ export const POST: APIRoute = async ({ request }) => {
           status: row.status || "active",
           seoTitle: row.seoTitle || null,
           seoDescription: row.seoDescription || null,
+          createdBy: sessionData?.admin?.id ?? null,
         });
         created++;
       } catch (err: any) {
