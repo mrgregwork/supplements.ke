@@ -555,6 +555,25 @@ export type InsertRefundRequest = z.infer<typeof insertRefundRequestSchema>;
 export type RefundRequest = typeof refundRequests.$inferSelect;
 
 // ============================================
+// ORDER NOTES (manual staff notes, admin-facing only)
+// ============================================
+// Same model as shopusa.co.ke's order_events table, scaled down to just the
+// one thing this single-admin storefront actually needs: a free-text note
+// an admin can leave on an order (e.g. "called the customer, they confirmed
+// the address"), timestamped and attributed. ShopUSA's version also logs
+// automatic events (fulfilled, payment confirmed, etc.) because it drives
+// staff-attribution reporting across many employees -- not needed here.
+export const orderNotes = pgTable("order_notes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  orderId: varchar("order_id").notNull().references(() => orders.id, { onDelete: "cascade" }),
+  message: text("message").notNull(),
+  createdByEmail: text("created_by_email").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type OrderNote = typeof orderNotes.$inferSelect;
+
+// ============================================
 // RELATIONS
 // ============================================
 export const categoriesRelations = relations(categories, ({ many }) => ({

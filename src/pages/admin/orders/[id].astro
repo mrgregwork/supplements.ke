@@ -4,8 +4,10 @@ import AdminSidebar from "@components/AdminSidebar.astro";
 import { formatPrice } from "@lib/currency";
 import AdminOrderStatusForm from "@components/AdminOrderStatusForm";
 import AdminRefundPanel from "@components/AdminRefundPanel";
+import AdminOrderNotes from "@components/AdminOrderNotes";
 import { getAdminSessionToken, verifyAdminSession, getOrderWithItems } from "@lib/admin";
 import { getRefundRequestsForOrder } from "@lib/refunds";
+import { getOrderNotes } from "@lib/orderNotes";
 import { getOrderCustomerDisplay } from "@lib/customerDisplay";
 
 const sessionToken = getAdminSessionToken(Astro.request);
@@ -25,6 +27,7 @@ if (!order) {
 }
 
 const refundRequests = await getRefundRequestsForOrder(order.id);
+const orderNotes = await getOrderNotes(order.id);
 
 const adminEmail = sessionData?.admin?.email || "Dev Mode";
 const customer = getOrderCustomerDisplay(order);
@@ -66,9 +69,17 @@ const statusColors: Record<string, string> = {
             })}
           </p>
         </div>
-        <span class={`px-3 py-1 text-sm font-medium rounded-full ${statusColors[order.status] || statusColors.pending}`}>
-          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-        </span>
+        <div class="flex items-center gap-3">
+          <a
+            href={`/api/admin/orders/${order.id}/receipt-full.pdf`}
+            class="text-sm text-primary hover:underline"
+          >
+            Download PDF
+          </a>
+          <span class={`px-3 py-1 text-sm font-medium rounded-full ${statusColors[order.status] || statusColors.pending}`}>
+            {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+          </span>
+        </div>
       </div>
       
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -114,8 +125,10 @@ const statusColors: Record<string, string> = {
               </div>
             </div>
           </div>
+
+          <AdminOrderNotes client:load orderId={order.id} notes={orderNotes} />
         </div>
-        
+
         <div class="space-y-6">
           <div class="bg-card border rounded-lg p-4">
             <h3 class="font-semibold mb-4">Update Status</h3>
@@ -189,7 +202,7 @@ const statusColors: Record<string, string> = {
           
           {order.notes && (
             <div class="bg-card border rounded-lg p-4">
-              <h3 class="font-semibold mb-2">Notes</h3>
+              <h3 class="font-semibold mb-2">Customer Note</h3>
               <p class="text-sm text-muted-foreground">{order.notes}</p>
             </div>
           )}
