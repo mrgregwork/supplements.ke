@@ -96,9 +96,7 @@ const statusColors: Record<string, string> = {
                   />
                   <div class="flex-1">
                     <p class="font-medium">{item.productName}</p>
-                    <p class="text-sm text-muted-foreground">
-                      {formatPrice(item.unitPrice, order.currency)} × {item.quantity}
-                    </p>
+                    <p class="text-sm text-muted-foreground">Qty: {item.quantity}</p>
                   </div>
                   <p class="font-medium">{formatPrice(item.totalPrice, order.currency)}</p>
                 </div>
@@ -111,7 +109,7 @@ const statusColors: Record<string, string> = {
                   <span>{formatPrice(order.subtotal, order.currency)}</span>
                 </div>
                 <div class="flex justify-between text-sm">
-                  <span>Shipping</span>
+                  <span>Delivery</span>
                   <span>{formatPrice(order.shipping, order.currency)}</span>
                 </div>
                 <div class="flex justify-between text-sm">
