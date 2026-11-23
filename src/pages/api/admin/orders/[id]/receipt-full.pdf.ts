@@ -38,11 +38,26 @@ export const GET: APIRoute = async ({ params, request }) => {
     getSiteSettings(),
   ]);
 
+  // This site's real wordmark logo (unlike supplements.co.ke, which has no
+  // uploaded-logo feature at all) -- same file Header.astro's light-background
+  // header already shows. Fetched over HTTP from this same running server,
+  // same approach cosmetics.ke/store-template use for their own admin-
+  // uploaded logos, so it works identically in dev and the built output.
+  let logo: Buffer | null = null;
+  try {
+    const origin = new URL(request.url).origin;
+    const logoRes = await fetch(`${origin}/images/logo.png`);
+    if (logoRes.ok) logo = Buffer.from(await logoRes.arrayBuffer());
+  } catch {
+    // Logo is cosmetic -- never fail the PDF over it.
+  }
+
   const pdf = await buildOrderReceiptPdf(
     siteSettings.siteName,
     order,
     order.items,
     refundRequests.length > 0 ? refundRequests : undefined,
+    logo,
   );
 
   return new Response(pdf, {
