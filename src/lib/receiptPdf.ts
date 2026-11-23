@@ -2,8 +2,10 @@ import PDFDocument from "pdfkit";
 
 // Same approach as shopusa.co.ke's shared/receiptPdf.ts (returns a Buffer so
 // Astro's Response can stream it, since Express and Astro consume PDFKit
-// output differently). Uses getSiteSettings() for the site name rather than
-// a hardcoded logo/brand.
+// output differently) -- including its table-column and row() layout
+// techniques, ported here after the original version of this file (plain
+// doc.text() calls with { continued: true }) looked "plainly deconstructed"
+// next to ShopUSA's own receipt.
 export type ReceiptShippingAddress = {
   firstName: string;
   lastName: string;
@@ -57,6 +59,10 @@ export type ReceiptRefund = {
   createdAt: string | Date;
 };
 
+function money(currency: string, amount: number): string {
+  return `${currency} ${amount.toLocaleString("en-KE", { maximumFractionDigits: 0 })}`;
+}
+
 /**
  * Renders an order receipt PDF, with an optional "Refund history" section --
  * added so a refunded order's downloaded PDF can serve as a supporting
@@ -82,11 +88,32 @@ export function buildOrderReceiptPdf(
     doc.on("end", () => resolve(Buffer.concat(chunks)));
     doc.on("error", reject);
 
+    // Draws a label (left) and a value (right, right-aligned) on the same
+    // row, measuring real text height instead of guessing. Plain PDFKit
+    // `{ continued: true }` text can't do this cleanly: once that call
+    // finishes, PDFKit's cursor is left narrowed to whatever sliver of width
+    // the right-hand text used, so any later plain doc.text(str) call with
+    // no coordinates of its own silently wraps inside that same narrow
+    // column instead of the full page width (this is what made the old
+    // version of this file look "scribbled on").
+    function row(left: string, right: string, opts?: { bold?: boolean; color?: string }) {
+      const contentWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+      doc.font(opts?.bold ? "Helvetica-Bold" : "Helvetica").fillColor(opts?.color ?? "#000");
+      const rightWidth = Math.max(doc.widthOfString(right) + 2, 56);
+      const leftWidth = contentWidth - rightWidth - 8;
+      const startY = doc.y;
+      const leftHeight = doc.heightOfString(left, { width: leftWidth });
+      doc.text(left, doc.page.margins.left, startY, { width: leftWidth });
+      doc.text(right, doc.page.margins.left + leftWidth + 8, startY, { width: rightWidth, align: "right" });
+      doc.y = startY + leftHeight;
+      doc.x = doc.page.margins.left;
+    }
+
     if (logo) {
       try {
-        const logoWidth = 90;
+        const logoWidth = 56;
         doc.image(logo, (doc.page.width - logoWidth) / 2, doc.y, { width: logoWidth });
-        doc.moveDown(2.5);
+        doc.moveDown(3.5);
       } catch {
         // Not a decodable image (e.g. a .svg logo pdfkit can't render) --
         // fall through to the plain text header below instead of failing
@@ -95,7 +122,7 @@ export function buildOrderReceiptPdf(
     }
 
     doc.fontSize(14).font("Helvetica-Bold").fillColor("#000").text(siteName, { align: "center" });
-    doc.fontSize(10).font("Helvetica").fillColor("#888").text("Order Receipt", { align: "center" });
+    doc.fontSize(10).font("Helvetica").fillColor("#888").text("Receipt", { align: "center" });
     doc.moveDown(1);
 
     doc.fillColor("#000").fontSize(11).font("Helvetica-Bold").text(`Order ${order.orderNumber}`);
@@ -106,8 +133,8 @@ export function buildOrderReceiptPdf(
     }
     if (order.paymentMethod === "mpesa" && order.mpesaReceiptNumber) doc.text(`M-Pesa code: ${order.mpesaReceiptNumber}`);
     if (order.paymentMethod === "card" && order.cardReference) doc.text(`Card reference: ${order.cardReference}`);
-    doc.moveDown(0.75);
 
+    doc.moveDown(0.6);
     doc.font("Helvetica-Bold").fontSize(9).fillColor("#000").text("Customer");
     doc.font("Helvetica").fontSize(9).fillColor("#444");
     doc.text(order.email);
@@ -120,30 +147,78 @@ export function buildOrderReceiptPdf(
       doc.text(`${a.city}${a.state ? `, ${a.state}` : ""} ${a.postalCode}`);
       doc.text(a.country);
     }
+
     doc.moveDown(0.75);
 
-    doc.font("Helvetica").fontSize(9).fillColor("#000");
-    for (const li of lineItems) {
-      doc.text(`${li.productName} × ${li.quantity}`, { continued: true });
-      doc.text(`${order.currency} ${li.totalPrice.toLocaleString('en-KE', { maximumFractionDigits: 0 })}`, { align: "right" });
+    // A real, hand-positioned table (Item | Qty | Price | Total) -- pdfkit
+    // has no built-in table support, same approach shopusa.co.ke's own
+    // shared/receiptPdf.ts uses for its column-aligned receipt.
+    const tableContentWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+    const colQtyWidth = 32;
+    const colPriceWidth = 72;
+    const colTotalWidth = 72;
+    const colItemWidth = tableContentWidth - colQtyWidth - colPriceWidth - colTotalWidth;
+    const itemX = doc.page.margins.left;
+    const qtyX = itemX + colItemWidth;
+    const priceX = qtyX + colQtyWidth;
+    const totalX = priceX + colPriceWidth;
+
+    function drawTableHeader() {
+      const y = doc.y;
+      doc.font("Helvetica-Bold").fontSize(8).fillColor("#555");
+      doc.text("Item", itemX, y, { width: colItemWidth });
+      doc.text("Qty", qtyX, y, { width: colQtyWidth, align: "right" });
+      doc.text("Price", priceX, y, { width: colPriceWidth, align: "right" });
+      doc.text("Total", totalX, y, { width: colTotalWidth, align: "right" });
+      doc.y = y + 11;
+      doc.x = itemX;
+      doc.moveTo(itemX, doc.y).lineTo(itemX + tableContentWidth, doc.y).lineWidth(0.75).strokeColor("#999").stroke();
+      doc.moveDown(0.35);
+      doc.x = itemX;
     }
 
-    doc.moveDown(0.3);
+    drawTableHeader();
+
+    for (const li of lineItems) {
+      doc.font("Helvetica").fontSize(9);
+      const titleHeight = doc.heightOfString(li.productName, { width: colItemWidth });
+      const rowHeight = Math.max(titleHeight, 12);
+
+      // Re-draws the header on a fresh page so a multi-item order that
+      // spans pages never shows a page of bare numbers with no column
+      // labels.
+      if (doc.y + rowHeight > doc.page.height - doc.page.margins.bottom - 40) {
+        doc.addPage();
+        drawTableHeader();
+      }
+
+      const startY = doc.y;
+      doc.fillColor("#000").font("Helvetica").fontSize(9);
+      doc.text(li.productName, itemX, startY, { width: colItemWidth });
+      doc.text(String(li.quantity), qtyX, startY, { width: colQtyWidth, align: "right" });
+      doc.text(money(order.currency, li.unitPrice), priceX, startY, { width: colPriceWidth, align: "right" });
+      doc.font("Helvetica-Bold").text(money(order.currency, li.totalPrice), totalX, startY, { width: colTotalWidth, align: "right" });
+
+      doc.y = startY + rowHeight;
+      doc.x = itemX;
+      doc.moveDown(0.3);
+      doc.moveTo(itemX, doc.y).lineTo(itemX + tableContentWidth, doc.y).lineWidth(0.5).strokeColor("#eee").stroke();
+      doc.moveDown(0.3);
+      doc.x = itemX;
+    }
+
+    doc.moveDown(0.1);
     doc.moveTo(doc.page.margins.left, doc.y).lineTo(doc.page.width - doc.page.margins.right, doc.y).strokeColor("#ccc").stroke();
     doc.moveDown(0.3);
 
-    doc.font("Helvetica").fontSize(9);
-    doc.text("Subtotal", { continued: true });
-    doc.text(`${order.currency} ${order.subtotal.toLocaleString('en-KE', { maximumFractionDigits: 0 })}`, { align: "right" });
-    doc.text("Shipping", { continued: true });
-    doc.text(`${order.currency} ${order.shipping.toLocaleString('en-KE', { maximumFractionDigits: 0 })}`, { align: "right" });
+    doc.fontSize(9);
+    row("Subtotal", money(order.currency, order.subtotal));
+    row("Delivery", money(order.currency, order.shipping));
     if (order.tax > 0) {
-      doc.text("Tax", { continued: true });
-      doc.text(`${order.currency} ${order.tax.toLocaleString('en-KE', { maximumFractionDigits: 0 })}`, { align: "right" });
+      row("Tax", money(order.currency, order.tax));
     }
-    doc.font("Helvetica-Bold").fontSize(10);
-    doc.text("Total", { continued: true });
-    doc.text(`${order.currency} ${order.total.toLocaleString('en-KE', { maximumFractionDigits: 0 })}`, { align: "right" });
+    doc.fontSize(10);
+    row("Total", money(order.currency, order.total), { bold: true });
 
     if (refunds && refunds.length > 0) {
       doc.moveDown(1);
@@ -152,10 +227,9 @@ export function buildOrderReceiptPdf(
       doc.font("Helvetica-Bold").fontSize(10).fillColor("#000").text("Refund history");
       doc.moveDown(0.3);
       for (const r of refunds) {
-        doc.font("Helvetica-Bold").fontSize(9).fillColor("#000").text(`${order.currency} ${r.amount.toLocaleString('en-KE', { maximumFractionDigits: 0 })}`, { continued: true });
         const statusLabel = r.status === "fulfilled" ? "Fulfilled" : r.status === "cancelled" ? "Cancelled" : "Requested";
         const statusColor = r.status === "fulfilled" ? "#15803d" : r.status === "cancelled" ? "#888" : "#b45309";
-        doc.font("Helvetica").fillColor(statusColor).text(`  ${statusLabel}`, { align: "right" });
+        row(statusLabel, money(order.currency, r.amount), { bold: true, color: statusColor });
         doc.font("Helvetica").fontSize(8).fillColor("#444");
         doc.text(r.reason);
         doc.text(`Requested ${new Date(r.createdAt).toLocaleString("en-GB")} by ${r.requestedByEmail}`);
@@ -202,18 +276,31 @@ export function buildPlainOrderReceiptPdf(
     doc.on("end", () => resolve(Buffer.concat(chunks)));
     doc.on("error", reject);
 
+    function row(left: string, right: string, opts?: { bold?: boolean; color?: string }) {
+      const contentWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+      doc.font(opts?.bold ? "Helvetica-Bold" : "Helvetica").fillColor(opts?.color ?? "#000");
+      const rightWidth = Math.max(doc.widthOfString(right) + 2, 56);
+      const leftWidth = contentWidth - rightWidth - 8;
+      const startY = doc.y;
+      const leftHeight = doc.heightOfString(left, { width: leftWidth });
+      doc.text(left, doc.page.margins.left, startY, { width: leftWidth });
+      doc.text(right, doc.page.margins.left + leftWidth + 8, startY, { width: rightWidth, align: "right" });
+      doc.y = startY + leftHeight;
+      doc.x = doc.page.margins.left;
+    }
+
     if (logo) {
       try {
-        const logoWidth = 90;
+        const logoWidth = 56;
         doc.image(logo, (doc.page.width - logoWidth) / 2, doc.y, { width: logoWidth });
-        doc.moveDown(2.5);
+        doc.moveDown(3.5);
       } catch {
         // Logo is cosmetic -- never fail the PDF over it.
       }
     }
 
     doc.fontSize(14).font("Helvetica-Bold").fillColor("#000").text(siteName, { align: "center" });
-    doc.fontSize(10).font("Helvetica").fillColor("#888").text("Order Receipt", { align: "center" });
+    doc.fontSize(10).font("Helvetica").fillColor("#888").text("Receipt", { align: "center" });
     doc.moveDown(1);
 
     doc.fillColor("#000").fontSize(11).font("Helvetica-Bold").text(`Order ${order.orderNumber}`);
@@ -224,28 +311,69 @@ export function buildPlainOrderReceiptPdf(
     }
     doc.moveDown(0.75);
 
-    doc.font("Helvetica").fontSize(9).fillColor("#000");
-    for (const li of lineItems) {
-      doc.text(`${li.productName} × ${li.quantity}`, { continued: true });
-      doc.text(`${order.currency} ${li.totalPrice.toLocaleString('en-KE', { maximumFractionDigits: 0 })}`, { align: "right" });
+    const tableContentWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+    const colQtyWidth = 32;
+    const colPriceWidth = 72;
+    const colTotalWidth = 72;
+    const colItemWidth = tableContentWidth - colQtyWidth - colPriceWidth - colTotalWidth;
+    const itemX = doc.page.margins.left;
+    const qtyX = itemX + colItemWidth;
+    const priceX = qtyX + colQtyWidth;
+    const totalX = priceX + colPriceWidth;
+
+    function drawTableHeader() {
+      const y = doc.y;
+      doc.font("Helvetica-Bold").fontSize(8).fillColor("#555");
+      doc.text("Item", itemX, y, { width: colItemWidth });
+      doc.text("Qty", qtyX, y, { width: colQtyWidth, align: "right" });
+      doc.text("Price", priceX, y, { width: colPriceWidth, align: "right" });
+      doc.text("Total", totalX, y, { width: colTotalWidth, align: "right" });
+      doc.y = y + 11;
+      doc.x = itemX;
+      doc.moveTo(itemX, doc.y).lineTo(itemX + tableContentWidth, doc.y).lineWidth(0.75).strokeColor("#999").stroke();
+      doc.moveDown(0.35);
+      doc.x = itemX;
     }
 
-    doc.moveDown(0.3);
+    drawTableHeader();
+
+    for (const li of lineItems) {
+      doc.font("Helvetica").fontSize(9);
+      const titleHeight = doc.heightOfString(li.productName, { width: colItemWidth });
+      const rowHeight = Math.max(titleHeight, 12);
+
+      if (doc.y + rowHeight > doc.page.height - doc.page.margins.bottom - 40) {
+        doc.addPage();
+        drawTableHeader();
+      }
+
+      const startY = doc.y;
+      doc.fillColor("#000").font("Helvetica").fontSize(9);
+      doc.text(li.productName, itemX, startY, { width: colItemWidth });
+      doc.text(String(li.quantity), qtyX, startY, { width: colQtyWidth, align: "right" });
+      doc.text(money(order.currency, li.unitPrice), priceX, startY, { width: colPriceWidth, align: "right" });
+      doc.font("Helvetica-Bold").text(money(order.currency, li.totalPrice), totalX, startY, { width: colTotalWidth, align: "right" });
+
+      doc.y = startY + rowHeight;
+      doc.x = itemX;
+      doc.moveDown(0.3);
+      doc.moveTo(itemX, doc.y).lineTo(itemX + tableContentWidth, doc.y).lineWidth(0.5).strokeColor("#eee").stroke();
+      doc.moveDown(0.3);
+      doc.x = itemX;
+    }
+
+    doc.moveDown(0.1);
     doc.moveTo(doc.page.margins.left, doc.y).lineTo(doc.page.width - doc.page.margins.right, doc.y).strokeColor("#ccc").stroke();
     doc.moveDown(0.3);
 
-    doc.font("Helvetica").fontSize(9);
-    doc.text("Subtotal", { continued: true });
-    doc.text(`${order.currency} ${order.subtotal.toLocaleString('en-KE', { maximumFractionDigits: 0 })}`, { align: "right" });
-    doc.text("Shipping", { continued: true });
-    doc.text(`${order.currency} ${order.shipping.toLocaleString('en-KE', { maximumFractionDigits: 0 })}`, { align: "right" });
+    doc.fontSize(9);
+    row("Subtotal", money(order.currency, order.subtotal));
+    row("Delivery", money(order.currency, order.shipping));
     if (order.tax > 0) {
-      doc.text("Tax", { continued: true });
-      doc.text(`${order.currency} ${order.tax.toLocaleString('en-KE', { maximumFractionDigits: 0 })}`, { align: "right" });
+      row("Tax", money(order.currency, order.tax));
     }
-    doc.font("Helvetica-Bold").fontSize(10);
-    doc.text("Total", { continued: true });
-    doc.text(`${order.currency} ${order.total.toLocaleString('en-KE', { maximumFractionDigits: 0 })}`, { align: "right" });
+    doc.fontSize(10);
+    row("Total", money(order.currency, order.total), { bold: true });
 
     doc.moveDown(1);
     doc.font("Helvetica").fontSize(8).fillColor("#888").text(`Thank you for shopping with ${siteName}.`, { align: "center" });

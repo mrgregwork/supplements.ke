@@ -49,7 +49,7 @@ export const GET: APIRoute = async ({ params, request }) => {
     status: 200,
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="${order.orderNumber.replace(/[^a-zA-Z0-9-]/g, "")}.pdf"`,
+      "Content-Disposition": `attachment; filename="${siteSettings.siteName.replace(/["\\]/g, "")} Order #${order.orderNumber.replace(/["\\]/g, "")}.pdf"`,
     },
   });
 };
