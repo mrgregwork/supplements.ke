@@ -176,7 +176,7 @@ export const POST: APIRoute = async ({ request }) => {
       totalPrice: item.product.price * item.quantity,
     }));
 
-    const orderCode = generateOrderCode();
+    const orderCode = await generateOrderCode(siteSettings.orderNumberPrefix);
     const description = buildOrderDescription(itemsSnapshot);
     const gatewayMetadata = {
       orderCode,

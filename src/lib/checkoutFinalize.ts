@@ -3,6 +3,7 @@ import { orders, orderItems, pendingOrders } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
 import { sendOrderConfirmationEmail, sendOrderNotificationEmail } from "../../server/email";
 import { generateOrderCode } from "./orderCode";
+import siteSettings from "../config/siteSettings.json";
 
 // The single place a checkout attempt gets turned into a real order. Called
 // from three independent, race-prone paths -- the E-Payments webhook, the
@@ -80,7 +81,7 @@ export async function finalizePendingOrder(
     // reference the customer already saw and the order confirmation always
     // match. Falls back to generating a fresh one only for a pending_orders
     // row created before this column existed (order_code NULL).
-    const orderNumber = pending.order_code ?? generateOrderCode();
+    const orderNumber = pending.order_code ?? (await generateOrderCode(siteSettings.orderNumberPrefix));
 
     const [newOrder] = await tx
       .insert(orders)
