@@ -58,6 +58,7 @@ export const POST: APIRoute = async ({ request }) => {
       { key: 'airVolumetricDivisor', value: body.airVolumetricDivisor || '306', description: 'Volumetric divisor (cubic inches to kg) for weight-based shipping' },
       { key: 'airMinimumChargeableKg', value: body.airMinimumChargeableKg !== undefined ? String(body.airMinimumChargeableKg) : '0.5', description: 'Minimum chargeable weight in kg for weight-based shipping' },
       { key: 'commissionPercent', value: body.commissionPercent || '10', description: 'Commission/profit margin percentage' },
+      { key: 'logoUrl', value: (body.logoUrl || '').trim(), description: 'Uploaded site logo image URL' },
     ];
     
     // Only update license key if a new one is provided (not empty)

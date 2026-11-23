@@ -36,6 +36,7 @@ const commissionPercent = settingsMap.commissionPercent || '10';
 const airRateUsdPerKg = settingsMap.airRateUsdPerKg || '';
 const airVolumetricDivisor = settingsMap.airVolumetricDivisor || '306';
 const airMinimumChargeableKg = settingsMap.airMinimumChargeableKg || '0.5';
+const logoUrl = settingsMap.logoUrl || '';
 ---
 
 <BaseLayout 
@@ -59,6 +60,28 @@ const airMinimumChargeableKg = settingsMap.airMinimumChargeableKg || '0.5';
           >
             Staff Accounts → manage who can log in and what they can access
           </a>
+        </div>
+
+        <div class="bg-card border rounded-lg p-6">
+          <h3 class="text-lg font-semibold mb-4">Branding</h3>
+          <p class="text-sm text-muted-foreground mb-4">Upload a logo to show in the header, admin sidebar, and order receipts.</p>
+          <div class="flex items-center gap-4">
+            <div class="w-16 h-16 rounded-md border bg-muted flex items-center justify-center overflow-hidden shrink-0" id="logo-preview">
+              {logoUrl ? (
+                <img src={logoUrl} alt="Logo" class="w-full h-full object-contain" />
+              ) : (
+                <span class="text-xs text-muted-foreground">No logo</span>
+              )}
+            </div>
+            <div>
+              <input type="file" id="logo-file" accept="image/*" class="hidden" data-testid="input-logo-file" />
+              <button type="button" id="logo-upload-btn" class="text-sm text-primary hover:underline" data-testid="button-upload-logo">
+                {logoUrl ? 'Replace logo' : 'Upload logo'}
+              </button>
+              <span id="logo-upload-status" class="text-xs text-muted-foreground ml-2"></span>
+            </div>
+          </div>
+          <input type="hidden" id="logoUrl" name="logoUrl" value={logoUrl} />
         </div>
 
         <div class="bg-card border rounded-lg p-6">
@@ -390,6 +413,35 @@ const airMinimumChargeableKg = settingsMap.airMinimumChargeableKg || '0.5';
   const licenseKeyInput = document.getElementById('licenseKey') as HTMLInputElement;
   const toggleKeyBtn = document.getElementById('toggle-key-visibility');
   const verifyLicenseBtn = document.getElementById('verify-license');
+
+  const logoFileInput = document.getElementById('logo-file') as HTMLInputElement | null;
+  const logoUploadBtn = document.getElementById('logo-upload-btn');
+  const logoUrlInput = document.getElementById('logoUrl') as HTMLInputElement | null;
+  const logoPreview = document.getElementById('logo-preview');
+  const logoStatus = document.getElementById('logo-upload-status');
+
+  logoUploadBtn?.addEventListener('click', () => logoFileInput?.click());
+  logoFileInput?.addEventListener('change', async () => {
+    const file = logoFileInput.files?.[0];
+    if (!file) return;
+    if (logoStatus) { logoStatus.textContent = 'Uploading...'; logoStatus.className = 'text-xs text-muted-foreground ml-2'; }
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || 'Upload failed');
+      if (logoUrlInput) logoUrlInput.value = data.url;
+      if (logoPreview) logoPreview.innerHTML = `<img src="${data.url}" alt="Logo" class="w-full h-full object-contain" />`;
+      if (logoUploadBtn) logoUploadBtn.textContent = 'Replace logo';
+      if (logoStatus) { logoStatus.textContent = 'Uploaded — click Save Settings to apply'; logoStatus.className = 'text-xs text-green-600 ml-2'; }
+    } catch (err) {
+      if (logoStatus) {
+        logoStatus.textContent = err instanceof Error ? err.message : 'Upload failed';
+        logoStatus.className = 'text-xs text-red-500 ml-2';
+      }
+    }
+  });
   const licenseStatusBadge = document.getElementById('license-status-badge');
   
   toggleKeyBtn?.addEventListener('click', () => {
@@ -454,6 +506,7 @@ const airMinimumChargeableKg = settingsMap.airMinimumChargeableKg || '0.5';
       airVolumetricDivisor: formData.get('airVolumetricDivisor') as string,
       airMinimumChargeableKg: formData.get('airMinimumChargeableKg') as string,
       commissionPercent: formData.get('commissionPercent') as string,
+      logoUrl: formData.get('logoUrl') as string,
     };
     
     try {

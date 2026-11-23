@@ -10,6 +10,9 @@ export interface SiteSettingsConfig {
   defaultCurrency: string;
   licenseKey: string;
   licenseStatus: string;
+  /** Uploaded logo (/media/... URL, see src/lib/mediaStorage.ts), null until
+   * set -- callers fall back to the static public/images/logo.png themselves. */
+  logoUrl: string | null;
 }
 
 export async function getSiteSettings(): Promise<SiteSettingsConfig> {
@@ -36,6 +39,7 @@ export async function getSiteSettings(): Promise<SiteSettingsConfig> {
     defaultCurrency: settingsMap.defaultCurrency || configDefaults.defaultCurrency || 'KES',
     licenseKey: settingsMap.licenseKey || '',
     licenseStatus: settingsMap.licenseStatus || 'inactive',
+    logoUrl: settingsMap.logoUrl || null,
   };
 }
 
