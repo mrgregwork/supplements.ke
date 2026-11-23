@@ -125,7 +125,7 @@ export function buildOrderReceiptPdf(
     doc.fontSize(10).font("Helvetica").fillColor("#888").text("Receipt", { align: "center" });
     doc.moveDown(1);
 
-    doc.fillColor("#000").fontSize(11).font("Helvetica-Bold").text(`Order ${order.orderNumber}`);
+    doc.fillColor("#000").fontSize(11).font("Helvetica-Bold").text(`Order #${order.orderNumber}`);
     doc.font("Helvetica").fontSize(9).fillColor("#444");
     doc.text(`Date: ${new Date(order.createdAt).toLocaleString("en-GB")}`);
     if (order.paymentMethod) {
@@ -303,7 +303,7 @@ export function buildPlainOrderReceiptPdf(
     doc.fontSize(10).font("Helvetica").fillColor("#888").text("Receipt", { align: "center" });
     doc.moveDown(1);
 
-    doc.fillColor("#000").fontSize(11).font("Helvetica-Bold").text(`Order ${order.orderNumber}`);
+    doc.fillColor("#000").fontSize(11).font("Helvetica-Bold").text(`Order #${order.orderNumber}`);
     doc.font("Helvetica").fontSize(9).fillColor("#444");
     doc.text(`Date: ${new Date(order.createdAt).toLocaleString("en-GB")}`);
     if (order.paymentMethod) {
