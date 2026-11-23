@@ -8,9 +8,10 @@ interface Props {
 const { adminRole = "admin", currentPage = "dashboard" } = Astro.props;
 const isStaff = adminRole === "staff";
 
-// A 'staff' account is Products-only (see src/middleware.ts, which is what
-// actually enforces this -- this list just keeps the sidebar from showing
-// links staff would be bounced straight back out of).
+// A 'staff' account gets Products + Orders (full access) + Categories (view
+// only) (see src/middleware.ts, which is what actually enforces this -- this
+// list just keeps the sidebar from showing links staff would be bounced
+// straight back out of).
 const fullNavItems = [
   { id: "dashboard", href: "/admin", label: "Dashboard", icon: "home" },
   {
@@ -34,7 +35,7 @@ const fullNavItems = [
 ];
 
 const navItems = isStaff
-  ? fullNavItems.filter((item) => item.id === "products" || item.id === "import-csv")
+  ? fullNavItems.filter((item) => ["products", "import-csv", "orders", "categories"].includes(item.id))
   : fullNavItems;
 
 const iconPaths: Record<string, string> = {
