@@ -337,6 +337,14 @@ export const products = pgTable("products", {
   // products it personally created (enforced in the products API routes,
   // not here); staff can still edit any product regardless of this field.
   createdBy: varchar("created_by").references(() => adminUsers.id, { onDelete: "set null" }),
+  // Who last saved this product, set on every PUT (products/[id].ts) --
+  // unlike createdBy, this is overwritten on each edit, so it only ever
+  // reflects the most recent save. Added after a real incident on
+  // cosmetics.ke/supplements.co.ke: a staff account marked a large batch of
+  // pre-existing products Out of Stock, and the only way to confirm that
+  // was correlating admin_users.created_at against products.updated_at by
+  // hand. This makes that directly attributable going forward.
+  updatedBy: varchar("updated_by").references(() => adminUsers.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

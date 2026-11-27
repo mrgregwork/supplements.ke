@@ -66,7 +66,13 @@ export const PUT: APIRoute = async ({ params, request }) => {
       );
     }
     
-    const product = await updateProduct(id, parseResult.data);
+    const product = await updateProduct(id, {
+      ...parseResult.data,
+      // Null in dev mode (no real session) -- same convention as every
+      // other admin-attribution field in this codebase (e.g. refund
+      // requestedByEmail), which likewise has nothing real to record then.
+      updatedBy: sessionData?.admin?.id ?? null,
+    });
     
     return new Response(
       JSON.stringify({ success: true, product }),
